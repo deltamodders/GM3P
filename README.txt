@@ -1,6 +1,6 @@
 README
 
-If you just want to know how to start it up, go to \GameMakerxDeltaCombiner\bin\Debug\Net8.0\GameMakerxDeltaCombiner.exe
+If you just want to know where the .exe file is located, it's at \GameMakerxDeltaCombiner\bin\Debug\Net8.0\GameMakerxDeltaCombiner.exe
 
 Section 1: Operation Instructions
 	
@@ -29,12 +29,11 @@ Section 2: Technical Information
 	Part 2.1: System Requirements
 		2.1.2: System Requirements
 			OS: Windows 10 2004 or Later
-			OS Components: WSL/Windows Subsystem for Linux
 			CPU: virtualization support
 			Storage: 64MB
 			RAM: 32MB
 			Software: UTMT/UndertaleModTool
-			Software (cont.): the Ubuntu version of xDelta3 CLI
+			Software (cont.): An xDelta Patcher that has Command Line arguments available.
 		2.1.3: System Recommended
 			OS: Windows 11
 			Storage: 2GB in the C: drive
@@ -45,8 +44,7 @@ Section 2: Technical Information
 		xDeltaCombiner\(2+): Single Mod Folder
 		xDeltaCombiner\#\Objects: GameMaker Objects location
 	Part 2.3: Known Issues and limitations
-		There is a current known issue of the program only accepting patches in the C: drive.
-		There is a current known issue of the program crashing when trying to compare objects in the subfolders of #\Objects\
+		There is a current known issue of the program crashing when trying to compare objects in the subfolders of #\Objects\ (This is most common in sprite mods)
 		Limitation: Can only apply patches meant for the same version of the same game. Can't mix and match
 		Limitation: If 2 mods modify the same object, only the changes for the last affect mod entered applies.
 	Part 2.4: Tools used

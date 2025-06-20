@@ -15,7 +15,9 @@ Console.WriteLine("Type however many mods you want to patch: ");
 int modAmount = Convert.ToInt32(Console.ReadLine());
 if (vanilla != "skip")
 {
-    string DeltaPatcher = @"F:\Downloads\xdelta3-3.1.0-x86_64.exe";
+    Console.WriteLine("Enter in the path of a xdelta3 executable: ");
+    string DeltaPatcher2 = Console.ReadLine();
+    string DeltaPatcher = DeltaPatcher2.Replace("\"", "");
     Directory.CreateDirectory(@"C:\xDeltaCombiner");
     for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
     {
