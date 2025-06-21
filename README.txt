@@ -43,7 +43,9 @@ Section 2: Technical Information
 		xDeltaCombiner\(2+): Single Mod Folder
 		xDeltaCombiner\#\Objects: GameMaker Objects location
 	Part 2.3: Known Issues and limitations
-		Issue: Modded objects that are in a subfolder of "\Objects\" don't get placed in a similar subfolder of "\xDeltaCombiner\1\Objects"
+		Issue: Modded objects that are in the subfolders of "#\Objects" do not copy to a subfolder of "1\Objects"
+		Issue: Sprites don't get imported correctly
+		Issue: As of writing this, the CLI version of UTMT is broken. You will still have to dump and import objects manually.
 		Limitation: Can only apply patches meant for the same version of the same game. Can't mix and match
 		Limitation: If 2 mods modify the same object, only the changes for the last affect mod entered applies.
 		Haven't implemented yet: Error Handling
