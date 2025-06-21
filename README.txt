@@ -1,19 +1,18 @@
 README
 
-If you just want to know where the .exe file is located, it's at \GameMakerxDeltaCombiner\bin\Debug\Net8.0\GameMakerxDeltaCombiner.exe
-
 Section 1: Operation Instructions
 	
 	Part 1.1: Common
 		1.1.1 First Enter in the path of the vanilla data.win of the file. If you just want to dump and combine already prepared modded data.win files, enter "skip" into this field. Hit Enter. 
 		1.1.2 Then enter in the amount of mods you want to operate on as an integer (e.g. "2" for 2 mods).
 	Part 1.2: Mass Apply Patches
+		1.2.1 Enter in the path of an xDelta patching utility
 		1.2.1 One at a time, enter in the path of your xDelta patches, hitting enter in between each one.
 		1.2.2 NOTE: There is a current known issue of the program only accepting patches in the C: drive.
 		1.2.3 Wait for xDelta3 to finish patching the data.win files
 		1.2.4 If you just wanted to make a ton of single-mod data.win copies of your game, you may exit the terminal now
 	Part 1.3: Dump and Combine
-		1.3.1 Because of the current version of UTMT CLI as of the time of writing (0.8.2.0) is broken, the program can't auto-dump the files from the data.win, and it must be done manually.
+		1.3.1 Because of the current version of UTMT CLI as of the time of writing (0.8.2.0) is broken, the program can't auto-dump the files from the data.win, and it must be done manually. Type in "skip" and hit enter.
 		1.3.2 If you have never opened UTMT before, open it once in order to set .win files to it, then close it.
 		1.3.3 Open up each of the data.win files (with the exception of C:\xDeltaCombiner\1\data.win), then hit "Scripts" on the top left. Run "ExportAllCode.csx" and "ExportAllTilesets.csx" (only assets types that were tested)
 		1.3.4 When asked where to save them save it in the Objects subfolder of the directory that data.win is in.
@@ -23,12 +22,12 @@ Section 1: Operation Instructions
 		1.3.8 Open up C:\xDeltaCombiner\1\data.win in UTMT, and run the scripts "ImportGML.csx" and "ImportAllTileSets.csx", choose C:\xDeltaCombiner\1\Objects as the selected folder
 		1.3.9 Hit File -> Save and then hit enter. It will ask if you want to replace it, hit "yes"
 		1.3.10 Your complete data.win is located at C:\xDeltaCombiner\1\data.win
-		1.3.11 Note there is no garbage collection, so you will have to delete the files in C:\xDeltaCombiner\#\Objects to run the program successfully again
+		1.3.11 Once you hit enter again, the program will delete C:\xDeltaCombiner and close. 
 
 Section 2: Technical Information
 	Part 2.1: System Requirements
 		2.1.2: System Requirements
-			OS: Windows 10 2004 or Later
+			OS: Windows 8.1
 			CPU: virtualization support
 			Storage: 64MB
 			RAM: 32MB
@@ -44,9 +43,11 @@ Section 2: Technical Information
 		xDeltaCombiner\(2+): Single Mod Folder
 		xDeltaCombiner\#\Objects: GameMaker Objects location
 	Part 2.3: Known Issues and limitations
-		There is a current known issue of the program crashing when trying to compare objects in the subfolders of #\Objects\ (This is most common in sprite mods)
+		Issue: Modded objects that are in a subfolder of "\Objects\" don't get placed in a similar subfolder of "\xDeltaCombiner\1\Objects"
 		Limitation: Can only apply patches meant for the same version of the same game. Can't mix and match
 		Limitation: If 2 mods modify the same object, only the changes for the last affect mod entered applies.
+		Haven't implemented yet: Error Handling
+		Haven't implemented yet: the lib version of UTMT
 	Part 2.4: Tools used
 		xDelta3 CLI for applying mods
 		UndertaleModTool for dumping and importing GameMaker Objects
