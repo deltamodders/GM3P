@@ -87,6 +87,7 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
     {
 
         string[] modFileDir = Directory.GetDirectories(Path.GetDirectoryName(modFiles[i]));
+        Console.WriteLine(modFileDir);
         for (int j = 0; j < vanillaFileCount; j++)
         {
             if (Path.GetFileName(vanillaFiles[j]) == Path.GetFileName(modFiles[i]))
@@ -113,10 +114,9 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                             }
                             if (modFileDir.Length>3)
                             {
-                                if (!Directory.Exists("C:\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4]))
-                                {
-                                    Directory.CreateDirectory("C:\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4]);
-                                }
+                            
+                                Directory.CreateDirectory("C:\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4]);
+                                
                                 File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), "C:\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4] + "\\" +Path.GetFileName(vanillaFiles[j]), true);
                             }
                         }
