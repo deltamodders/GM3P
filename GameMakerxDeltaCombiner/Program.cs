@@ -1,11 +1,12 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System;
 using System.Security.Cryptography;
 using System.Text;
 
+Console.WriteLine(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName));
 Console.WriteLine("Mass Mod Patcher (GameMaker games only ATM)");
 Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if you just want to compare and combine:");
 string? vanilla2 = Console.ReadLine();
@@ -99,28 +100,36 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                 {
                     string vanillaHash = Convert.ToBase64String(vanillaHashing.ComputeHash(fs));
                     SHA1 modHashing = new SHA1CryptoServiceProvider();
-
-                    using (FileStream fx = File.OpenRead(modFiles[j]))
+                    if (modFileCount >= vanillaFileCount)
                     {
-                        string modHash = Convert.ToBase64String(modHashing.ComputeHash(fx));
-                        Console.WriteLine(modHash);
-
-                        if (modHash != vanillaHash)
+                        using (FileStream fx = File.OpenRead(modFiles[j]))
                         {
-                            Console.WriteLine(vanillaHash);
-                            if (modFileDir.Length<=3)
+                            try
                             {
-                                File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), "C:\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[j]), true);
-                            }
-                            if (modFileDir.Length>3)
-                            {
-                            
-                                Directory.CreateDirectory("C:\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4]);
-                                
-                                File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), "C:\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4] + "\\" +Path.GetFileName(vanillaFiles[j]), true);
-                            }
-                        }
+                                string modHash = Convert.ToBase64String(modHashing.ComputeHash(fx));
+                                Console.WriteLine(modHash);
 
+                                if (modHash != vanillaHash)
+                                {
+                                    Console.WriteLine(vanillaHash);
+                                    if (modFileDir.Length <= 3)
+                                    {
+                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), "C:\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                    }
+                                    if (modFileDir.Length > 3)
+                                    {
+
+                                        Directory.CreateDirectory("C:\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4]);
+
+                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), "C:\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4] + "\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                            }
+
+                        }
                     }
                 }
 
