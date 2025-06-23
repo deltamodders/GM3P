@@ -87,22 +87,24 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
     for (int i = 0; i < modFileCount; i++)
     {
 
-        string[] modFileDir = Directory.GetDirectories(Path.GetDirectoryName(modFiles[i]));
-        Console.WriteLine(modFileDir);
+        string? modFileDir = Directory.GetParent(modFiles[i]).Name;
+        
         for (int j = 0; j < vanillaFileCount; j++)
         {
             if (Path.GetFileName(vanillaFiles[j]) == Path.GetFileName(modFiles[i]))
             {
                 Console.WriteLine("Currently Comparing " + Path.GetFileName(vanillaFiles[j])+ " to " + Path.GetFileName(modFiles[i]));
-                SHA1 vanillaHashing = new SHA1CryptoServiceProvider();
 
-                using (FileStream fs = File.OpenRead(vanillaFiles[j]))
+                if (vanillaFileCount <= modFileCount)
                 {
-                    string vanillaHash = Convert.ToBase64String(vanillaHashing.ComputeHash(fs));
-                    SHA1 modHashing = new SHA1CryptoServiceProvider();
-                    if (modFileCount >= vanillaFileCount)
+                    SHA1 vanillaHashing = new SHA1CryptoServiceProvider();
+
+                    using (FileStream fs = File.OpenRead(vanillaFiles[j]))
                     {
-                        using (FileStream fx = File.OpenRead(modFiles[j]))
+                        string vanillaHash = Convert.ToBase64String(vanillaHashing.ComputeHash(fs));
+                        SHA1 modHashing = new SHA1CryptoServiceProvider();
+
+                        using (FileStream fx = File.OpenRead(modFiles[i]))
                         {
                             try
                             {
@@ -112,16 +114,17 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                                 if (modHash != vanillaHash)
                                 {
                                     Console.WriteLine(vanillaHash);
-                                    if (modFileDir.Length <= 3)
+
+                                    if (modFileDir == "Objects")
                                     {
+
                                         File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[j]), true);
                                     }
-                                    if (modFileDir.Length > 3)
+                                    if (modFileDir != "Objects")
                                     {
+                                        Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
 
-                                        Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4]);
-
-                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir[4] + "\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
                                     }
                                 }
                             }
@@ -130,6 +133,48 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                             }
 
                         }
+
+                    }
+                }
+                if (vanillaFileCount > modFileCount)
+                {
+                    SHA1 modHashing = new SHA1CryptoServiceProvider();
+
+                    using (FileStream fs = File.OpenRead(modFiles[j]))
+                    {
+                        string modHash = Convert.ToBase64String(modHashing.ComputeHash(fs));
+                        SHA1 vanillaHashing = new SHA1CryptoServiceProvider();
+
+                        using (FileStream fx = File.OpenRead(vanillaFiles[j]))
+                        {
+                            try
+                            {
+                                string vanillaHash = Convert.ToBase64String(vanillaHashing.ComputeHash(fx));
+                                Console.WriteLine(modHash);
+
+                                if (modHash != vanillaHash)
+                                {
+                                    Console.WriteLine(vanillaHash);
+
+                                    if (modFileDir == "Objects")
+                                    {
+
+                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                    }
+                                    if (modFileDir != "Objects")
+                                    {
+                                        Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
+
+                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                            }
+
+                        }
+
                     }
                 }
 
@@ -154,7 +199,7 @@ if (modTool != "skip")
     using (var modToolProc = new Process())
     {
         modToolProc.StartInfo.FileName = @modTool;
-        modToolProc.StartInfo.Arguments = "-v -o " + output + "\\xDeltaCombiner\\1\\Objects\\" + " -c UMT_REPLACE_ALL replace output + \"\\xDeltaCombiner\\1\\Objects\\" + "C:\\xDeltaCombiner\\1\\data.win";
+        modToolProc.StartInfo.Arguments = "-v -o " + output + "\\xDeltaCombiner\\1\\Objects\\" + " -c UMT_REPLACE_ALL replace " + output + "\"\\xDeltaCombiner\\1\\Objects\\ " + "C:\\xDeltaCombiner\\1\\data.win";
         modToolProc.StartInfo.CreateNoWindow = false;
         modToolProc.Start();
     }
