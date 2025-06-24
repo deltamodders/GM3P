@@ -133,12 +133,12 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                 {
                     SHA1 modHashing = new SHA1CryptoServiceProvider();
 
-                    using (FileStream fs = File.OpenRead(modFiles[j]))
+                    using (FileStream fs = File.OpenRead(modFiles[i]))
                     {
                         string modHash = Convert.ToBase64String(modHashing.ComputeHash(fs));
                         SHA1 vanillaHashing = new SHA1CryptoServiceProvider();
 
-                        using (FileStream fx = File.OpenRead(vanillaFiles[j]))
+                        using (FileStream fx = File.OpenRead(vanillaFiles[i]))
                         {
                             try
                             {
