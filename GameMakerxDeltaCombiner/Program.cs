@@ -49,7 +49,7 @@ if (vanilla != "skip")
         using (var bashProc = new Process())
         {
             bashProc.StartInfo.FileName = DeltaPatcher;
-            bashProc.StartInfo.Arguments = "-d -f -s " + output + "\\xDeltaCombiner\\0\\data.win" + " \"" + xDeltaFile[modNumber] + "\" "+output+"\\xDeltaCombiner\\" + modNumber + "\\data.win" + " ";
+            bashProc.StartInfo.Arguments = "-d -f -s " + output + "\\xDeltaCombiner\\0\\data.win" + " \"" + xDeltaFile[modNumber] + "\" \""+output+"\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ";
             bashProc.StartInfo.CreateNoWindow = false;
             bashProc.Start();
         }
@@ -80,17 +80,15 @@ if (modTool == "skip")
 Console.ReadLine();
 for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
 {
-    int vanillaFileCount = Convert.ToInt32(Directory.GetFiles(output + "\\xDeltaCombiner\\0\\Objects\\", " * ", SearchOption.AllDirectories).Length);
-    int modFileCount = Convert.ToInt32(Directory.GetFiles(output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories).Length);
-    string[] vanillaFiles = Directory.GetFiles(output + "\\xDeltaCombiner\\0\\Objects\\", " * ", SearchOption.AllDirectories);
-    string[] modFiles = Directory.GetFiles(output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories);
+    int vanillaFileCount = Convert.ToInt32(Directory.GetFiles("" + output + "\\xDeltaCombiner\\0\\Objects\\", "*", SearchOption.AllDirectories).Length);
+    int modFileCount = Convert.ToInt32(Directory.GetFiles("" + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories).Length);
+    string[] vanillaFiles = Directory.GetFiles("" + output + "\\xDeltaCombiner\\0\\Objects\\", "*", SearchOption.AllDirectories);
+    string[] modFiles = Directory.GetFiles("" +output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories);
     for (int i = 0; i < modFileCount; i++)
     {
-
-        string? modFileDir = Directory.GetParent(modFiles[i]).Name;
-        
         for (int j = 0; j < vanillaFileCount; j++)
         {
+            string? modFileDir = Directory.GetParent(modFiles[i]).Name;
             if (Path.GetFileName(vanillaFiles[j]) == Path.GetFileName(modFiles[i]))
             {
                 Console.WriteLine("Currently Comparing " + Path.GetFileName(vanillaFiles[j])+ " to " + Path.GetFileName(modFiles[i]));
@@ -104,17 +102,15 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                         string vanillaHash = Convert.ToBase64String(vanillaHashing.ComputeHash(fs));
                         SHA1 modHashing = new SHA1CryptoServiceProvider();
 
-                        using (FileStream fx = File.OpenRead(modFiles[i]))
+                        using (FileStream fx = File.OpenRead(modFiles[j]))
                         {
-                            try
-                            {
                                 string modHash = Convert.ToBase64String(modHashing.ComputeHash(fx));
                                 Console.WriteLine(modHash);
 
                                 if (modHash != vanillaHash)
                                 {
                                     Console.WriteLine(vanillaHash);
-
+                                    Console.WriteLine(modFileDir);
                                     if (modFileDir == "Objects")
                                     {
 
@@ -127,10 +123,7 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                                         File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
                                     }
                                 }
-                            }
-                            catch
-                            {
-                            }
+                            
 
                         }
 
@@ -155,7 +148,7 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                                 if (modHash != vanillaHash)
                                 {
                                     Console.WriteLine(vanillaHash);
-
+                                    Console.WriteLine(modFileDir);
                                     if (modFileDir == "Objects")
                                     {
 
