@@ -88,7 +88,7 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
     {
         for (int j = 0; j < vanillaFileCount; j++)
         {
-            string? modFileDir = Directory.GetParent(modFiles[i]).Name;
+            string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFiles[i])).Name + "\\" + Directory.GetParent(modFiles[i]).Name;
             if (Path.GetFileName(vanillaFiles[j]) == Path.GetFileName(modFiles[i]))
             {
                 Console.WriteLine("Currently Comparing " + Path.GetFileName(vanillaFiles[j])+ " to " + Path.GetFileName(modFiles[i]));
@@ -111,12 +111,12 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                                 {
                                     Console.WriteLine(vanillaHash);
                                     Console.WriteLine(modFileDir);
-                                    if (modFileDir == "Objects")
+                                    if (modFileDir == (modNumber+"\\Objects"))
                                     {
 
                                         File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[j]), true);
                                     }
-                                    if (modFileDir != "Objects")
+                                    if (modFileDir != (modNumber + "\\Objects"))
                                     {
                                         Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
 
@@ -149,12 +149,12 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                                 {
                                     Console.WriteLine(vanillaHash);
                                     Console.WriteLine(modFileDir);
-                                    if (modFileDir == "Objects")
+                                    if (modFileDir == (modNumber + "\\Objects"))
                                     {
 
                                         File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[j]), true);
                                     }
-                                    if (modFileDir != "Objects")
+                                    if (modFileDir != (modNumber + "\\Objects"))
                                     {
                                         Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
 
