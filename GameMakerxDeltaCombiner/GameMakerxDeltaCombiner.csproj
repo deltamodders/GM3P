@@ -8,9 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="depend\**" />
-    <EmbeddedResource Remove="depend\**" />
-    <None Remove="depend\**" />
+    <None Include="depend\Underanalyzer\.github\ISSUE_TEMPLATE\compiler-bug-report.md" />
+    <None Include="depend\Underanalyzer\.github\ISSUE_TEMPLATE\decompiler-bug-report.md" />
+    <None Include="depend\Underanalyzer\.github\ISSUE_TEMPLATE\feature_request.md" />
+    <None Include="depend\Underanalyzer\.github\ISSUE_TEMPLATE\general-bug-report.md" />
+    <None Include="depend\Underanalyzer\.github\workflows\dotnet-desktop.yml" />
+    <None Include="depend\Underanalyzer\Underanalyzer.sln" />
+    <None Include="depend\Underanalyzer\UnderanalyzerTests.csproj" />
+    <None Include="depend\Underanalyzer\UnderanalyzerTest\UnderanalyzerTest.csproj" />
+    <None Include="depend\Underanalyzer\Underanalyzer\Underanalyzer.csproj" />
+    <None Include="depend\UndertaleModLib\UndertaleModLib.csproj" />
   </ItemGroup>
 
 </Project>
