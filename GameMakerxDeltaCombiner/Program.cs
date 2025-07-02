@@ -16,8 +16,8 @@ Console.WriteLine("Type however many mods you want to patch: ");
 int modAmount = Convert.ToInt32(Console.ReadLine());
 if (vanilla != "skip")
 {
-    Console.WriteLine("Enter in the path of a xdelta3 executable: ");
-    string DeltaPatcher2 = Console.ReadLine();
+    //Console.WriteLine("Enter in the path of a xdelta3 executable: ");
+    string DeltaPatcher2 = Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)) + "\\xdelta3-3.0.11-x86_64.exe";
     string DeltaPatcher = DeltaPatcher2.Replace("\"", "");
     Directory.CreateDirectory(@"C:\xDeltaCombiner");
     for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
@@ -49,32 +49,37 @@ if (vanilla != "skip")
         using (var bashProc = new Process())
         {
             bashProc.StartInfo.FileName = DeltaPatcher;
-            bashProc.StartInfo.Arguments = "-d -f -s " + output + "\\xDeltaCombiner\\0\\data.win" + " \"" + xDeltaFile[modNumber] + "\" \""+output+"\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ";
+            bashProc.StartInfo.Arguments = "-v -d -f -s " + output + "\\xDeltaCombiner\\0\\data.win" + " \"" + xDeltaFile[modNumber] + "\" \""+output+"\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ";
             bashProc.StartInfo.CreateNoWindow = false;
             bashProc.Start();
+            bashProc.WaitForExit();
         }
     }
 }
-Console.WriteLine("Wait for your xDelta Patcher to finish applying patches, then enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to manually dump and import enter \"skip\"");
+Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
 Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may exit the terminal once DeltaPatcher is done");
 string? modTool = Console.ReadLine();
+if (modTool == null || modTool == "")
+{
+    modTool = Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)) + "\\UTMTCLI\\UndertaleModCli.exe";
+}
 if (modTool != "skip")
 {
-    //for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
-    //{
-    //    if (modNumber != 1)
-    //    {
-    //        using (var modToolProc = new Process())
-    //        {
-    //            modToolProc.StartInfo.FileName = @modTool;
-    //            modToolProc.StartInfo.Arguments = "dump " + output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\" + " --code UMT_DUMP_ALL ";
-    //            modToolProc.StartInfo.CreateNoWindow = false;
-    //            modToolProc.Start();
-    //            modToolProc.WaitForExit();
-    //        }
-    //    }
-    //}
-        Console.WriteLine("Wait for the dumping process(es) to finish, then hit enter");
+    for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
+    {
+        if (modNumber != 1)
+        {
+            using (var modToolProc = new Process())
+            {
+                modToolProc.StartInfo.FileName = @modTool;
+                modToolProc.StartInfo.Arguments = "dump " + output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\" + " --code UMT_DUMP_ALL ";
+                modToolProc.StartInfo.CreateNoWindow = false;
+                modToolProc.Start();
+                modToolProc.WaitForExit();
+            }
+        }
+    }
+    Console.WriteLine("Wait for the dumping process(es) to finish, then hit enter");
 }
 if (modTool == "skip")
 {
@@ -200,6 +205,7 @@ if (modTool != "skip")
         modToolProc.StartInfo.Arguments = "replace " + output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\1\\data.win" + " --code UMT_REPLACE_ALL="+output+ "\\xDeltaCombiner\\1\\Objects\\Objects\\CodeEntries\\";
         modToolProc.StartInfo.CreateNoWindow = false;
         modToolProc.Start();
+        modToolProc.WaitForExit();
     }
 }
 Console.WriteLine("Press Enter To Clean up (Will delete C:\\xDeltaCombiner) and exit");
