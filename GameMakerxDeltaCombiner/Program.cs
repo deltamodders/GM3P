@@ -60,17 +60,21 @@ Console.WriteLine("If you don't want to combine patches and just wanted to apply
 string? modTool = Console.ReadLine();
 if (modTool != "skip")
 {
-    for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
-    {
-        using (var modToolProc = new Process())
-        {
-            modToolProc.StartInfo.FileName = @modTool;
-            modToolProc.StartInfo.Arguments = "--verbose --output " + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\" + " --code UMT_DUMP_ALL dump " + "C:\\xDeltaCombiner\\" + modNumber + "\\data.win";
-            modToolProc.StartInfo.CreateNoWindow = false;
-            modToolProc.Start();
-        }
-    }
-    Console.WriteLine("Wait for the dumping process(es) to finish, then hit enter");
+    //for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
+    //{
+    //    if (modNumber != 1)
+    //    {
+    //        using (var modToolProc = new Process())
+    //        {
+    //            modToolProc.StartInfo.FileName = @modTool;
+    //            modToolProc.StartInfo.Arguments = "dump " + output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\" + " --code UMT_DUMP_ALL ";
+    //            modToolProc.StartInfo.CreateNoWindow = false;
+    //            modToolProc.Start();
+    //            modToolProc.WaitForExit();
+    //        }
+    //    }
+    //}
+        Console.WriteLine("Wait for the dumping process(es) to finish, then hit enter");
 }
 if (modTool == "skip")
 {
@@ -182,7 +186,8 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
     }
 
 }
-Console.WriteLine("Comparing is done");
+Console.WriteLine("Comparing is done. Hit Enter to Continue.");
+Console.ReadLine();
 if (modTool == "skip")
 {
     Console.WriteLine("In order to replace and import manually, load up the data.win in \\xDeltaCombiner\\1\\ into the GUI version of UTMT and run the script ImportGML.csx. Select \"C:\\xDeltaCombiner\\*currentsubfolder*\\Objects\\\" as the import folder. Once finished, exit and saving.");
@@ -192,7 +197,7 @@ if (modTool != "skip")
     using (var modToolProc = new Process())
     {
         modToolProc.StartInfo.FileName = @modTool;
-        modToolProc.StartInfo.Arguments = "-v -o " + output + "\\xDeltaCombiner\\1\\Objects\\" + " -c UMT_REPLACE_ALL replace " + output + "\"\\xDeltaCombiner\\1\\Objects\\ " + "C:\\xDeltaCombiner\\1\\data.win";
+        modToolProc.StartInfo.Arguments = "replace " + output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\1\\data.win" + " --code UMT_REPLACE_ALL="+output+ "\\xDeltaCombiner\\1\\Objects\\Objects\\CodeEntries\\";
         modToolProc.StartInfo.CreateNoWindow = false;
         modToolProc.Start();
     }
