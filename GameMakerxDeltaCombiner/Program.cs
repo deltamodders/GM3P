@@ -6,18 +6,21 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
-Console.WriteLine("Mass Mod Patcher (GameMaker games only ATM)");
+double Version = 0.3;
+Console.WriteLine("GM3P v" + Version + ".0-alpha2");
+Console.WriteLine(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)))) + "\\output\\xDeltaCombiner\\1\\Objects\\Objects\\EmbeddedTextures\\");
 Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if you just want to compare and combine:");
 string? vanilla2 = Console.ReadLine();
 string vanilla = vanilla2.Replace("\"","");
-string output = Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)) + "\\output";
+string pwd = Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName));
+string output = pwd + "\\output";
 
 Console.WriteLine("Type however many mods you want to patch: ");
 int modAmount = Convert.ToInt32(Console.ReadLine());
 if (vanilla != "skip")
 {
     //Console.WriteLine("Enter in the path of a xdelta3 executable: ");
-    string DeltaPatcher2 = Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)) + "\\xdelta3-3.0.11-x86_64.exe";
+    string DeltaPatcher2 = pwd + "\\xdelta3-3.0.11-x86_64.exe";
     string DeltaPatcher = DeltaPatcher2.Replace("\"", "");
     Directory.CreateDirectory(@"C:\xDeltaCombiner");
     for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
@@ -57,29 +60,45 @@ if (vanilla != "skip")
     }
 }
 Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
-Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may exit the terminal once DeltaPatcher is done");
+Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may exit the terminal now");
 string? modTool = Console.ReadLine();
 if (modTool == null || modTool == "")
 {
-    modTool = Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)) + "\\UTMTCLI\\UndertaleModCli.exe";
+    modTool = pwd + "\\UTMTCLI\\UndertaleModCli.exe";
 }
 if (modTool != "skip")
 {
-    for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
-    {
-        if (modNumber != 1)
-        {
-            using (var modToolProc = new Process())
-            {
-                modToolProc.StartInfo.FileName = @modTool;
-                modToolProc.StartInfo.Arguments = "dump " + output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\" + " --code UMT_DUMP_ALL ";
-                modToolProc.StartInfo.CreateNoWindow = false;
-                modToolProc.Start();
-                modToolProc.WaitForExit();
-            }
-        }
-    }
-    Console.WriteLine("Wait for the dumping process(es) to finish, then hit enter");
+    //for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
+    //{
+    //    if (modNumber != 1)
+    //    {
+    //        using (var modToolProc = new Process())
+    //        {
+    //            modToolProc.StartInfo.FileName = @modTool;
+    //            modToolProc.StartInfo.Arguments = "dump " + output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\" + " --code UMT_DUMP_ALL ";
+    //            modToolProc.StartInfo.CreateNoWindow = false;
+    //            modToolProc.Start();
+    //            modToolProc.WaitForExit();
+    //        }
+    //    }
+    //}
+    //Console.WriteLine("The code dumping process(es) are finish, then hit enter");
+    //Console.ReadLine();
+    //for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
+    //{
+    //    if (modNumber != 1)
+    //    {
+    //        using (var modToolProc = new Process())
+    //        {
+    //            modToolProc.StartInfo.FileName = @modTool;
+    //            modToolProc.StartInfo.Arguments = "dump " + output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\" + " --textures";
+    //            modToolProc.StartInfo.CreateNoWindow = false;
+    //            modToolProc.Start();
+    //            modToolProc.WaitForExit();
+    //        }
+    //    }
+    //}
+    Console.WriteLine("The sprite dumping process(es) are finished");
 }
 if (modTool == "skip")
 {
@@ -95,9 +114,10 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
     string[] modFiles = Directory.GetFiles("" +output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories);
     for (int i = 0; i < modFileCount; i++)
     {
+        string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFiles[i])).Name + "\\" + Directory.GetParent(modFiles[i]).Name;
         for (int j = 0; j < vanillaFileCount; j++)
         {
-            string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFiles[i])).Name + "\\" + Directory.GetParent(modFiles[i]).Name;
+            
             if (Path.GetFileName(vanillaFiles[j]) == Path.GetFileName(modFiles[i]))
             {
                 Console.WriteLine("Currently Comparing " + Path.GetFileName(vanillaFiles[j])+ " to " + Path.GetFileName(modFiles[i]));
@@ -185,8 +205,18 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
         }
         if(i>vanillaFileCount)
         {
+            if (modFileDir == (modNumber + "\\Objects"))
+            {
 
-            File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + "\\" + Path.GetFileName(modFiles[i]), true);
+                File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(modFiles[i]), true);
+            }
+            if (modFileDir != (modNumber + "\\Objects"))
+            {
+                Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
+
+                File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(modFiles[i]), true);
+            }
+            Console.WriteLine("Currently Copying" + Path.GetFileName(modFiles[i]));
         }
     }
 
@@ -202,12 +232,26 @@ if (modTool != "skip")
     using (var modToolProc = new Process())
     {
         modToolProc.StartInfo.FileName = @modTool;
-        modToolProc.StartInfo.Arguments = "replace " + output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\1\\data.win" + " --code UMT_REPLACE_ALL="+output+ "\\xDeltaCombiner\\1\\Objects\\Objects\\CodeEntries\\";
+        modToolProc.StartInfo.Arguments = "replace " + output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\1\\data.win" + " --code UMT_REPLACE_ALL="+ output+ "\\xDeltaCombiner\\1\\Objects\\Objects\\CodeEntries\\";
+        modToolProc.StartInfo.CreateNoWindow = false;
+        modToolProc.Start();
+        modToolProc.WaitForExit();
+    }
+    using (var modToolProc = new Process())
+    {
+        modToolProc.StartInfo.FileName = @modTool;
+        modToolProc.StartInfo.Arguments = "load " + output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + pwd + "\\UTMTCLI\\Scripts\\ImportAllEmbeddedTextures.csx";
         modToolProc.StartInfo.CreateNoWindow = false;
         modToolProc.Start();
         modToolProc.WaitForExit();
     }
 }
-Console.WriteLine("Press Enter To Clean up (Will delete C:\\xDeltaCombiner) and exit");
+Console.WriteLine("Press Enter To Clean up (Will delete output\\xDeltaCombiner) and exit");
 Console.ReadLine();
-Directory.Delete(output + "\\xDeltaCombiner\\", true);
+for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
+{
+    if (modNumber != 1)
+    {
+        Directory.Delete(output + "\\xDeltaCombiner\\" + modNumber, true);
+    }
+}
