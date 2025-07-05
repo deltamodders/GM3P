@@ -1,9 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36212.18 d17.14
+VisualStudioVersion = 17.14.36212.18
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameMakerxDeltaCombiner", "GameMakerxDeltaCombiner\GameMakerxDeltaCombiner.csproj", "{EF060637-8A40-4E0F-91F8-6B81A5DC7F5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UndertaleModLib", "..\UTMT-For-GM3P\UndertaleModLib\UndertaleModLib.csproj", "{A8DD94F2-78D7-B1CA-E47B-196BA3F0BD83}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UndertaleModCli", "..\UTMT-For-GM3P\UndertaleModCli\UndertaleModCli.csproj", "{A78A2970-5CB5-E3C1-B4A8-4CC5E88F4F41}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Underanalyzer", "..\UTMT-For-GM3P\Underanalyzer\Underanalyzer\Underanalyzer.csproj", "{719EB2DC-2711-BE21-10D1-2077784BF1DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +21,18 @@ Global
 		{EF060637-8A40-4E0F-91F8-6B81A5DC7F5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF060637-8A40-4E0F-91F8-6B81A5DC7F5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF060637-8A40-4E0F-91F8-6B81A5DC7F5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8DD94F2-78D7-B1CA-E47B-196BA3F0BD83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8DD94F2-78D7-B1CA-E47B-196BA3F0BD83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8DD94F2-78D7-B1CA-E47B-196BA3F0BD83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8DD94F2-78D7-B1CA-E47B-196BA3F0BD83}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A78A2970-5CB5-E3C1-B4A8-4CC5E88F4F41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A78A2970-5CB5-E3C1-B4A8-4CC5E88F4F41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A78A2970-5CB5-E3C1-B4A8-4CC5E88F4F41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A78A2970-5CB5-E3C1-B4A8-4CC5E88F4F41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{719EB2DC-2711-BE21-10D1-2077784BF1DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{719EB2DC-2711-BE21-10D1-2077784BF1DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{719EB2DC-2711-BE21-10D1-2077784BF1DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{719EB2DC-2711-BE21-10D1-2077784BF1DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

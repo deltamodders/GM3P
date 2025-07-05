@@ -5,15 +5,26 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using GM3P.modNumbers;
 
 double Version = 0.3;
 Console.WriteLine("GM3P v" + Version + ".0-alpha2");
-Console.WriteLine(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName)))) + "\\output\\xDeltaCombiner\\1\\Objects\\Objects\\EmbeddedTextures\\");
 Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if you just want to compare and combine:");
 string? vanilla2 = Console.ReadLine();
 string vanilla = vanilla2.Replace("\"","");
 string pwd = Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName));
 string output = pwd + "\\output";
+
+
+
+dynamic modNo = new ModNumbers();
+
+
+
+
 
 Console.WriteLine("Type however many mods you want to patch: ");
 int modAmount = Convert.ToInt32(Console.ReadLine());
@@ -46,6 +57,7 @@ if (vanilla != "skip")
 
     for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
     {
+        modNo.ModNumber = modNumber;
         xDeltaFile[modNumber] = xDeltaFile2[modNumber].Replace("\"", "");
         xDeltaFileLinux2[modNumber] = xDeltaFile[modNumber].Replace("\\", "/");
         xDeltaFileLinux[modNumber] = xDeltaFileLinux2[modNumber].Replace("C:", "c");
@@ -70,6 +82,7 @@ if (modTool != "skip")
 {
     //for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
     //{
+    //    modNo.ModNumber = modNumber;
     //    if (modNumber != 1)
     //    {
     //        using (var modToolProc = new Process())
@@ -82,22 +95,23 @@ if (modTool != "skip")
     //        }
     //    }
     //}
-    //Console.WriteLine("The code dumping process(es) are finish, then hit enter");
-    //Console.ReadLine();
-    //for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
-    //{
-    //    if (modNumber != 1)
-    //    {
-    //        using (var modToolProc = new Process())
-    //        {
-    //            modToolProc.StartInfo.FileName = @modTool;
-    //            modToolProc.StartInfo.Arguments = "dump " + output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\" + " --textures";
-    //            modToolProc.StartInfo.CreateNoWindow = false;
-    //            modToolProc.Start();
-    //            modToolProc.WaitForExit();
-    //        }
-    //    }
-    //}
+    Console.WriteLine("The code dumping process(es) are finish, then hit enter");
+    Console.ReadLine();
+    for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
+    {
+        if (modNumber != 1)
+        {
+            modNo.ModNumber = modNumber;
+            using (var modToolProc = new Process())
+            {
+                modToolProc.StartInfo.FileName = @modTool;
+                modToolProc.StartInfo.Arguments = "load " + output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\"+modNumber+"\\data.win" + " --scripts " + pwd + "\\UTMTCLI\\Scripts\\ExportAllTexturesGrouped.csx";
+                modToolProc.StartInfo.CreateNoWindow = false;
+                modToolProc.Start();
+                modToolProc.WaitForExit();
+            }
+        }
+    }
     Console.WriteLine("The sprite dumping process(es) are finished");
 }
 if (modTool == "skip")
@@ -114,10 +128,34 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
     string[] modFiles = Directory.GetFiles("" +output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories);
     for (int i = 0; i < modFileCount; i++)
     {
+        int k = 0;
         string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFiles[i])).Name + "\\" + Directory.GetParent(modFiles[i]).Name;
         for (int j = 0; j < vanillaFileCount; j++)
         {
-            
+            //For Debugging Copying Files
+            //if (i == 0 && k == 0)
+            //{
+            //    for (int k2 = 0; k2 < vanillaFileCount; k2++)
+            //    {
+            //        string? vanillaFileDir = Directory.GetParent(Path.GetDirectoryName(vanillaFiles[k2])).Name + "\\" + Directory.GetParent(vanillaFiles[k2]).Name;
+            //        if (vanillaFileDir != "Objects\\CodeEntries")
+            //        {
+            //            if (vanillaFileDir == ("0\\Objects"))
+            //            {
+
+            //                File.Copy(Path.GetDirectoryName(vanillaFiles[k2]) + "\\" + Path.GetFileName(vanillaFiles[k2]), output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[k2]), true);
+            //            }
+            //            if (vanillaFileDir != ("0\\Objects"))
+            //            {
+            //                Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
+
+            //                File.Copy(Path.GetDirectoryName(vanillaFiles[k2]) + "\\" + Path.GetFileName(vanillaFiles[k2]), output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[k2]), true);
+            //            }
+            //        }
+            //        Console.WriteLine("Copying" + vanillaFiles[k2]);
+            //    }
+            //    k++;
+            //}
             if (Path.GetFileName(vanillaFiles[j]) == Path.GetFileName(modFiles[i]))
             {
                 Console.WriteLine("Currently Comparing " + Path.GetFileName(vanillaFiles[j])+ " to " + Path.GetFileName(modFiles[i]));
@@ -237,10 +275,18 @@ if (modTool != "skip")
         modToolProc.Start();
         modToolProc.WaitForExit();
     }
+    //using (var modToolProc = new Process())
+    //{
+    //    modToolProc.StartInfo.FileName = @modTool;
+    //    modToolProc.StartInfo.Arguments = "load " + output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + pwd + "\\UTMTCLI\\Scripts\\DisposeAllEmbeddedTextures.csx";
+    //    modToolProc.StartInfo.CreateNoWindow = false;
+    //    modToolProc.Start();
+    //    modToolProc.WaitForExit();
+    //}
     using (var modToolProc = new Process())
     {
         modToolProc.StartInfo.FileName = @modTool;
-        modToolProc.StartInfo.Arguments = "load " + output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + pwd + "\\UTMTCLI\\Scripts\\ImportAllEmbeddedTextures.csx";
+        modToolProc.StartInfo.Arguments = "load " + output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx";
         modToolProc.StartInfo.CreateNoWindow = false;
         modToolProc.Start();
         modToolProc.WaitForExit();
