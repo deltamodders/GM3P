@@ -12,7 +12,7 @@ Section 1: Operation Instructions
 	Part 1.3: Dump and Combine
 		1.3.1 Hit Enter, unless you want to dump and import manually or you have your own version of UTMT CLI that you prefer. If you want to use your own version of UTMT CLI, enter in the path for that. If you want to dump and import manually, enter "skip".
 		1.3.2 Once it is done dumping, hit enter
-		1.3.3 wait for the app to compare the modded files to the vanilla files,
+		1.3.3 wait for the app to compare the modded files to the vanilla files, hit enter once it is finished, it will then import the difference
 		1.3.4 Your completed data.win is located at \output\xDeltaCombiner\1\data.win
 		1.3.5 Once you hit enter again, the program will delete output\xDeltaCombiner and close. You may close via Alt+F4 or hitting the "X" on the window if you don't want to delete them, but you will need to manually delete the folder on next use. 
 
@@ -34,16 +34,15 @@ Section 2: Technical Information
 		xDeltaCombiner\(2+): Single Mod Folder
 		xDeltaCombiner\#\Objects: GameMaker Objects location
 	Part 2.3: Known Issues and limitations
-		Issue: Sprites don't get imported correctly
+		Issue: Objects that are not in the vanilla game don't get compared, and therefore, don't get copied over
 		Limitation: Can only apply patches meant for the same version of the same game. Can't mix and match
 		Limitation: If 2 mods modify the same object, only the changes for the last affect mod entered applies.
 		Haven't implemented yet: Error Handling
-		Haven't implemented yet: Automatic dumping and importing of textures/sprites
 		Haven't implemented yet: a way for the user to turn off verbosity
 		Found a bug not written here? Use GameBanana Issues or GitHub Issues to report it.
 	Part 2.4: Tools used
 		xDelta3 CLI for applying mods
-		UndertaleModTool for dumping and importing GameMaker Objects
+		A custom version of UndertaleModTool for dumping and importing GameMaker Objects
 		VS2022 to make and build this program
 		This program was poorly written in C#
 		SHA1 Hashing was used for comparing files
