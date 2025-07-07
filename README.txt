@@ -13,8 +13,9 @@ Section 1: Operation Instructions
 		1.3.1 Hit Enter, unless you want to dump and import manually or you have your own version of UTMT CLI that you prefer. If you want to use your own version of UTMT CLI, enter in the path for that. If you want to dump and import manually, enter "skip".
 		1.3.2 Once it is done dumping, hit enter
 		1.3.3 wait for the app to compare the modded files to the vanilla files, hit enter once it is finished, it will then import the difference
-		1.3.4 Your completed data.win is located at \output\xDeltaCombiner\1\data.win
-		1.3.5 Once you hit enter again, the program will delete output\xDeltaCombiner and close. You may close via Alt+F4 or hitting the "X" on the window if you don't want to delete them, but you will need to manually delete the folder on next use. 
+		1.3.4 It will ask you if you would like to link imported code, hit "y"
+		1.3.5 Your completed data.win is located at \output\xDeltaCombiner\1\data.win
+		1.3.6 Once you hit enter again, the program will delete output\xDeltaCombiner and close. You may close via Alt+F4 or hitting the "X" on the window if you don't want to delete them, but you will need to manually delete the folder on next use. 
 
 Section 2: Technical Information
 	Part 2.1: System Requirements
@@ -22,19 +23,21 @@ Section 2: Technical Information
 			OS: Windows 8.1
 			CPU: x86_64
 			Storage: 256MB
-			RAM: 64MB
+			RAM: 192MB
 			Software: .NET 8.0 runtime
 		2.1.3: System Recommended
 			OS: Windows 11
 			Storage: 2GB
 			RAM: 512MB	
-	Part 2.2: output\xDeltaCombiner directory structure
+	Part 2.2: output directory structure
 		xDeltaCombiner\0: Vanilla Folder
 		xDeltaCombiner\1: Finished Product Folder
 		xDeltaCombiner\(2+): Single Mod Folder
 		xDeltaCombiner\#\Objects: GameMaker Objects location
+		result\: resulting merges (currently only in xDelta format)
+		modNumbersCache.txt: used to pass off a variable value from GM3P to UTMTCLI during runtime. 
 	Part 2.3: Known Issues and limitations
-		Issue: Objects that are not in the vanilla game don't get compared, and therefore, don't get copied over
+		Issue: Sprites that are not in the vanilla game may be out of order
 		Limitation: Can only apply patches meant for the same version of the same game. Can't mix and match
 		Limitation: If 2 mods modify the same object, only the changes for the last affect mod entered applies.
 		Haven't implemented yet: Error Handling
@@ -44,7 +47,7 @@ Section 2: Technical Information
 		xDelta3 CLI for applying mods
 		A custom version of UndertaleModTool for dumping and importing GameMaker Objects
 		VS2022 to make and build this program
-		This program was poorly written in C#
+		This program was poorly written in C# .NET
 		SHA1 Hashing was used for comparing files
 
 Section 3: Installation and run Instructions
@@ -53,7 +56,7 @@ Section 3: Installation and run Instructions
 		3.1.2 Once downloaded the .zip folder, extract it to it's own folder
 	Part 2: Run via command line/terminal
 		3.2.1 use the "ls" and "cd" commands to navigate to the extracted folder
-		3.2.2 type ".\GameMakerxDeltaCombiner.exe" to run the program
+		3.2.2 type ".\GM3P.exe" to run the program
 	Part 3: Run via File Explorer
 		3.3.1 navigate to the extracted folder
-		3.3.2 double-click "GameMakerxDeltaCombiner.exe"
+		3.3.2 double-click "GM3P.exe"
