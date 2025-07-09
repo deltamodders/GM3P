@@ -14,8 +14,9 @@ Section 1: Operation Instructions
 		1.3.2 Once it is done dumping, hit enter
 		1.3.3 wait for the app to compare the modded files to the vanilla files, hit enter once it is finished, it will then import the difference
 		1.3.4 It will ask you if you would like to link imported code, hit "y"
-		1.3.5 Your completed data.win is located at \output\xDeltaCombiner\1\data.win
-		1.3.6 Once you hit enter again, the program will delete output\xDeltaCombiner and close. You may close via Alt+F4 or hitting the "X" on the window if you don't want to delete them, but you will need to manually delete the folder on next use. 
+		1.3.5 It will ask you what you would like to name your pack, enter anything you please.
+		1.3.6 Your completed pack is located at \output\result\*pack name*\
+		1.3.7 Once you hit enter again, the program will delete output\xDeltaCombiner and close. You may close via Alt+F4 or hitting the "X" on the window if you don't want to delete them, but you will need to manually delete the folder on next use. 
 
 Section 2: Technical Information
 	Part 2.1: System Requirements
@@ -34,10 +35,11 @@ Section 2: Technical Information
 		xDeltaCombiner\1: Finished Product Folder
 		xDeltaCombiner\(2+): Single Mod Folder
 		xDeltaCombiner\#\Objects: GameMaker Objects location
-		result\: resulting merges (currently only in xDelta format)
+		result\: resulting merges
 		modNumbersCache.txt: used to pass off a variable value from GM3P to UTMTCLI during runtime. 
 	Part 2.3: Known Issues and limitations
-		Issue: Sprites that are not in the vanilla game may be out of order
+		Issue: Sprites that are not in the vanilla game may be out of order, except for the last mod applied.
+		Issue: Backported mods don't compare correctly
 		Limitation: Can only apply patches meant for the same version of the same game. Can't mix and match
 		Limitation: If 2 mods modify the same object, only the changes for the last affect mod entered applies.
 		Haven't implemented yet: Error Handling
