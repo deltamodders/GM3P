@@ -191,46 +191,52 @@ for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                                     if (Path.GetExtension(modFiles[i]) == ".png")
                                     {
 
-
-                                        Bitmap image1 = new Bitmap(modFiles[i]);
-                                        Bitmap image2 = new Bitmap(vanillaFiles[j]);
-
-                                        [DllImport("msvcrt.dll")]
-                                        static extern int memcmp(IntPtr b1, IntPtr b2, long count);
-
-                                        static bool CompareMemCmp(Bitmap b1, Bitmap b2)
+                                        using (Bitmap image1 = new Bitmap(modFiles[i])) 
                                         {
-                                            if ((b1 == null) != (b2 == null)) return false;
-                                            if (b1.Size != b2.Size) return false;
 
-                                            var bd1 = b1.LockBits(new Rectangle(new Point(0, 0), b1.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                                            var bd2 = b2.LockBits(new Rectangle(new Point(0, 0), b2.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-
-                                            try
+                                            using (Bitmap image2 = new Bitmap(vanillaFiles[j])) 
                                             {
-                                                IntPtr bd1scan0 = bd1.Scan0;
-                                                IntPtr bd2scan0 = bd2.Scan0;
 
-                                                int stride = bd1.Stride;
-                                                int len = stride * b1.Height;
+                                                [DllImport("msvcrt.dll")]
+                                                static extern int memcmp(IntPtr b1, IntPtr b2, long count);
 
-                                                return memcmp(bd1scan0, bd2scan0, len) == 0;
-                                            }
-                                            finally
-                                            {
-                                                b1.UnlockBits(bd1);
-                                                b2.UnlockBits(bd2);
-                                            }
+                                                static bool CompareMemCmp(Bitmap b1, Bitmap b2)
+                                                {
+                                                    if ((b1 == null) != (b2 == null)) return false;
+                                                    if (b1.Size != b2.Size) return false;
+
+                                                    var bd1 = b1.LockBits(new Rectangle(new Point(0, 0), b1.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                                                    var bd2 = b2.LockBits(new Rectangle(new Point(0, 0), b2.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+
+                                                    try
+                                                    {
+                                                        IntPtr bd1scan0 = bd1.Scan0;
+                                                        IntPtr bd2scan0 = bd2.Scan0;
+
+                                                        int stride = bd1.Stride;
+                                                        int len = stride * b1.Height;
+
+                                                        return memcmp(bd1scan0, bd2scan0, len) == 0;
+                                                    }
+                                                    finally
+                                                    {
+                                                        b1.UnlockBits(bd1);
+                                                        b2.UnlockBits(bd2);
+                                                    }
+                                                }
+
+
+                                                if (!CompareMemCmp(image1, image2))
+                                                {
+                                                    Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
+
+                                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                                    modifedAssets.Add(modFilesName[i] + "        " + modHash);
+                                                }
+                                            } 
                                         }
 
 
-                                        if (!CompareMemCmp(image1, image2))
-                                        {
-                                            Directory.CreateDirectory(output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
-
-                                            File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
-                                            modifedAssets.Add(modFilesName[i] + "        " + modHash);
-                                        }
                                     }
 
                                 }
