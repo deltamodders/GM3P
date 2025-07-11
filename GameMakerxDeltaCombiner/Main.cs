@@ -71,7 +71,7 @@ namespace GM3P
     ;
         }
         /// <summary>
-        /// Patches the xDeltas
+        /// Patches the xDeltas into a bunch of data.wins
         /// </summary>
         public static void massPatch()
         {
