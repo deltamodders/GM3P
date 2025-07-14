@@ -19,9 +19,9 @@ using GM3P;
 double Version = 0.3;
 Console.WriteLine("GM3P v" + Version + ".3");
 Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if you just want to compare and combine:");
-Main.vanilla2 = Console.ReadLine();
+Main.vanilla2 = Console.ReadLine().Replace("\"","");
 Main.output = Main.pwd + "\\output";
-Main.DeltaPatcher2 = Main.pwd + "\\xdelta3-3.0.11-x86_64.exe";
+Main.DeltaPatcher = Main.pwd + "\\xdelta3-3.0.11-x86_64.exe";
 dynamic modNo = new ModNumbers();
 
 
@@ -30,13 +30,12 @@ dynamic modNo = new ModNumbers();
 
 Console.WriteLine("Type however many mods you want to patch: ");
 Main.modAmount = Convert.ToInt32(Console.ReadLine());
-if (Main.vanilla != "skip")
+if (Main.vanilla2 != "skip")
 {
     //Console.WriteLine("Enter in the path of a xdelta3 executable: ");
 
     Main.CreateCombinerDirectories();
     Console.WriteLine("Now Enter in the xDeltas, one at a time: ");
-    Main.getModPaths();
     Main.massPatch();
 }
 Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
@@ -48,23 +47,7 @@ if (Main.modTool == null || Main.modTool == "")
 }
 if (Main.modTool != "skip")
 {
-    for (int modNumber = 0; modNumber < (Main.modAmount + 2); modNumber++)
-    {
-        Directory.CreateDirectory(Main.output + "\\xDeltaCombiner\\"+modNumber+"\\Objects\\CodeEntries");
-        File.WriteAllText(Main.output + "\\modNumbersCache.txt", Convert.ToString(modNumber));
-        if (modNumber != 1)
-        {
-            modNo.ModNumber = modNumber;
-            using (var modToolProc = new Process())
-            {
-                modToolProc.StartInfo.FileName = Main.@modTool;
-                modToolProc.StartInfo.Arguments = "load " + Main.output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + Main.output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ExportAllTexturesGrouped.csx --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ExportAllCode.csx --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ExportAssetOrder.csx";
-                modToolProc.StartInfo.CreateNoWindow = false;
-                modToolProc.Start();
-                modToolProc.WaitForExit();
-            }
-        }
-    }
+    Main.dump();
     Console.WriteLine("The dumping process(es) are finished");
 }
 if (Main.modTool == "skip")
@@ -75,14 +58,14 @@ if (Main.modTool == "skip")
 Console.ReadLine();
 Main.modifiedListCreate();
 
-int vanillaFileCount = Convert.ToInt32(Directory.GetFiles("" + Main.output + "\\xDeltaCombiner\\0\\Objects\\", "*", SearchOption.AllDirectories).Length);
-string[] vanillaFiles = Directory.GetFiles("" + Main.output + "\\xDeltaCombiner\\0\\Objects\\", "*", SearchOption.AllDirectories);
-string[] vanillaFilesName = Directory.GetFiles("" + Main.output + "\\xDeltaCombiner\\0\\Objects\\", "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToArray();
+int vanillaFileCount = Convert.ToInt32(Directory.GetFiles("" + Main.@output + "\\xDeltaCombiner\\0\\Objects\\", "*", SearchOption.AllDirectories).Length);
+string[] vanillaFiles = Directory.GetFiles("" + Main.@output + "\\xDeltaCombiner\\0\\Objects\\", "*", SearchOption.AllDirectories);
+string[] vanillaFilesName = Directory.GetFiles("" + Main.@output + "\\xDeltaCombiner\\0\\Objects\\", "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToArray();
 for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
 {
-    int modFileCount = Convert.ToInt32(Directory.GetFiles("" + Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories).Length);
-    string[] modFiles = Directory.GetFiles("" + Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories);
-    string[] modFilesName = Directory.GetFiles("" + Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToArray();
+    int modFileCount = Convert.ToInt32(Directory.GetFiles("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories).Length);
+    string[] modFiles = Directory.GetFiles("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories);
+    string[] modFilesName = Directory.GetFiles("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToArray();
     string[] modFileAdditions = modFilesName.Except(vanillaFilesName).ToArray();
     int modFileAdditionsCount = Convert.ToInt32(modFileAdditions?.Length);
     for (int i = 0; i < modFileCount; i++)
@@ -140,7 +123,7 @@ for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
                                 if (modFileDir == ("Objects\\CodeEntries"))
                                 {
                                     Console.WriteLine("Copying " + Path.GetFileName(modFiles[i]));
-                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.output + "\\xDeltaCombiner\\1\\Objects\\CodeEntries\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\CodeEntries\\" + Path.GetFileName(vanillaFiles[j]), true);
                                     Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                 }
                                 if (modFileDir != ("Objects\\CodeEntries"))
@@ -187,9 +170,9 @@ for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
 
                                                 if (!CompareMemCmp(image1, image2))
                                                 {
-                                                    Directory.CreateDirectory(Main.output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
+                                                    Directory.CreateDirectory(Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
 
-                                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
                                                     Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                                 }
                                             } 
@@ -229,14 +212,14 @@ for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
                                     if (modFileDir == (modNumber + "\\Objects"))
                                     {
 
-                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(vanillaFiles[j]), true);
                                         Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                     }
                                     if (modFileDir != (modNumber + "\\Objects"))
                                     {
-                                        Directory.CreateDirectory(Main.output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
+                                        Directory.CreateDirectory(Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
 
-                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
                                         Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                     }
                                 }
@@ -257,25 +240,25 @@ for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
     }
     if (modFileAdditionsCount >= 1)
     {
-        string[] modFileAddtionsDir = Directory.GetFiles("" + Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories).Select(Path.GetFullPath).ToArray();
+        string[] modFileAddtionsDir = Directory.GetFiles("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", "*", SearchOption.AllDirectories).Select(Path.GetFullPath).ToArray();
         for (int i = 0; i < modFileAdditionsCount; i++)
         {
 
             
-            string[] modFilesParent = Directory.GetFiles("" + Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", modFileAdditions[i], SearchOption.AllDirectories);
+            string[] modFilesParent = Directory.GetFiles("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\", modFileAdditions[i], SearchOption.AllDirectories);
             string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFilesParent[0])).Name + "\\" + Directory.GetParent(modFilesParent[0]).Name;
 
             if (modFileDir == (modNumber + "\\Objects"))
             {
 
-                File.Copy(Path.GetDirectoryName(modFiles[0]) + "\\" + Path.GetFileName(modFilesParent[0]), Main.output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(modFileAdditions[i]), true);
+                File.Copy(Path.GetDirectoryName(modFiles[0]) + "\\" + Path.GetFileName(modFilesParent[0]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(modFileAdditions[i]), true);
                 Main.modifedAssets.Add(modFilesName[i] + "        ");
             }
             if (modFileDir != (modNumber + "\\Objects"))
             {
                 Directory.CreateDirectory(Main.output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
 
-                File.Copy(Directory.GetParent(modFilesParent[0]) + "\\" + Path.GetFileName(modFilesParent[0]), Main.output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(modFileAdditions[i]), true);
+                File.Copy(Directory.GetParent(modFilesParent[0]) + "\\" + Path.GetFileName(modFilesParent[0]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(modFileAdditions[i]), true);
                 Main.modifedAssets.Add(modFilesName[i] + "        ");
             }
             Console.WriteLine("Currently Copying " + Path.GetFileName(modFileAdditions[i]));
@@ -335,7 +318,7 @@ for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
     //    File.WriteAllLines(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt", modAssetOrder);
     //}
 }
-File.WriteAllLines(Main.output + "\\xDeltaCombiner\\1\\modifedAssets.txt", Main.modifedAssets);
+File.WriteAllLines(Main.@output + "\\xDeltaCombiner\\1\\modifedAssets.txt", Main.modifedAssets);
 Console.WriteLine("Comparing is done. Hit Enter to Continue.");
 Console.ReadLine();
 if (Main.modTool == "skip")
@@ -347,7 +330,7 @@ if (Main.modTool != "skip")
     using (var modToolProc = new Process())
     {
         modToolProc.StartInfo.FileName = Main.@modTool;
-        modToolProc.StartInfo.Arguments = "load " + Main.output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + Main.output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ImportGML.csx --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ImportAssetOrder.csx";
+        modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGML.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportAssetOrder.csx";
         modToolProc.StartInfo.CreateNoWindow = false;
         modToolProc.Start();
         modToolProc.WaitForExit();
@@ -358,17 +341,17 @@ Console.WriteLine("To save your modpack, name it: ");
 string modname = Console.ReadLine();
 if (modname != null && modname != "")
 {
-    Directory.CreateDirectory(  Main.output + "\\result\\" + modname + "\\");
+    Directory.CreateDirectory(  Main.@output + "\\result\\" + modname + "\\");
     using (var bashProc = new Process())
     {
         bashProc.StartInfo.FileName = Main.DeltaPatcher;
-        bashProc.StartInfo.Arguments = "-v -e -f -s " + Main.output + "\\xDeltaCombiner\\0\\data.win" + " \"" + Main.output + "\\xDeltaCombiner\\1\\data.win" + "\" \"" + Main.output + "\\result\\"+modname+"\\"+modname+".xdelta\"";
+        bashProc.StartInfo.Arguments = "-v -e -f -s " + Main.@output + "\\xDeltaCombiner\\0\\data.win" + " \"" + Main.@output + "\\xDeltaCombiner\\1\\data.win" + "\" \"" + Main.@output + "\\result\\"+modname+"\\"+modname+".xdelta\"";
         bashProc.StartInfo.CreateNoWindow = false;
         bashProc.Start();
         bashProc.WaitForExit();
     }
-    File.Copy(Main.output + "\\xDeltaCombiner\\1\\data.win", Main.output + "\\result\\" + modname + "\\data.win");
-    File.Copy(Main.output + "\\xDeltaCombiner\\1\\modifedAssets.txt", Main.output + "\\result\\" + modname + "\\modifedAssets.txt");
+    File.Copy(Main.@output + "\\xDeltaCombiner\\1\\data.win", Main.@output + "\\result\\" + modname + "\\data.win");
+    File.Copy(Main.@output + "\\xDeltaCombiner\\1\\modifedAssets.txt", Main.@output + "\\result\\" + modname + "\\modifedAssets.txt");
 }
 Console.WriteLine("Press Enter To Clean up (Will delete output\\xDeltaCombiner) and exit");
 Console.ReadLine();
