@@ -44,6 +44,9 @@ namespace GM3P
         /// Path to the modTool for Dumping
         /// </summary>
         public static string modTool { get; set; }
+        /// <summary>
+        /// Creates the folders where other functions in this class works in
+        /// </summary>
         public static void CreateCombinerDirectories()
         {
 
@@ -419,6 +422,28 @@ namespace GM3P
                 //    }
                 //    File.WriteAllLines(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt", modAssetOrder);
                 //}
+            }
+        }
+        /// <summary>
+        /// Imports resulting GameMaker Objects from the "CompareCombine()" function into a data.win
+        /// </summary>
+        public static void import()
+        {
+            if (Main.modTool == "skip")
+            {
+                Console.WriteLine("In order to replace and import manually, load up the data.win in \\xDeltaCombiner\\1\\ into the GUI version of UTMT and run the script ImportGML.csx. Select \"C:\\xDeltaCombiner\\*currentsubfolder*\\Objects\\\" as the import folder. Once finished, exit and saving.");
+            }
+            if (Main.modTool != "skip")
+            {
+                using (var modToolProc = new Process())
+                {
+                    modToolProc.StartInfo.FileName = Main.@modTool;
+                    modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGML.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportAssetOrder.csx";
+                    modToolProc.StartInfo.CreateNoWindow = false;
+                    modToolProc.Start();
+                    modToolProc.WaitForExit();
+                }
+
             }
         }
 }

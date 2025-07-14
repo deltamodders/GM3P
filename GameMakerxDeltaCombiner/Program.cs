@@ -56,22 +56,7 @@ Main.CompareCombine();
 File.WriteAllLines(Main.@output + "\\xDeltaCombiner\\1\\modifedAssets.txt", Main.modifedAssets);
 Console.WriteLine("Comparing is done. Hit Enter to Continue.");
 Console.ReadLine();
-if (Main.modTool == "skip")
-{
-    Console.WriteLine("In order to replace and import manually, load up the data.win in \\xDeltaCombiner\\1\\ into the GUI version of UTMT and run the script ImportGML.csx. Select \"C:\\xDeltaCombiner\\*currentsubfolder*\\Objects\\\" as the import folder. Once finished, exit and saving.");
-}
-if (Main.modTool != "skip")
-{
-    using (var modToolProc = new Process())
-    {
-        modToolProc.StartInfo.FileName = Main.@modTool;
-        modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGML.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportAssetOrder.csx";
-        modToolProc.StartInfo.CreateNoWindow = false;
-        modToolProc.Start();
-        modToolProc.WaitForExit();
-    }
-
-}
+Main.import();
 Console.WriteLine("To save your modpack, name it: ");
 string modname = Console.ReadLine();
 if (modname != null && modname != "")
