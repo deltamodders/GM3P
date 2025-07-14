@@ -15,8 +15,8 @@ using System.Collections.Immutable;
 using System.Collections.Generic;
 using GM3P;
 
-double Version = 0.3;
-Console.WriteLine("GM3P v" + Version + ".3");
+double Version = 0.4;
+Console.WriteLine("GM3P v" + Version + ".0-alpha1");
 Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if you just want to compare and combine:");
 Main.vanilla2 = Console.ReadLine().Replace("\"","");
 Main.output = Main.pwd + "\\output";
