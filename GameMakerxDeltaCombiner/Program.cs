@@ -29,6 +29,7 @@ static void Main(string[] args = null)
         {
             Console.WriteLine("Starting Console App...");
             consoleApp();
+            
         }
         var command = args[0];
         switch (command)
@@ -48,8 +49,31 @@ static void Main(string[] args = null)
                 GM3P.Main.CopyVanilla();
                 GM3P.Main.massPatch(args[4].Split(",").ToArray());
                 break;
-            case "compareCombine":
-
+            case "compare":
+                    GM3P.Main.output = GM3P.Main.pwd + "\\output";
+                    GM3P.Main.modAmount = Convert.ToInt32(args[1]);
+                    if (args.Length > 2)
+                    {
+                        GM3P.Main.modTool = GM3P.Main.pwd + "\\UTMTCLI\\UndertaleModCli.exe";
+                        if (args.Length > 4)
+                        {
+                            GM3P.Main.output = args[4];
+                        }
+                        if (args[2] == "true")
+                        {
+                            GM3P.Main.dump();
+                        }
+                        
+                    }
+                    GM3P.Main.modifiedListCreate();
+                    GM3P.Main.CompareCombine();
+                    if (args.Length > 3)
+                    {
+                        if (args[3] == "true")
+                        {
+                            GM3P.Main.import();
+                        }
+                    }
                     break;
             case "console":
                 Console.WriteLine("Starting Console App...");
@@ -81,7 +105,7 @@ static void Main(string[] args = null)
                             Console.WriteLine(" ");
                             Console.WriteLine("Example:          GM3P.exe massPatch \"C:\\Program Files(x86)\\Steam\\steamapps\\common\\DELTARUNE\\chapter3_windows\\data.win\" GM 2 \",,F:\\Downloads\\a.xDelta,F:\\Downloads\\b.csx\"");
                             Console.WriteLine(" ");
-                            Console.WriteLine("Note: The Mod File Paths arg must be encased with a double quote (\"), but the individual paths cannot be encased nor with, nor contain, a double quote. Mod File Paths are delimited by commas (,) and paths entered before the second delimiter are ingored.");
+                            Console.WriteLine("Note: The Mod File Paths arg must be encased with a double quote (\"), but the individual paths cannot be encased with, nor contain, a double quote. Mod File Paths are delimited by commas (,) and paths entered before the second delimiter are ingored.");
                         }
                         if (commandHelp == "clear")
                         {
@@ -92,7 +116,7 @@ static void Main(string[] args = null)
                             Console.WriteLine(" ");
                             Console.WriteLine("Command Santax:   GM3P.exe clear [(optional) Output Folder]");
                             Console.WriteLine(" ");
-                            Console.WriteLine("Example:          GM3P.exe clear \"C:\\UndertaleMods\"");
+                            Console.WriteLine("Example:          GM3P.exe clear \"C:\\Undertale Mods\"");
                         }
                         if (commandHelp == "console")
                         {
@@ -107,10 +131,23 @@ static void Main(string[] args = null)
                             Console.WriteLine(" ");
                             Console.WriteLine("Note: The console app can also be launched if no command is provided. ");
                         }
+                        if (commandHelp == "compare")
+                        {
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Compares and combine GM objects. Dumping and importing optional.");
+                            Console.WriteLine(" ");
+                            Console.WriteLine(" ");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Command Santax:   GM3P.exe compare [Amount of Mods] [(optional) Dump] [(optional) Import] [(optional) Output Folder]");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Example:          GM3P.exe compare 2 false true \"C:\\Undertale Mods\"");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Note: Can only be successfully called if massPatch was called before. Will be buggy.");
+                        }
                     }
                 if (args.Length == 1)
                 {
-                        Console.WriteLine("Avalible commands:\nhelp        Display a satanax for a command and exit\nmassPatch   Patches a lot of data.win files with a single mod each\nconsole     launches console app\nclear       Clears the xDeltaCombiner folder for future use.");
+                        Console.WriteLine("Avalible commands:\nhelp        Display a satanax for a command and exit (use \"GM3P.exe help *command*\")\nmassPatch   Patches a lot of data.win files with a single mod each\nconsole     launches console app\nclear       Clears the xDeltaCombiner folder for future use.\ncompare     Compares modded GM Objects to vanilla and puts changes in a list. Dumping and Importing optional.");
                 }
                 break;
             default:
@@ -169,6 +206,7 @@ static void Main(string[] args = null)
         Console.WriteLine("Press Enter To Clean up (Will delete output\\xDeltaCombiner) and exit");
         Console.ReadLine();
         GM3P.Main.clear();
+        Environment.Exit(1);
     }
 
 }
