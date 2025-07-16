@@ -59,19 +59,22 @@ static void Main(string[] args = null)
                 consoleApp();
                 break;
             case "help":
-                string commandHelp = args[1];
-                if (commandHelp == "massPatch")
-                {
-                        Console.WriteLine("");
-                        Console.WriteLine("Makes a bunch of patched, single-mod data.win files quickly.");
-                        Console.WriteLine("");
-                        Console.WriteLine("");
-                        Console.WriteLine("");
-                        Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod Files] [(optional) Output Folder]");
-                        Console.WriteLine("");
-                        Console.WriteLine("Example:          GM3P.exe massPatch \"C:\\Program Files(x86)\\Steam\\steamapps\\common\\DELTARUNE\\chapter3_windows\\data.win\" GM 2 \",,F:\\Downloads\\a.xDelta,F:\\Downloads\\b.csx\"");
-                }
-                if (commandHelp == null)
+                    if (args.Length > 1)
+                    {
+                        string commandHelp = args[1];
+                        if (commandHelp == "massPatch")
+                        {
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Makes a bunch of patched, single-mod data.win files quickly.");
+                            Console.WriteLine(" ");
+                            Console.WriteLine(" ");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod Files] [(optional) Output Folder]");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Example:          GM3P.exe massPatch \"C:\\Program Files(x86)\\Steam\\steamapps\\common\\DELTARUNE\\chapter3_windows\\data.win\" GM 2 \",,F:\\Downloads\\a.xDelta,F:\\Downloads\\b.csx\"");
+                        }
+                    }
+                if (args.Length == 1)
                 {
                         Console.WriteLine("Avalible commands: help massPatch console");
                 }
