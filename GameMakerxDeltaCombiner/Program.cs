@@ -35,10 +35,13 @@ static void Main(string[] args = null)
         {
             case "massPatch":
                 GM3P.Main.vanilla2 = args[1];
-                if (args[5] != null)
+
+                GM3P.Main.output = GM3P.Main.pwd + "\\output";
+                if (args.Length == 4)
                 {
                     GM3P.Main.output = args[5];
                 }
+                GM3P.Main.DeltaPatcher = GM3P.Main.pwd + "\\xdelta3-3.0.11-x86_64.exe";
                 GM3P.Main.gameEngine = args[2];
                 GM3P.Main.modAmount = Convert.ToInt32(args[3]);
                 GM3P.Main.CreateCombinerDirectories();
@@ -46,7 +49,8 @@ static void Main(string[] args = null)
                 GM3P.Main.massPatch(args[4].Split(",").ToArray());
                 break;
             case "compareCombine":
-                break;
+
+                    break;
             case "console":
                 Console.WriteLine("Starting Console App...");
                 consoleApp();
@@ -58,9 +62,18 @@ static void Main(string[] args = null)
                 string commandHelp = args[1];
                 if (commandHelp == "massPatch")
                 {
-                    Console.WriteLine("Makes a bunch of patched, single-mod data.win files quickly.");
-                    Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod Files] [(optional) Output Folder]");
-                    Console.WriteLine("Example:          GM3P.exe massPatch \"C:\\Program Files(x86)\\Steam\\steamapps\\common\\DELTARUNE\\chapter3_windows\\data.win\" GM 2 ,,\"F:\\Downloads\\a.xDelta\",\"F:\\Downloads\\b.csx\"");
+                        Console.WriteLine("");
+                        Console.WriteLine("Makes a bunch of patched, single-mod data.win files quickly.");
+                        Console.WriteLine("");
+                        Console.WriteLine("");
+                        Console.WriteLine("");
+                        Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod Files] [(optional) Output Folder]");
+                        Console.WriteLine("");
+                        Console.WriteLine("Example:          GM3P.exe massPatch \"C:\\Program Files(x86)\\Steam\\steamapps\\common\\DELTARUNE\\chapter3_windows\\data.win\" GM 2 \",,F:\\Downloads\\a.xDelta,F:\\Downloads\\b.csx\"");
+                }
+                if (commandHelp == null)
+                {
+                        Console.WriteLine("Avalible commands: help massPatch console");
                 }
                 break;
             default:
