@@ -41,6 +41,10 @@ namespace GM3P
         /// </summary>
         public static int modAmount { get; set; }
         /// <summary>
+        /// Currently unused except as a CLI arg, but this will be used to determine what Game Engine the game is in in a far future release. Use "GM" is for GameMaker
+        /// </summary>
+        public static string gameEngine {  get; set; }
+        /// <summary>
         /// Path to the modTool for Dumping
         /// </summary>
         public static string modTool { get; set; }

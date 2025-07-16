@@ -15,34 +15,60 @@ using System.Collections.Immutable;
 using System.Collections.Generic;
 using GM3P;
 
-static void Main(string[] args)
+namespace GM3P.Program;
+
+class Program
+{
+static void Main(string[] args = null)
 {
     double Version = 0.4;
     Console.WriteLine("GM3P v" + Version + ".0-alpha2");
-    var command = args[0];
-    switch (command)
+    if (args != null)
     {
-        case "massPatch":
-            GM3P.Main.vanilla2 = args[1];
-            if (args[4] != null)
-            {
-                GM3P.Main.output = args[4];
-            }
-            GM3P.Main.modAmount = Convert.ToInt32(args[3]);
-            GM3P.Main.CreateCombinerDirectories();
-            GM3P.Main.CopyVanilla();
-            GM3P.Main.massPatch(args[2].Split(",").ToArray());
-            break;
-        case "console":
-            Console.WriteLine("Starting Console App");
-            break;
-        case null:
-            break;
-        default:
-            Console.WriteLine("Invalid command");
-            break;
+        if (args.Length == 0)
+        {
+            Console.WriteLine("Starting Console App...");
+            consoleApp();
+        }
+        var command = args[0];
+        switch (command)
+        {
+            case "massPatch":
+                GM3P.Main.vanilla2 = args[1];
+                if (args[5] != null)
+                {
+                    GM3P.Main.output = args[5];
+                }
+                GM3P.Main.gameEngine = args[2];
+                GM3P.Main.modAmount = Convert.ToInt32(args[4]);
+                GM3P.Main.CreateCombinerDirectories();
+                GM3P.Main.CopyVanilla();
+                GM3P.Main.massPatch(args[3].Split(",").ToArray());
+                break;
+            case "console":
+                Console.WriteLine("Starting Console App...");
+                consoleApp();
+                break;
+            case null:
+                consoleApp();
+                break;
+            case "help":
+                string commandHelp = args[1];
+                if (commandHelp == "massPatch")
+                {
+                    Console.WriteLine("");
+                }
+                break;
+            default:
+                Console.WriteLine("Invalid command");
+                break;
+        }
     }
-    if (args.Length == 0 || command == "console")
+    else
+    { 
+        consoleApp(); 
+    }
+    static void consoleApp()
     {
         Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if you just want to compare and combine:");
         GM3P.Main.vanilla2 = Console.ReadLine().Replace("\"", "");
@@ -96,4 +122,6 @@ static void Main(string[] args)
             //}
         }
     }
+
+}
 }
