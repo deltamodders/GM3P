@@ -40,10 +40,12 @@ static void Main(string[] args = null)
                     GM3P.Main.output = args[5];
                 }
                 GM3P.Main.gameEngine = args[2];
-                GM3P.Main.modAmount = Convert.ToInt32(args[4]);
+                GM3P.Main.modAmount = Convert.ToInt32(args[3]);
                 GM3P.Main.CreateCombinerDirectories();
                 GM3P.Main.CopyVanilla();
-                GM3P.Main.massPatch(args[3].Split(",").ToArray());
+                GM3P.Main.massPatch(args[4].Split(",").ToArray());
+                break;
+            case "compareCombine":
                 break;
             case "console":
                 Console.WriteLine("Starting Console App...");
@@ -56,7 +58,9 @@ static void Main(string[] args = null)
                 string commandHelp = args[1];
                 if (commandHelp == "massPatch")
                 {
-                    Console.WriteLine("");
+                    Console.WriteLine("Makes a bunch of patched, single-mod data.win files quickly.");
+                    Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod Files] [(optional) Output Folder]");
+                    Console.WriteLine("Example:          GM3P.exe massPatch \"C:\\Program Files(x86)\\Steam\\steamapps\\common\\DELTARUNE\\chapter3_windows\\data.win\" GM 2 ,,\"F:\\Downloads\\a.xDelta\",\"F:\\Downloads\\b.csx\"");
                 }
                 break;
             default:

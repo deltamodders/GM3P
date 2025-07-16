@@ -131,7 +131,7 @@ namespace GM3P
                     //If it's a full data.win, copy the file
                     else if (Path.GetExtension(xDeltaFile[modNumber]) == ".win")
                     {
-                    File.Copy(xDeltaFile[modNumber], Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ");
+                    File.Copy(xDeltaFile[modNumber], Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ", true);
                     }
                     //Otherwise, patch the xDelta
                     else
