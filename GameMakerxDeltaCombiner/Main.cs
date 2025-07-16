@@ -76,6 +76,7 @@ namespace GM3P
 
                 Directory.CreateDirectory(Main.@output + "\\xDeltaCombiner\\" + modNumber);
                 Directory.CreateDirectory(Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\Objects");
+                Directory.CreateDirectory(Main.@output + "\\Cache\\vanilla");
 
             }
         ;
@@ -135,7 +136,7 @@ namespace GM3P
                     //Otherwise, patch the xDelta
                     else
                     {
-                        File.WriteAllText(Main.@output + "\\modNumbersCache.txt", Convert.ToString(modNumber));
+                        File.WriteAllText(Main.@output + "Cache\\modNumbersCache.txt", Convert.ToString(modNumber));
                         using (var bashProc = new Process())
                         {
                             bashProc.StartInfo.FileName = Main.DeltaPatcher;
@@ -163,7 +164,7 @@ namespace GM3P
             for (int modNumber = 0; modNumber < (Main.modAmount + 2); modNumber++)
             {
                 Directory.CreateDirectory(Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\CodeEntries");
-                File.WriteAllText(Main.@output + "\\modNumbersCache.txt", Convert.ToString(modNumber));
+                File.WriteAllText(Main.@output + "Cache\\modNumbersCache.txt", Convert.ToString(modNumber));
                 if (modNumber != 1)
                 {
                     using (var modToolProc = new Process())
