@@ -45,6 +45,21 @@ namespace GM3P
         /// </summary>
         public static string modTool { get; set; }
         /// <summary>
+        /// Returns a line from a text file as a string
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="line"></param>
+        /// <returns></returns>
+        public static string GetLine(string fileName, int line)
+        {
+        using (var sr = new StreamReader(fileName))
+            {
+               for (int i = 1; i<line; i++)
+                  sr.ReadLine();
+               return sr.ReadLine();
+            }
+        }
+        /// <summary>
         /// Creates the folders where other functions in this class works in
         /// </summary>
         public static void CreateCombinerDirectories()
@@ -371,15 +386,7 @@ namespace GM3P
                         Console.WriteLine(modFileAdditionsCount);
                     }
                 }
-                //string GetLine(string fileName, int line)
-                //{
-                //    using (var sr = new StreamReader(fileName))
-                //    {
-                //        for (int i = 1; i < line; i++)
-                //            sr.ReadLine();
-                //        return sr.ReadLine();
-                //    }
-                //}
+
                 //string assetOrderSeperator = "a bunch of random characters to define this";
                 //var vanillaAssetOrder = File.ReadAllLines(Main.output + "\\xDeltaCombiner\\0\\Objects\\AssetOrder.txt").ToList();
                 //int vanillaAssetOrderCount = vanillaAssetOrder.Count;
@@ -445,6 +452,72 @@ namespace GM3P
                 }
 
             }
+        }
+        public static void result(string modname)
+        {
+            if (modname != null && modname != "")
+            {
+                Directory.CreateDirectory(Main.@output + "\\result\\" + modname + "\\");
+                using (var bashProc = new Process())
+                {
+                    bashProc.StartInfo.FileName = Main.DeltaPatcher;
+                    bashProc.StartInfo.Arguments = "-v -e -f -s " + Main.@output + "\\xDeltaCombiner\\0\\data.win" + " \"" + Main.@output + "\\xDeltaCombiner\\1\\data.win" + "\" \"" + Main.@output + "\\result\\" + modname + "\\" + modname + ".xdelta\"";
+                    bashProc.StartInfo.CreateNoWindow = false;
+                    bashProc.Start();
+                    bashProc.WaitForExit();
+                }
+                File.Copy(Main.@output + "\\xDeltaCombiner\\1\\data.win", Main.@output + "\\result\\" + modname + "\\data.win");
+                File.Copy(Main.@output + "\\xDeltaCombiner\\1\\modifedAssets.txt", Main.@output + "\\result\\" + modname + "\\modifedAssets.txt");
+            }
+        }
+/// <summary>
+/// Error to return if load() fails
+/// </summary>
+public static string loadError { get; set; }
+        /// <summary>
+        /// Loads Template
+        /// </summary>
+        /// <param name="filepath"></param>
+        public static void load(string filepath = null)
+        {
+            if(filepath == null)
+            { 
+                if (File.Exists(Main.pwd + "\\template.xrune")) 
+                {
+                    filepath = Main.pwd + "\\template.xrune";
+                }
+            
+            }
+            if(filepath != null)
+            {
+                if (Main.GetLine(filepath, 1) == "0.4")
+                {
+                    string OpToPerform = Main.GetLine(filepath, 2);
+                    modAmount = Convert.ToInt32(Main.GetLine(filepath, 3));
+                    vanilla2 = Main.GetLine(filepath, 4);
+                    output = Main.GetLine(filepath, 5);
+                    DeltaPatcher = Main.GetLine(filepath, 6);
+                    modTool = Main.GetLine(filepath, 7);
+                    if (OpToPerform == "regular")
+                    {
+                        CreateCombinerDirectories();
+                        CopyVanilla();
+                        massPatch(Main.GetLine(filepath, 8).Split(",").ToArray());
+                        modifiedListCreate();
+                        CompareCombine();
+                        result(Main.GetLine(filepath, 9));
+                    }
+                }
+                else
+                {
+                    loadError = "The template's version is not supported";
+                }
+            }
+            if(filepath == null)
+            {
+                loadError = "The Template doesn't exists";
+            }
+            
         }
 }
 }
