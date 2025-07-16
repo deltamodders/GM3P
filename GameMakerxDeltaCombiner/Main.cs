@@ -475,6 +475,16 @@ namespace GM3P
                 File.Copy(Main.@output + "\\xDeltaCombiner\\1\\modifedAssets.txt", Main.@output + "\\result\\" + modname + "\\modifedAssets.txt");
             }
         }
+        public static void clear()
+        {
+            for (int modNumber = 0; modNumber < (GM3P.Main.modAmount + 2); modNumber++)
+            {
+                //if (modNumber != 1)
+                //{
+                Directory.Delete(GM3P.Main.output + "\\xDeltaCombiner\\" + modNumber, true);
+                //}
+            }
+        }
 /// <summary>
 /// Error to return if load() fails
 /// </summary>

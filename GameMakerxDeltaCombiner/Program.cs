@@ -37,7 +37,7 @@ static void Main(string[] args = null)
                 GM3P.Main.vanilla2 = args[1];
 
                 GM3P.Main.output = GM3P.Main.pwd + "\\output";
-                if (args.Length == 4)
+                if (args.Length == 6)
                 {
                     GM3P.Main.output = args[5];
                 }
@@ -55,6 +55,14 @@ static void Main(string[] args = null)
                 Console.WriteLine("Starting Console App...");
                 consoleApp();
                 break;
+            case "clear":
+                    if (args.Length > 1)
+                    {
+                        GM3P.Main.output = args[1];
+                    }
+                    GM3P.Main.clear();
+                    GM3P.Main.CreateCombinerDirectories();
+                    break;
             case null:
                 consoleApp();
                 break;
@@ -69,14 +77,40 @@ static void Main(string[] args = null)
                             Console.WriteLine(" ");
                             Console.WriteLine(" ");
                             Console.WriteLine(" ");
-                            Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod Files] [(optional) Output Folder]");
+                            Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod File Paths] [(optional) Output Folder]");
                             Console.WriteLine(" ");
                             Console.WriteLine("Example:          GM3P.exe massPatch \"C:\\Program Files(x86)\\Steam\\steamapps\\common\\DELTARUNE\\chapter3_windows\\data.win\" GM 2 \",,F:\\Downloads\\a.xDelta,F:\\Downloads\\b.csx\"");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Note: The Mod File Paths arg must be encased with a double quote (\"), but the individual paths cannot be encased nor with, nor contain, a double quote. Mod File Paths are delimited by commas (,) and paths entered before the second delimiter are ingored.");
+                        }
+                        if (commandHelp == "clear")
+                        {
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Clears the xDeltaCombiner folders for reuse on future uses.");
+                            Console.WriteLine(" ");
+                            Console.WriteLine(" ");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Command Santax:   GM3P.exe clear [(optional) Output Folder]");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Example:          GM3P.exe clear \"C:\\UndertaleMods\"");
+                        }
+                        if (commandHelp == "console")
+                        {
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Launches console app.");
+                            Console.WriteLine(" ");
+                            Console.WriteLine(" ");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Command Santax:   GM3P.exe console");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Example:          GM3P.exe console");
+                            Console.WriteLine(" ");
+                            Console.WriteLine("Note: The console app can also be launched if no command is provided. ");
                         }
                     }
                 if (args.Length == 1)
                 {
-                        Console.WriteLine("Avalible commands: help massPatch console");
+                        Console.WriteLine("Avalible commands:\nhelp        Display a satanax for a command and exit\nmassPatch   Patches a lot of data.win files with a single mod each\nconsole     launches console app\nclear       Clears the xDeltaCombiner folder for future use.");
                 }
                 break;
             default:
@@ -134,13 +168,7 @@ static void Main(string[] args = null)
         GM3P.Main.result(Console.ReadLine());
         Console.WriteLine("Press Enter To Clean up (Will delete output\\xDeltaCombiner) and exit");
         Console.ReadLine();
-        for (int modNumber = 0; modNumber < (GM3P.Main.modAmount + 2); modNumber++)
-        {
-            //if (modNumber != 1)
-            //{
-            Directory.Delete(GM3P.Main.output + "\\xDeltaCombiner\\" + modNumber, true);
-            //}
-        }
+        GM3P.Main.clear();
     }
 
 }
