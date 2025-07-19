@@ -677,6 +677,7 @@ public static string loadError { get; set; }
                     output = Main.GetLine(filepath, 5);
                     DeltaPatcher = Main.GetLine(filepath, 6);
                     modTool = Main.GetLine(filepath, 7);
+                    game_change = Convert.ToBoolean(Main.GetLine(filepath, 10));
                     if (OpToPerform == "regular")
                     {
                         CreateCombinerDirectories();
