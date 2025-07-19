@@ -104,7 +104,7 @@ namespace GM3P
             else
             {
                 string[] vanilla = Directory.GetFiles(Main.@vanilla2, "*.win", SearchOption.AllDirectories);
-                for (int modNumber = 0; modNumber < Main.modAmount; modNumber++)
+                for (int modNumber = 0; modNumber < (Main.modAmount +1); modNumber++)
                 {
                     Directory.CreateDirectory(Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\vanilla");
                     File.Copy(vanilla[modNumber], Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win", true);
@@ -187,6 +187,10 @@ namespace GM3P
                     {
                         File.Copy(xDeltaFile[modNumber], Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ", true);
                     }
+                    else if (Path.GetExtension(xDeltaFile[modNumber]) == "" || Path.GetExtension(xDeltaFile[modNumber]) == null)
+                    {
+                        //If the user didn't enter anything ingore and move on
+                    }
                     //Otherwise, patch the xDelta
                     else
                     {
@@ -240,6 +244,10 @@ namespace GM3P
                     else if (Path.GetExtension(xDeltaFile[modNumber]) == ".win")
                     {
                         File.Copy(xDeltaFile[modNumber], Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " ", true);
+                    }
+                    else if (Path.GetExtension(xDeltaFile[modNumber]) == "" || Path.GetExtension(xDeltaFile[modNumber]) == null)
+                    {
+                        //If the user didn't enter anything ingore and move on
                     }
                     //Otherwise, patch the xDelta
                     else
