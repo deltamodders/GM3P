@@ -118,48 +118,37 @@ namespace GM3P
         /// </summary>
         public static void massPatch(string[] filepath = null)
         {
+            int extra = 2;
+            int asdf = 2;
             xDeltaFile = new string[(modAmount + 2)];
             if (!game_change)
             {
+                extra = 2;
+                asdf = 2;
+            }
+            else
+            {
+                extra = 1;
+                asdf = 0;
+            }
                 if (filepath == null)
+            {
+                for (int modNumber = asdf; modNumber < (Main.modAmount + extra); modNumber++)
                 {
-                    for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
-                    {
-                        xDeltaFile[modNumber] = Console.ReadLine().Replace("\"", "");
+                    xDeltaFile[modNumber] = Console.ReadLine().Replace("\"", "");
 
-                    }
-                }
-                else
-                {
-                    for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
-                    {
-                        xDeltaFile[modNumber] = filepath[modNumber].Replace("\"", "");
-
-                    }
                 }
             }
             else
             {
-                if (filepath == null)
+                for (int modNumber = asdf; modNumber < (Main.modAmount + extra); modNumber++)
                 {
-                    for (int modNumber = 0; modNumber < (Main.modAmount+1); modNumber++)
-                    {
-                        xDeltaFile[modNumber] = Console.ReadLine().Replace("\"", "");
+                    xDeltaFile[modNumber] = filepath[modNumber].Replace("\"", "");
 
-                    }
-                }
-                else
-                {
-                    for (int modNumber = 2; modNumber < (Main.modAmount+1); modNumber++)
-                    {
-                        xDeltaFile[modNumber] = filepath[modNumber].Replace("\"", "");
-
-                    }
                 }
             }
-            if (!game_change)
-            {
-                for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
+            
+                for (int modNumber = 0; modNumber < (Main.modAmount + extra); modNumber++)
                 {
                     //Check if the mod is a UTMT script. If so, patch it.
                     if (Path.GetExtension(xDeltaFile[modNumber]) == ".csx")
@@ -168,65 +157,7 @@ namespace GM3P
                         {
                             modToolProc.StartInfo.FileName = Main.@modTool;
                             modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " --scripts " + xDeltaFile[modNumber];
-                            modToolProc.StartInfo.CreateNoWindow = true;
-                            modToolProc.StartInfo.UseShellExecute = false;
-                            modToolProc.StartInfo.RedirectStandardOutput = true;
-                            modToolProc.Start();
-                            // Synchronously read the standard output of the spawned process.
-                            StreamReader reader = modToolProc.StandardOutput;
-                            string ProcOutput = reader.ReadToEnd();
-
-                            // Write the redirected output to this application's window.
-                            Console.WriteLine(ProcOutput);
-
-                            modToolProc.WaitForExit();
-                        }
-                    }
-                    //If it's a full data.win, copy the file
-                    else if (Path.GetExtension(xDeltaFile[modNumber]) == ".win")
-                    {
-                        File.Copy(xDeltaFile[modNumber], Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ", true);
-                    }
-                    else if (Path.GetExtension(xDeltaFile[modNumber]) == "" || Path.GetExtension(xDeltaFile[modNumber]) == null)
-                    {
-                        //If the user didn't enter anything ingore and move on
-                    }
-                    //Otherwise, patch the xDelta
-                    else
-                    {
-                        File.WriteAllText(Main.@output + "\\Cache\\modNumbersCache.txt", Convert.ToString(modNumber));
-                        using (var bashProc = new Process())
-                        {
-                            bashProc.StartInfo.FileName = Main.DeltaPatcher;
-                            bashProc.StartInfo.Arguments = "-v -d -f -s " + Main.@output + "\\xDeltaCombiner\\0\\data.win" + " \"" + xDeltaFile[modNumber] + "\" \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ";
-                            bashProc.StartInfo.CreateNoWindow = true;
-                            bashProc.StartInfo.UseShellExecute = false;
-                            bashProc.StartInfo.RedirectStandardOutput = true;
-                            bashProc.Start();
-                            // Synchronously read the standard output of the spawned process.
-                            StreamReader reader = bashProc.StandardOutput;
-                            string ProcOutput = reader.ReadToEnd();
-
-                            // Write the redirected output to this application's window.
-                            Console.WriteLine(ProcOutput);
-
-                            bashProc.WaitForExit();
-                        }
-                    }
-                }
-            }
-            else
-            {
-                for (int modNumber = 0; modNumber < (Main.modAmount + 1); modNumber++)
-                {
-                    //Check if the mod is a UTMT script. If so, patch it.
-                    if (Path.GetExtension(xDeltaFile[modNumber]) == ".csx")
-                    {
-                        using (var modToolProc = new Process())
-                        {
-                            modToolProc.StartInfo.FileName = Main.@modTool;
-                            modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " --scripts " + xDeltaFile[modNumber];
-                            modToolProc.StartInfo.CreateNoWindow = true;
+                            modToolProc.StartInfo.CreateNoWindow = false;
                             modToolProc.StartInfo.UseShellExecute = false;
                             modToolProc.StartInfo.RedirectStandardOutput = true;
                             modToolProc.Start();
@@ -245,10 +176,10 @@ namespace GM3P
                     {
                         File.Copy(xDeltaFile[modNumber], Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " ", true);
                     }
-                    else if (Path.GetExtension(xDeltaFile[modNumber]) == "" || Path.GetExtension(xDeltaFile[modNumber]) == null)
-                    {
-                        //If the user didn't enter anything ingore and move on
-                    }
+                    //else if (Path.GetExtension(xDeltaFile[modNumber]) == "" || Path.GetExtension(xDeltaFile[modNumber]) == null)
+                    //{
+                        
+                    //}
                     //Otherwise, patch the xDelta
                     else
                     {
@@ -256,8 +187,8 @@ namespace GM3P
                         using (var bashProc = new Process())
                         {
                             bashProc.StartInfo.FileName = Main.DeltaPatcher;
-                            bashProc.StartInfo.Arguments = "-v -d -f -s " + Main.@output + "\\xDeltaCombiner\\0\\data.win" + " \"" + xDeltaFile[modNumber] + "\" \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ";
-                            bashProc.StartInfo.CreateNoWindow = true;
+                            bashProc.StartInfo.Arguments = "-v -d -f -s " + Main.@output + "\\xDeltaCombiner\\"+ modNumber +"\\data.win" + " \"" + xDeltaFile[modNumber] + "\" \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ";
+                            bashProc.StartInfo.CreateNoWindow = false;
                             bashProc.StartInfo.UseShellExecute = false;
                             bashProc.StartInfo.RedirectStandardOutput = true;
                             bashProc.Start();
@@ -273,7 +204,7 @@ namespace GM3P
                     }
                 }
             }
-        }
+        
         public static List<string> modifedAssets = new List<string> { "Asset Name                       Hash (SHA1 in Base64)" };
         public static void modifiedListCreate() {
             if (!File.Exists(Main.@output + "\\xDeltaCombiner\\1\\modifedAssets.txt"))
@@ -297,7 +228,7 @@ namespace GM3P
                     {
                         modToolProc.StartInfo.FileName = Main.@modTool;
                         modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAllTexturesGrouped.csx --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ExportAllCode.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAssetOrder.csx";
-                        modToolProc.StartInfo.CreateNoWindow = true;
+                        modToolProc.StartInfo.CreateNoWindow = false;
                         modToolProc.StartInfo.UseShellExecute = false;
                         modToolProc.StartInfo.RedirectStandardOutput = true;
                         modToolProc.Start();
@@ -588,7 +519,7 @@ namespace GM3P
                 {
                     modToolProc.StartInfo.FileName = Main.@modTool;
                     modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGML.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportAssetOrder.csx";
-                    modToolProc.StartInfo.CreateNoWindow = true;
+                    modToolProc.StartInfo.CreateNoWindow = false;
                     modToolProc.StartInfo.UseShellExecute = false;
                     modToolProc.StartInfo.RedirectStandardOutput = true;
                     modToolProc.Start();
@@ -645,7 +576,7 @@ namespace GM3P
             {
                 //if (modNumber != 1)
                 //{
-                Directory.Delete(GM3P.Main.output + "\\xDeltaCombiner\\" + modNumber, true);
+                Directory.Delete(GM3P.Main.output + "\\xDeltaCombiner\\", true);
                 //}
             }
         }
