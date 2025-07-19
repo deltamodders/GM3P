@@ -190,7 +190,7 @@ class Program
                             }
                             if (args.Length == 1)
                             {
-                                Console.WriteLine("Avalible commands:\nhelp        Display a satanax for a command and exit (use \"GM3P.exe help *command*\")\nmassPatch   Patches a lot of data.win files with a single mod each\nconsole     launches console app\nclear       Clears the xDeltaCombiner folder for future use.\ncompare     Compares modded GM Objects to vanilla and puts changes in a list. Dumping and Importing optional.");
+                                Console.WriteLine("Avalible commands:\nhelp        Display a satanax for a command and exit (use \"GM3P.exe help *command*\")\nmassPatch   Patches a lot of data.win files with a single mod each\nconsole     launches console app\nclear       Clears the xDeltaCombiner folder for future use.\ncompare     Compares modded GM Objects to vanilla and puts changes in a list. Dumping and Importing optional.\nresult      Name and copy modpack to a folder\n");
                             }
                             break;
                         default:
@@ -209,7 +209,15 @@ class Program
                     GM3P.Main.vanilla2 = Console.ReadLine().Replace("\"", "");
                     GM3P.Main.output = GM3P.Main.pwd + "\\output";
                     GM3P.Main.DeltaPatcher = GM3P.Main.pwd + "\\xdelta3-3.0.11-x86_64.exe";
-                    Console.WriteLine("Type however many mods you want to patch: ");
+                    GM3P.Main.game_change = UtilsConsole.Confirm("Did you enter a directory to a GameMaker game that uses game_change? If you are unsure or are linking directly to the data.win, hit \"N\": ");
+                    if (!GM3P.Main.game_change)
+                    {
+                        Console.WriteLine("Type however many mods you want to patch: ");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Type however many chapters the game has: "); 
+                    }
                     GM3P.Main.modAmount = Convert.ToInt32(Console.ReadLine());
                     if (GM3P.Main.vanilla2 != "skip")
                     {
@@ -220,18 +228,20 @@ class Program
                         Console.WriteLine("Now Enter in the xDeltas, one at a time: ");
                         GM3P.Main.massPatch();
                     }
-                    Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
-                    Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may exit the terminal now");
-                    GM3P.Main.modTool = Console.ReadLine();
-                    if (GM3P.Main.modTool == null || GM3P.Main.modTool == "")
+                    if (!GM3P.Main.game_change)
                     {
-                        GM3P.Main.modTool = GM3P.Main.pwd + "\\UTMTCLI\\UndertaleModCli.exe";
-                    }
-                    if (GM3P.Main.modTool != "skip")
-                    {
-                        GM3P.Main.dump();
-                        Console.WriteLine("The dumping process(es) are finished");
-                    }
+                        Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
+                        Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may exit the terminal now");
+                        GM3P.Main.modTool = Console.ReadLine();
+                        if (GM3P.Main.modTool == null || GM3P.Main.modTool == "")
+                        {
+                            GM3P.Main.modTool = GM3P.Main.pwd + "\\UTMTCLI\\UndertaleModCli.exe";
+                        }
+                        if (GM3P.Main.modTool != "skip")
+                        {
+                            GM3P.Main.dump();
+                            Console.WriteLine("The dumping process(es) are finished");
+                        }
                     if (GM3P.Main.modTool == "skip")
                     {
                         Console.WriteLine("In order to dump manually, load up the data.win in each of the \\xDeltaCombiner\\ subfolders into the GUI version of UTMT and run the script ExportAllCode.csx. Select \"C:\\xDeltaCombiner\\*currentsubfolder*\\Objects\\\" as your destination. Once finished, exit without saving.");
@@ -245,6 +255,7 @@ class Program
                     Console.WriteLine("Comparing is done. Hit Enter to Continue.");
                     Console.ReadLine();
                     GM3P.Main.import();
+                }
                     Console.WriteLine("To save your modpack, name it: ");
                     GM3P.Main.result(Console.ReadLine());
                     Console.WriteLine("Press Enter To Clean up (Will delete output\\xDeltaCombiner) and exit");
