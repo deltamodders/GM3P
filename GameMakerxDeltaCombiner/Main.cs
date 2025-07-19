@@ -45,6 +45,10 @@ namespace GM3P
         /// </summary>
         public static string gameEngine {  get; set; }
         /// <summary>
+        /// Whether or not the game uses game_change
+        /// </summary>
+        public static bool game_change { get; set; }
+        /// <summary>
         /// Path to the modTool for Dumping
         /// </summary>
         public static string modTool { get; set; }
@@ -123,9 +127,18 @@ namespace GM3P
                         {
                             modToolProc.StartInfo.FileName = Main.@modTool;
                             modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " --scripts " + xDeltaFile[modNumber];
-                            modToolProc.StartInfo.CreateNoWindow = false;
-                            modToolProc.Start();
-                            modToolProc.WaitForExit();
+                        modToolProc.StartInfo.CreateNoWindow = true;
+                        modToolProc.StartInfo.UseShellExecute = false;
+                        modToolProc.StartInfo.RedirectStandardOutput = true;
+                        modToolProc.Start();
+                        // Synchronously read the standard output of the spawned process.
+                        StreamReader reader = modToolProc.StandardOutput;
+                        string ProcOutput = reader.ReadToEnd();
+
+                        // Write the redirected output to this application's window.
+                        Console.WriteLine(ProcOutput);
+
+                        modToolProc.WaitForExit();
                         }
                     }
                     //If it's a full data.win, copy the file
@@ -141,9 +154,18 @@ namespace GM3P
                         {
                             bashProc.StartInfo.FileName = Main.DeltaPatcher;
                             bashProc.StartInfo.Arguments = "-v -d -f -s " + Main.@output + "\\xDeltaCombiner\\0\\data.win" + " \"" + xDeltaFile[modNumber] + "\" \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ";
-                            bashProc.StartInfo.CreateNoWindow = false;
-                            bashProc.Start();
-                            bashProc.WaitForExit();
+                        bashProc.StartInfo.CreateNoWindow = true;
+                        bashProc.StartInfo.UseShellExecute = false;
+                        bashProc.StartInfo.RedirectStandardOutput = true;
+                        bashProc.Start();
+                        // Synchronously read the standard output of the spawned process.
+                        StreamReader reader = bashProc.StandardOutput;
+                        string ProcOutput = reader.ReadToEnd();
+
+                        // Write the redirected output to this application's window.
+                        Console.WriteLine(ProcOutput);
+
+                        bashProc.WaitForExit();
                         }
                     }
                 }
@@ -171,8 +193,18 @@ namespace GM3P
                     {
                         modToolProc.StartInfo.FileName = Main.@modTool;
                         modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAllTexturesGrouped.csx --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ExportAllCode.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAssetOrder.csx";
-                        modToolProc.StartInfo.CreateNoWindow = false;
+                        modToolProc.StartInfo.CreateNoWindow = true;
+                        modToolProc.StartInfo.UseShellExecute = false;
+                        modToolProc.StartInfo.RedirectStandardOutput = true;
                         modToolProc.Start();
+
+                        // Synchronously read the standard output of the spawned process.
+                        StreamReader reader = modToolProc.StandardOutput;
+                        string ProcOutput = reader.ReadToEnd();
+
+                        // Write the redirected output to this application's window.
+                        Console.WriteLine(ProcOutput);
+
                         modToolProc.WaitForExit();
                     }
                 }
@@ -377,14 +409,14 @@ namespace GM3P
                         {
 
                             File.Copy(Path.GetDirectoryName(modFiles[0]) + "\\" + Path.GetFileName(modFilesParent[0]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + Path.GetFileName(modFileAdditions[i]), true);
-                            Main.modifedAssets.Add(modFilesName[i] + "        ");
+                            Main.modifedAssets.Add(Path.GetFileName(modFilesParent[0]) + "        ");
                         }
                         if (modFileDir != (modNumber + "\\Objects"))
                         {
                             Directory.CreateDirectory(Main.output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
 
                             File.Copy(Directory.GetParent(modFilesParent[0]) + "\\" + Path.GetFileName(modFilesParent[0]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(modFileAdditions[i]), true);
-                            Main.modifedAssets.Add(modFilesName[i] + "        ");
+                            Main.modifedAssets.Add(Path.GetFileName(modFilesParent[0]) + "        ");
                         }
                         Console.WriteLine("Currently Copying " + Path.GetFileName(modFileAdditions[i]));
 
@@ -451,8 +483,16 @@ namespace GM3P
                 {
                     modToolProc.StartInfo.FileName = Main.@modTool;
                     modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGML.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportAssetOrder.csx";
-                    modToolProc.StartInfo.CreateNoWindow = false;
+                    modToolProc.StartInfo.CreateNoWindow = true;
+                    modToolProc.StartInfo.UseShellExecute = false;
+                    modToolProc.StartInfo.RedirectStandardOutput = true;
                     modToolProc.Start();
+                    // Synchronously read the standard output of the spawned process.
+                    StreamReader reader = modToolProc.StandardOutput;
+                    string ProcOutput = reader.ReadToEnd();
+
+                    // Write the redirected output to this application's window.
+                    Console.WriteLine(ProcOutput);
                     modToolProc.WaitForExit();
                 }
 
@@ -535,4 +575,83 @@ public static string loadError { get; set; }
             
         }
 }
+}
+//A logging class C+Ped from https://stackoverflow.com/questions/420429/mirroring-console-output-to-a-file
+class ConsoleCopy : IDisposable
+{
+
+    FileStream fileStream;
+    StreamWriter fileWriter;
+    TextWriter doubleWriter;
+    TextWriter oldOut;
+
+    class DoubleWriter : TextWriter
+    {
+
+        TextWriter one;
+        TextWriter two;
+
+        public DoubleWriter(TextWriter one, TextWriter two)
+        {
+            this.one = one;
+            this.two = two;
+        }
+
+        public override Encoding Encoding
+        {
+            get { return one.Encoding; }
+        }
+
+        public override void Flush()
+        {
+            one.Flush();
+            two.Flush();
+        }
+
+        public override void Write(char value)
+        {
+            one.Write(value);
+            two.Write(value);
+        }
+
+    }
+
+    public ConsoleCopy(string path)
+    {
+        oldOut = Console.Out;
+
+        try
+        {
+            fileStream = File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
+
+            fileWriter = new StreamWriter(fileStream);
+            fileWriter.AutoFlush = true;
+
+            doubleWriter = new DoubleWriter(fileWriter, oldOut);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Cannot open file for writing");
+            Console.WriteLine(e.Message);
+            return;
+        }
+        Console.SetOut(doubleWriter);
+    }
+
+    public void Dispose()
+    {
+        Console.SetOut(oldOut);
+        if (fileWriter != null)
+        {
+            fileWriter.Flush();
+            fileWriter.Close();
+            fileWriter = null;
+        }
+        if (fileStream != null)
+        {
+            fileStream.Close();
+            fileStream = null;
+        }
+    }
+
 }
