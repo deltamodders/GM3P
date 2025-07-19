@@ -20,6 +20,7 @@ Section 1: Operation Instructions
 		clear - clears output\xDeltaCombiner for future use
 		massPatch - patches a ton of identical data.win files with a single mod each (currently supports .csx, .win, and .xdelta mod formats)
 		compare - Compares and combine GM objects. Dumping and importing optional, but recommended. Can Only be successfully called if massPatch was called before or the user manually set things up in output\xDeltaCombiner.
+		result - saves a copy of the result to output\result\
 
 Section 2: Technical Information
 	Part 2.1: System Requirements
@@ -40,12 +41,14 @@ Section 2: Technical Information
 		xDeltaCombiner\#\Objects: GameMaker Objects location
 		result\: resulting merges
 		Cache\vanilla: currently unused, will be used for storing vanilla data.win files
+		Cache\Logs: stores logs, goes by YYMMDDHHmm-TZ
 		Cache\modNumbersCache.txt: used to pass off a variable value from GM3P to UTMTCLI during runtime. 
 	Part 2.3: Known Issues and limitations
 		Issue: Sprites that are not in the vanilla game may be out of order, except for the last mod applied.
 		Issue: Backported mods don't compare correctly
 		Issue: Sprites may not export or import at the right size (specifically observed with the Running Animations mod for Deltarune)
 		Issue: Dumping and Importing fails if a custom output folder is specified.
+		Issue: Logging doesn't save user input
 		Limitation: Can only apply patches meant for the same version of the same game. Can't mix and match
 		Limitation: If 2 mods modify the same object, only the changes for the last affect mod entered applies.
 		Haven't implemented yet: Error Handling
