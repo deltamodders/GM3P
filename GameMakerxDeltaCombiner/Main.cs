@@ -27,7 +27,7 @@ namespace GM3P
         /// <summary>
         /// Current working directory
         /// </summary>
-        public static string pwd = @Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName));
+        public static string @pwd = @Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName));
         /// <summary>
         /// Output folder
         /// </summary>
@@ -148,7 +148,7 @@ namespace GM3P
                 }
             }
             
-                for (int modNumber = 0; modNumber < (Main.modAmount + extra); modNumber++)
+                for (int modNumber = asdf; modNumber < (Main.modAmount + extra); modNumber++)
                 {
                     //Check if the mod is a UTMT script. If so, patch it.
                     if (Path.GetExtension(xDeltaFile[modNumber]) == ".csx")
@@ -186,8 +186,8 @@ namespace GM3P
                         File.WriteAllText(Main.@output + "\\Cache\\modNumbersCache.txt", Convert.ToString(modNumber));
                         using (var bashProc = new Process())
                         {
-                            bashProc.StartInfo.FileName = Main.DeltaPatcher;
-                            bashProc.StartInfo.Arguments = "-v -d -f -s " + Main.@output + "\\xDeltaCombiner\\"+ modNumber +"\\data.win" + " \"" + xDeltaFile[modNumber] + "\" \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" ";
+                            bashProc.StartInfo.FileName = Main.@DeltaPatcher;
+                            bashProc.StartInfo.Arguments = "-v -d -f -s \"" + Main.@output + "\\xDeltaCombiner\\"+ modNumber +"\\data.win\"" + " \"" + xDeltaFile[modNumber] + "\" \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\dat.win" + "\" ";
                             bashProc.StartInfo.CreateNoWindow = false;
                             bashProc.StartInfo.UseShellExecute = false;
                             bashProc.StartInfo.RedirectStandardOutput = true;
@@ -201,6 +201,8 @@ namespace GM3P
 
                             bashProc.WaitForExit();
                         }
+                        File.Delete("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win");
+                        File.Move("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\dat.win","" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win");
                     }
                 }
             }
@@ -227,7 +229,7 @@ namespace GM3P
                     using (var modToolProc = new Process())
                     {
                         modToolProc.StartInfo.FileName = Main.@modTool;
-                        modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAllTexturesGrouped.csx --scripts " + Main.pwd + "\\UTMTCLI\\Scripts\\ExportAllCode.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAssetOrder.csx";
+                        modToolProc.StartInfo.Arguments = "load \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win\" " + "--verbose --output \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" --scripts \"" + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAllTexturesGrouped.csx\" --scripts \"" + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAllCode.csx\" --scripts \"" + Main.@pwd + "\\UTMTCLI\\Scripts\\ExportAssetOrder.csx\"";
                         modToolProc.StartInfo.CreateNoWindow = false;
                         modToolProc.StartInfo.UseShellExecute = false;
                         modToolProc.StartInfo.RedirectStandardOutput = true;
@@ -324,50 +326,57 @@ namespace GM3P
 
                                                 if (Path.GetExtension(modFiles[i]) == ".png")
                                                 {
-
-                                                    using (Bitmap image1 = new Bitmap(modFiles[i]))
+                                                    try
                                                     {
-
-                                                        using (Bitmap image2 = new Bitmap(vanillaFiles[j]))
+                                                        using (Bitmap image1 = new(@modFiles[i]))
                                                         {
 
-                                                            [DllImport("msvcrt.dll")]
-                                                            static extern int memcmp(IntPtr b1, IntPtr b2, long count);
-
-                                                            static bool CompareMemCmp(Bitmap b1, Bitmap b2)
+                                                            using (Bitmap image2 = new(@vanillaFiles[j]))
                                                             {
-                                                                if ((b1 == null) != (b2 == null)) return false;
-                                                                if (b1.Size != b2.Size) return false;
 
-                                                                var bd1 = b1.LockBits(new Rectangle(new Point(0, 0), b1.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                                                                var bd2 = b2.LockBits(new Rectangle(new Point(0, 0), b2.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                                                                [DllImport("msvcrt.dll")]
+                                                                static extern int memcmp(IntPtr b1, IntPtr b2, long count);
 
-                                                                try
+                                                                static bool CompareMemCmp(Bitmap b1, Bitmap b2)
                                                                 {
-                                                                    IntPtr bd1scan0 = bd1.Scan0;
-                                                                    IntPtr bd2scan0 = bd2.Scan0;
+                                                                    if ((b1 == null) != (b2 == null)) return false;
+                                                                    if (b1.Size != b2.Size) return false;
 
-                                                                    int stride = bd1.Stride;
-                                                                    int len = stride * b1.Height;
+                                                                    var bd1 = b1.LockBits(new Rectangle(new Point(0, 0), b1.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                                                                    var bd2 = b2.LockBits(new Rectangle(new Point(0, 0), b2.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
 
-                                                                    return memcmp(bd1scan0, bd2scan0, len) == 0;
+                                                                    try
+                                                                    {
+                                                                        IntPtr bd1scan0 = bd1.Scan0;
+                                                                        IntPtr bd2scan0 = bd2.Scan0;
+
+                                                                        int stride = bd1.Stride;
+                                                                        int len = stride * b1.Height;
+
+                                                                        return memcmp(bd1scan0, bd2scan0, len) == 0;
+                                                                    }
+                                                                    finally
+                                                                    {
+                                                                        b1.UnlockBits(bd1);
+                                                                        b2.UnlockBits(bd2);
+                                                                    }
                                                                 }
-                                                                finally
+
+
+                                                                if (!CompareMemCmp(image1, image2))
                                                                 {
-                                                                    b1.UnlockBits(bd1);
-                                                                    b2.UnlockBits(bd2);
+                                                                    Directory.CreateDirectory(Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
+
+                                                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
+                                                                    Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                                                 }
-                                                            }
-
-
-                                                            if (!CompareMemCmp(image1, image2))
-                                                            {
-                                                                Directory.CreateDirectory(Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir);
-
-                                                                File.Copy(Path.GetDirectoryName(modFiles[i]) + "\\" + Path.GetFileName(modFiles[i]), Main.@output + "\\xDeltaCombiner\\1\\Objects\\" + modFileDir + "\\" + Path.GetFileName(vanillaFiles[j]), true);
-                                                                Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                                             }
                                                         }
+                                                    }
+                                                    catch (Exception ex) 
+                                                    { 
+                                                        Console.WriteLine(ex.Message);
+                                                        Console.WriteLine(modFiles[i]);
                                                     }
 
 
@@ -518,7 +527,7 @@ namespace GM3P
                 using (var modToolProc = new Process())
                 {
                     modToolProc.StartInfo.FileName = Main.@modTool;
-                    modToolProc.StartInfo.Arguments = "load " + Main.@output + "\\xDeltaCombiner\\1\\data.win " + "--verbose --output " + Main.@output + "\\xDeltaCombiner\\1\\data.win" + " --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGML.csx --scripts " + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportAssetOrder.csx";
+                    modToolProc.StartInfo.Arguments = "load \"" + Main.@output + "\\xDeltaCombiner\\1\\data.win\" " + "--verbose --output \"" + Main.@output + "\\xDeltaCombiner\\1\\data.win" + "\" --scripts \"" + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGraphicsAdvanced.csx\" --scripts \"" + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportGML.csx\" --scripts \"" + Main.@pwd + "\\UTMTCLI\\Scripts\\ImportAssetOrder.csx\"";
                     modToolProc.StartInfo.CreateNoWindow = false;
                     modToolProc.StartInfo.UseShellExecute = false;
                     modToolProc.StartInfo.RedirectStandardOutput = true;
@@ -543,8 +552,8 @@ namespace GM3P
                     Directory.CreateDirectory(Main.@output + "\\result\\" + modname + "\\");
                     using (var bashProc = new Process())
                     {
-                        bashProc.StartInfo.FileName = Main.DeltaPatcher;
-                        bashProc.StartInfo.Arguments = "-v -e -f -s " + Main.@output + "\\xDeltaCombiner\\0\\data.win" + " \"" + Main.@output + "\\xDeltaCombiner\\1\\data.win" + "\" \"" + Main.@output + "\\result\\" + modname + "\\" + modname + ".xdelta\"";
+                        bashProc.StartInfo.FileName = Main.@DeltaPatcher;
+                        bashProc.StartInfo.Arguments = "-v -e -f -s \"" + Main.@output + "\\xDeltaCombiner\\0\\data.win" + "\" \"" + Main.@output + "\\xDeltaCombiner\\1\\data.win" + "\" \"" + Main.@output + "\\result\\" + modname + "\\" + modname + ".xdelta\"";
                         bashProc.StartInfo.CreateNoWindow = false;
                         bashProc.Start();
                         bashProc.WaitForExit();
@@ -559,8 +568,8 @@ namespace GM3P
                         Directory.CreateDirectory(Main.@output + "\\result\\" + modname + "\\" + modNumber);
                         using (var bashProc = new Process())
                         {
-                            bashProc.StartInfo.FileName = Main.DeltaPatcher;
-                            bashProc.StartInfo.Arguments = "-v -e -f -s " + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\vanilla\\data.win" + " \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" \"" + Main.@output + "\\result\\" + modname + "\\" + modNumber + ".xdelta\"";
+                            bashProc.StartInfo.FileName = Main.@DeltaPatcher;
+                            bashProc.StartInfo.Arguments = "-v -e -f -s \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\vanilla\\data.win" + "\" \"" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win" + "\" \"" + Main.@output + "\\result\\" + modname + "\\" + modNumber + ".xdelta\"";
                             bashProc.StartInfo.CreateNoWindow = false;
                             bashProc.Start();
                             bashProc.WaitForExit();
@@ -572,13 +581,13 @@ namespace GM3P
         }
         public static void clear()
         {
-            for (int modNumber = 0; modNumber < Directory.GetDirectories(GM3P.Main.output + "\\xDeltaCombiner\\").Length; modNumber++)
-            {
+            //for (int modNumber = 0; modNumber < Directory.GetDirectories(GM3P.Main.@output + "\\xDeltaCombiner\\").Length; modNumber++)
+            //{
                 //if (modNumber != 1)
                 //{
-                Directory.Delete(GM3P.Main.output + "\\xDeltaCombiner\\", true);
+                Directory.Delete(GM3P.Main.@output + "\\xDeltaCombiner\\", true);
                 //}
-            }
+            //}
         }
 /// <summary>
 /// Error to return if load() fails

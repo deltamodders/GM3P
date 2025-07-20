@@ -207,8 +207,8 @@ class Program
                 {
                     Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if you just want to compare and combine:");
                     GM3P.Main.vanilla2 = Console.ReadLine().Replace("\"", "");
-                    GM3P.Main.output = GM3P.Main.pwd + "\\output";
-                    GM3P.Main.DeltaPatcher = GM3P.Main.pwd + "\\xdelta3-3.0.11-x86_64.exe";
+                    GM3P.Main.output = GM3P.Main.@pwd + "\\output";
+                    GM3P.Main.DeltaPatcher = GM3P.Main.@pwd + "\\xdelta3-3.0.11-x86_64.exe";
                     GM3P.Main.game_change = UtilsConsole.Confirm("Did you enter a directory to a GameMaker game that uses game_change? If you are unsure or are linking directly to the data.win, hit \"N\": ");
                     if (!GM3P.Main.game_change)
                     {
@@ -235,7 +235,7 @@ class Program
                         GM3P.Main.modTool = Console.ReadLine();
                         if (GM3P.Main.modTool == null || GM3P.Main.modTool == "")
                         {
-                            GM3P.Main.modTool = GM3P.Main.pwd + "\\UTMTCLI\\UndertaleModCli.exe";
+                            GM3P.Main.modTool = GM3P.Main.@pwd + "\\UTMTCLI\\UndertaleModCli.exe";
                         }
                         if (GM3P.Main.modTool != "skip")
                         {
