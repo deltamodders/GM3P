@@ -468,48 +468,52 @@ namespace GM3P
                     }
                 }
 
-                //string assetOrderSeperator = "a bunch of random characters to define this";
-                //var vanillaAssetOrder = File.ReadAllLines(Main.output + "\\xDeltaCombiner\\0\\Objects\\AssetOrder.txt").ToList();
-                //int vanillaAssetOrderCount = vanillaAssetOrder.Count;
-                //int modAssetOrderCount = File.ReadLines(Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\AssetOrder.txt").Count();
-                //for (int i = 0; i < vanillaAssetOrderCount; i++)
-                //{
-                //    Console.WriteLine("Comparing asset order of vanilla to mod # " + (modNumber-1) + ", Line "+i);
-                //    if (!File.Exists(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt")) { 
-                //        File.Create(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt").Close(); 
-                //        }
-                //    var modAssetOrder = File.ReadAllLines(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt").ToList();
-                //    string vanillaAssetOrderLine = GetLine(Main.output + "\\xDeltaCombiner\\0\\Objects\\AssetOrder.txt", i);
-                //    for (int j = 0; j < modAssetOrderCount; j++)
-                //    {
-                //        string modAssetOrderLine = GetLine(Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\AssetOrder.txt", j);
-                //        bool modAssetOrderinvanillaAssetOrder = vanillaAssetOrder.Contains(modAssetOrderLine);
-                //        if (modAssetOrderLine == vanillaAssetOrderLine && modAssetOrderLine.StartsWith("@@"))
-                //        {
-                //            assetOrderSeperator = modAssetOrderLine;
-                //        }
+                string assetOrderSeperator = "a bunch of random characters to define this";
+                var vanillaAssetOrder = File.ReadAllLines(Main.output + "\\xDeltaCombiner\\0\\Objects\\AssetOrder.txt").ToList();
+                int vanillaAssetOrderCount = vanillaAssetOrder.Count;
+                int modAssetOrderCount = File.ReadLines(Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\AssetOrder.txt").Count();
+                var modAssetOrder = File.ReadAllLines(Main.output + "\\xDeltaCombiner\\" + modNumber + "\\Objects\\AssetOrder.txt");
+                if (!File.Exists(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt"))
+                {
+                    File.Create(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt").Close();
+                }
 
-                //        if (modAssetOrderLine == vanillaAssetOrderLine && !modAssetOrder.Contains(assetOrderSeperator))
-                //        {
-                //            if (modNumber == 2)
-                //            { modAssetOrder.Add(modAssetOrderLine); }
-                //            else
-                //            {
-                //                modAssetOrder.Insert(j, vanillaAssetOrderLine);
-                //            }
-                //        }
-                //        if (modAssetOrderLine != vanillaAssetOrderLine && !modAssetOrderinvanillaAssetOrder)
-                //        {
-                //            if (modNumber == 2)
-                //            { modAssetOrder.Add(modAssetOrderLine); }
-                //            else
-                //            {
-                //                modAssetOrder.Insert(j, modAssetOrderLine);
-                //            }
-                //        }
-                //    }
-                //    File.WriteAllLines(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt", modAssetOrder);
-                //}
+                var finalModAssetOrder = File.ReadAllLines(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt").ToList();
+                for (int i = 0; i < vanillaAssetOrderCount; i++)
+                {
+                    Console.WriteLine("Comparing asset order of vanilla to mod # " + (modNumber - 1) + ", Line " + i);
+ 
+                    string vanillaAssetOrderLine = vanillaAssetOrder[i];
+                    for (int j = 0; j < modAssetOrderCount; j++)
+                    {
+                        string modAssetOrderLine = modAssetOrder[j];
+                        bool modAssetOrderinvanillaAssetOrder = vanillaAssetOrder.Contains(modAssetOrderLine);
+                        if (modAssetOrderLine == vanillaAssetOrderLine && modAssetOrderLine.StartsWith("@@"))
+                        {
+                            assetOrderSeperator = modAssetOrderLine;
+                        }
+
+                        if (modAssetOrderLine == vanillaAssetOrderLine && !finalModAssetOrder.Contains(assetOrderSeperator))
+                        {
+                            if (modNumber == 2)
+                            { finalModAssetOrder.Add(modAssetOrderLine); }
+                            else
+                            {
+                                finalModAssetOrder.Insert(j, vanillaAssetOrderLine);
+                            }
+                        }
+                        if (modAssetOrderLine != vanillaAssetOrderLine && !modAssetOrderinvanillaAssetOrder && !finalModAssetOrder.Contains(modAssetOrderLine))
+                        {
+                            if (modNumber == 2)
+                            { finalModAssetOrder.Add(modAssetOrderLine); }
+                            else
+                            {
+                                finalModAssetOrder.Insert(j, modAssetOrderLine);
+                            }
+                        }
+                    }
+                    File.WriteAllLines(Main.output + "\\xDeltaCombiner\\1\\Objects\\AssetOrder.txt", modAssetOrder);
+                }
             }
             Main.combined = true;
         }
