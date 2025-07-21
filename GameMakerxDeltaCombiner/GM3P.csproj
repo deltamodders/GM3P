@@ -7,7 +7,6 @@
     <Nullable>enable</Nullable>
     <PackageIcon>GM3P logo 1x1 256.png</PackageIcon>
     <Version>0.4.0.4</Version>
-    <ApplicationIcon>bin\Debug\net8.0\Logo\GM3P logo 1x1 256.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
