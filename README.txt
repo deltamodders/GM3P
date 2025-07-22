@@ -21,6 +21,15 @@ Section 1: Operation Instructions
 		massPatch - patches a ton of identical data.win files with a single mod each (currently supports .csx, .win, and .xdelta mod formats)
 		compare - Compares and combine GM objects. Dumping and importing optional, but recommended. Can Only be successfully called if massPatch was called before or the user manually set things up in output\xDeltaCombiner.
 		result - saves a copy of the result to output\result\
+	Part 1.3: Multi-Chapter patching
+		1.3.1 BEFORE STARTING: Multi-Chapter patching is very limited at the moment, it is currently only partly supported by the Mass Patching and Results features. It is not supported by the Comparing & Combining feature. You can only patch one mod at a time and it will result in 1 copy. This operation guide will assume you are using the console app. 
+		1.3.2 When it asks for The vanilla path, enter in the path to the unmodified root data.win. Example: “C:\Program Files(x86)\Steam\steamlibrary\common\DELTARUNE\”
+		1.3.3 When it asks whether it is a game_change game, hit “Y” for yes. 
+		1.3.4 For the amount of chapters, enter however much the game has.
+		1.3.5 When it asks you to enter the xDeltas, enter in the modified them in this order: ROOT, Chapter 1, Chapter 2, Chapter 3, etc. . If your mod doesn’t modify one or more of these, you can skip those when it’s their turn.
+		1.3.6 It will ask you to name your modpack, enter in whatever you like to call your mod.
+		1.3.7 Your mod will be in “output\result\mod name\” under the GM3P folder. Full data.wins are in subfolders 0-*amount of chapters*
+
 
 Section 2: Technical Information
 	Part 2.1: System Requirements
@@ -28,7 +37,7 @@ Section 2: Technical Information
 			OS: Windows 10 (Unix systems, including Android, Mac, Linux, and ChromeOS, are not supported atm)
 			CPU: x86_64
 			Storage: 256MB
-			RAM: 192MB
+			RAM: 256MB
 			Software: .NET 8.0 runtime
 		2.1.3: System Recommended
 			OS: Windows 11
@@ -40,12 +49,13 @@ Section 2: Technical Information
 		xDeltaCombiner\(2+): Single Mod Folder
 		xDeltaCombiner\#\Objects: GameMaker Objects location
 		result\: resulting merges
+		Cache\: temp storage to help with various things
 		Cache\vanilla: currently unused, will be used for storing vanilla data.win files
 		Cache\Logs: stores logs, goes by YYMMDDHHmm-TZ
 		Cache\modNumbersCache.txt: used to pass off a variable value from GM3P to UTMTCLI during runtime. 
 	Part 2.3: Known Issues and limitations
 		Issue: Sprites that are not in the vanilla game may be out of order, except for the last mod applied.
-		Issue: Backported mods don't compare correctly
+		Issue: Backported mods don't compare correctly (A backported mod means a mod using an older version of a game, but the xDelta or mod file is meant to be applied to a later version of said game)
 		Issue: Sprites may not export or import at the right size (specifically observed with the Running Animations mod for Deltarune)
 		Issue: Dumping and Importing fails if a custom output folder is specified.
 		Issue: Logging doesn't save user input
@@ -58,7 +68,7 @@ Section 2: Technical Information
 		xDelta3 CLI for applying mods
 		A custom version of UndertaleModTool for dumping and importing GameMaker Objects
 		VS2022 to make and build this program
-		This program was poorly written in C# .NET
+		This program was poorly written in C#/.NET
 		SHA1 Hashing was used for comparing files
 
 Section 3: Installation and run Instructions

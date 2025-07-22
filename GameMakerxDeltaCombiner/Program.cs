@@ -23,7 +23,7 @@ class Program
     {
         //Store version as a double and print full version #
         double Version = 0.4;
-        Console.WriteLine("GM3P v" + Version + ".0-alpha3");
+        Console.WriteLine("GM3P v" + Version + ".0");
 
         //Create logging file and start logging
         string startTime = DateTime.Now.ToString("yy") + DateTime.Now.ToString("MM") + DateTime.Now.ToString("dd") + DateTime.Now.ToString("HH") + DateTime.Now.ToString("mm") + DateTime.Now.ToString("zz");
