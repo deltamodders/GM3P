@@ -201,8 +201,11 @@ namespace GM3P
 
                             bashProc.WaitForExit();
                         }
+                    if (xDeltaFile[modNumber] != null && xDeltaFile[modNumber] != "")
+                    {
                         File.Delete("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win");
-                        File.Move("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\dat.win","" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win");
+                        File.Move("" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\dat.win", "" + Main.@output + "\\xDeltaCombiner\\" + modNumber + "\\data.win");
+                    }
                     }
                     Console.WriteLine("Patched "+xDeltaFile[modNumber]);
                 }
