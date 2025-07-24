@@ -44,8 +44,8 @@ class Program
                         GM3P.Main.gameEngine = args[2];
                         GM3P.Main.modAmount = int.Parse(args[3]);
                         GM3P.Main.CreateCombinerDirectories();
-                        GM3P.Main.CopyVanilla();
-                        GM3P.Main.massPatch(args[4].Split(",").ToArray());
+                        GM3P.Main.PrepareVanillaFiles();
+                        GM3P.Main.PerformMassPatch(args[4].Split(",").ToArray());
                         break;
                     }
 
@@ -62,17 +62,17 @@ class Program
                             }
                             if (args[2] == "true")
                             {
-                                GM3P.Main.dump();
+                                GM3P.Main.DumpGameData();
                             }
 
                         }
-                        GM3P.Main.modifiedListCreate();
-                        GM3P.Main.CompareCombine();
+                        GM3P.Main.CreateModifiedAssetsList();
+                        GM3P.Main.CompareAndCombineAssetOrders();
                         if (args.Length > 3)
                         {
                             if (args[3] == "true")
                             {
-                                GM3P.Main.import();
+                                GM3P.Main.ImportFromCombine();
                             }
                         }
                         break;
@@ -88,7 +88,7 @@ class Program
                             if (args.Length > 4) GM3P.Main.output = args[4];
                         }
 
-                        GM3P.Main.result(args[1]);
+                        GM3P.Main.SaveResult(args[1]);
                         break;
                     }
 
@@ -100,7 +100,7 @@ class Program
                     if (args.Length > 1)
                         GM3P.Main.output = args[1];
 
-                    GM3P.Main.clear();
+                    GM3P.Main.ClearCache();
                     break;
 
                 case "help":
@@ -212,9 +212,9 @@ class Program
         if (GM3P.Main.vanilla2 != "skip")
         {
             GM3P.Main.CreateCombinerDirectories();
-            GM3P.Main.CopyVanilla();
+            GM3P.Main.PrepareVanillaFiles();
             Console.WriteLine("Now Enter in the xDeltas, one at a time: ");
-            GM3P.Main.massPatch();
+            GM3P.Main.PerformMassPatch();
         }
 
         if (!GM3P.Main.game_change)
@@ -232,26 +232,26 @@ class Program
             }
             else
             {
-                GM3P.Main.dump();
+                GM3P.Main.DumpGameData();
                 Console.WriteLine("The dumping process(es) finished");
             }
 
             Console.ReadLine();
-            GM3P.Main.modifiedListCreate();
-            GM3P.Main.CompareCombine();
+            GM3P.Main.CreateModifiedAssetsList();
+            GM3P.Main.CompareAndCombineAssetOrders();
 
             File.WriteAllLines(GM3P.Main.@output + "\\xDeltaCombiner\\1\\modifedAssets.txt", GM3P.Main.modifedAssets);
             Console.WriteLine("Comparing is done. Hit Enter to Continue.");
             Console.ReadLine();
-            GM3P.Main.import();
+            GM3P.Main.ImportFromCombine();
         }
 
         Console.WriteLine("To save your modpack, name it: ");
-        GM3P.Main.result(Console.ReadLine());
+        GM3P.Main.SaveResult(Console.ReadLine());
 
         Console.WriteLine("Press Enter To Clean up (Will delete output\\xDeltaCombiner) and exit");
         Console.ReadLine();
-        GM3P.Main.clear();
+        GM3P.Main.ClearCache();
 
         Environment.Exit(1);
     }

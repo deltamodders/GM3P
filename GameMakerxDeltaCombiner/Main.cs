@@ -21,47 +21,25 @@ namespace GM3P
     {
         /// <summary>
         /// The path to the vanilla game
-        /// </Summary>
-        public static string? vanilla2 { get; set; }
-        //public static string vanilla = Main.vanilla2.Replace("\"", "");
-        /// <summary>
-        /// Current working directory
         /// </summary>
+        public static string? vanilla2;
         public static string @pwd = @Convert.ToString(Directory.GetParent(Process.GetCurrentProcess().MainModule.FileName));
-        /// <summary>
-        /// Output folder
-        /// </summary>
-        public static string? output { get; set; }
-        /// <summary>
-        /// path to an xDelta patcher, e.g. xDelta3 or Deltapatcher
-        /// </summary>
-        public static string? DeltaPatcher { get; set; }
-        /// <summary>
-        /// Amount of mods to merge
-        /// </summary>
-        public static int modAmount { get; set; }
+        public static string? output;
+        public static string? DeltaPatcher;
+        public static int modAmount;
         /// <summary>
         /// Currently unused except as a CLI arg, but this will be used to determine what Game Engine the game is in in a far future release. Use "GM" is for GameMaker
         /// </summary>
-        public static string? gameEngine { get; set; }
-        /// <summary>
-        /// Whether or not the game uses game_change
-        /// </summary>
-        public static bool game_change { get; set; }
+        public static string? gameEngine;
+        public static bool game_change;
         /// <summary>
         /// A (probably) temporary bool to tell if compareCombine() has been called
         /// </summary>
-        public static bool combined { get; set; }
-        /// <summary>
-        /// Path to the modTool for Dumping
-        /// </summary>
-        public static string? modTool { get; set; }
-        /// <summary>
-        /// Returns a line from a text file as a string
-        /// </summary>
-        /// <param name="fileName"></param>
-        /// <param name="line"></param>
-        /// <returns></returns>
+        public static bool combined;
+        public static string? modTool;
+        public static string[] xDeltaFile;
+        public static string loadError;
+
         public static string GetLine(string fileName, int line) // what the fuck man
         {
             using (var sr = new StreamReader(fileName))
@@ -70,40 +48,33 @@ namespace GM3P
                 return sr.ReadLine();
             }
         }
-        /// <summary>
-        /// Creates the folders where other functions in this class works in
-        /// </summary>
+
         public static void CreateCombinerDirectories()
         {
-            Directory.CreateDirectory(@output + @"\xDeltaCombiner");
-            Directory.CreateDirectory(@output + "\\Cache\\vanilla");
+            Directory.CreateDirectory($"{output}\\Cache\\vanilla");
             for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
-                Directory.CreateDirectory(@output + "\\xDeltaCombiner\\" + modNumber + "\\Objects");
+                Directory.CreateDirectory($"{output}\\xDeltaCombiner\\{modNumber}\\Objects");
         }
-        /// <summary>
-        /// Copy vanilla files as much as needed
-        /// </summary>
-        public static void CopyVanilla()
+
+        public static void PrepareVanillaFiles()
         {
-            if (!game_change)
-                for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
-                    File.Copy(@vanilla2, @output + "\\xDeltaCombiner\\" + modNumber + "\\data.win", true);
-            else
+            if (game_change)
             {
                 string[] vanilla = Directory.GetFiles(@vanilla2, "*.win", SearchOption.AllDirectories);
                 for (int modNumber = 0; modNumber < (modAmount + 1); modNumber++)
                 {
-                    Directory.CreateDirectory(@output + "\\xDeltaCombiner\\" + modNumber + "\\vanilla");
-                    File.Copy(vanilla[modNumber], @output + "\\xDeltaCombiner\\" + modNumber + "\\data.win", true);
-                    File.Copy(vanilla[modNumber], @output + "\\xDeltaCombiner\\" + modNumber + "\\vanilla\\data.win", true);
+                    Directory.CreateDirectory($"{output}\\xDeltaCombiner\\{modNumber}\\vanilla");
+                    File.Copy(vanilla[modNumber], $"{output}\\xDeltaCombiner\\{modNumber}\\data.win", true);
+                    File.Copy(vanilla[modNumber], $"{output}\\xDeltaCombiner\\{modNumber}\\vanilla\\data.win", true);
                 }
+                return;
             }
+
+            for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
+                File.Copy(@vanilla2, $"{output}\\xDeltaCombiner\\{modNumber}\\data.win", true);
         }
-        public static string[] xDeltaFile { get; set; }
-        /// <summary>
-        /// The titular function; patches a bunch of mods into data.win files
-        /// </summary>
-        public static void massPatch(string[] filepath = null)
+        
+        public static void PerformMassPatch(string[] filepath = null)
         {
             int extra = game_change ? 1 : 2;
             int asdf = game_change ? 0 : 2; // WHAT THE FUCK IS AN ASDF BRO YOU AINT TOMSKA
@@ -160,15 +131,13 @@ namespace GM3P
         }
 
         public static List<string> modifedAssets = new List<string> { "Asset Name                       Hash (SHA1 in Base64)" };
-        public static void modifiedListCreate()
+        public static void CreateModifiedAssetsList()
         {
             if (!File.Exists(@output + "\\xDeltaCombiner\\1\\modifedAssets.txt"))
                 File.Create(@output + "\\xDeltaCombiner\\1\\modifedAssets.txt").Close();
         }
-        /// <summary>
-        /// Dumps objects from mod
-        /// </summary>
-        public static void dump()
+
+        public static void DumpGameData()
         {
             for (int modNumber = 0; modNumber < (modAmount + 2); modNumber++)
             {
@@ -195,10 +164,8 @@ namespace GM3P
                     }
             }
         }
-        /// <summary>
-        /// The function that's the main draw of GM3P; Compares and Combines objects
-        /// </summary>
-        public static void CompareCombine()
+
+        public static void CompareAndCombineAssetOrders()
         {
             string[] vanillaFiles = Directory.GetFiles(@output + "\\xDeltaCombiner\\0\\Objects", "*", SearchOption.AllDirectories);
             string[] vanillaFilesName = vanillaFiles.Select(Path.GetFileName).ToArray();
@@ -427,10 +394,8 @@ namespace GM3P
             }
             combined = true;
         }
-        /// <summary>
-        /// Imports resulting GameMaker Objects from the "CompareCombine()" function into a data.win
-        /// </summary>
-        public static void import()
+
+        public static void ImportFromCombine()
         {
             if (modTool == "skip")
             {
@@ -456,7 +421,7 @@ namespace GM3P
                 modToolProc.WaitForExit();
             }
         }
-        public static void result(string modname)
+        public static void SaveResult(string modname)
         {
             if (modname != null && modname != "")
             {
@@ -493,43 +458,40 @@ namespace GM3P
                 }
             }
         }
-        public static void clear()
+        public static void ClearCache()
         {
             Directory.Delete(@output + "\\xDeltaCombiner\\", true);
         }
-        /// <summary>
-        /// Error to return if load() fails
-        /// </summary>
-        public static string loadError { get; set; }
+
         /// <summary>
         /// Loads Template
         /// </summary>
         /// <param name="filepath"></param>
-        public static void load(string filepath = null)
+        public static void LoadModTemplate(string filepath = null)
         {
             if (filepath == null)
-                if (File.Exists(Main.pwd + "\\template.xrune"))
-                    filepath = Main.pwd + "\\template.xrune";
+                if (File.Exists($"{pwd}\\template.xrune"))
+                    filepath = $"{pwd}\\template.xrune";
 
             if (filepath != null)
             {
-                if (Main.GetLine(filepath, 1) == "0.4")
+                if (GetLine(filepath, 1) == "0.4")
                 {
-                    string OpToPerform = Main.GetLine(filepath, 2);
-                    modAmount = Convert.ToInt32(Main.GetLine(filepath, 3));
-                    vanilla2 = Main.GetLine(filepath, 4);
-                    output = Main.GetLine(filepath, 5);
-                    DeltaPatcher = Main.GetLine(filepath, 6);
-                    modTool = Main.GetLine(filepath, 7);
-                    game_change = Main.GetLine(filepath, 10).ToLower() == "true"; // True...
+                    string OpToPerform = GetLine(filepath, 2);
+                    modAmount = int.Parse(GetLine(filepath, 3));
+                    vanilla2 = GetLine(filepath, 4);
+                    output = GetLine(filepath, 5);
+                    DeltaPatcher = GetLine(filepath, 6);
+                    modTool = GetLine(filepath, 7);
+                    game_change = GetLine(filepath, 10).ToLower() == "true"; // True...
                     if (OpToPerform == "regular")
                     {
                         CreateCombinerDirectories();
-                        CopyVanilla();
-                        massPatch(Main.GetLine(filepath, 8).Split(",").ToArray());
-                        modifiedListCreate();
-                        CompareCombine();
-                        result(Main.GetLine(filepath, 9));
+                        PrepareVanillaFiles();
+                        PerformMassPatch(GetLine(filepath, 8).Split(",").ToArray());
+                        CreateModifiedAssetsList();
+                        CompareAndCombineAssetOrders();
+                        SaveResult(GetLine(filepath, 9));
                     }
                 }
                 else
