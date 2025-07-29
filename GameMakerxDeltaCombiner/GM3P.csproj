@@ -6,8 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageIcon>GM3P logo 1x1 256.png</PackageIcon>
-    <Version>0.4.0.5</Version>
+    <Version>0.4.1.0</Version>
     <ApplicationIcon>bin\Debug\net8.0\Logo\GM3P logo 1x1 256.ico</ApplicationIcon>
+    <RepositoryUrl>https://github.com/techy804/MassModPatcher</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="9.0.6" />
+    <PackageReference Include="Codeuctivity.ImageSharpCompare" Version="4.1.342" />
   </ItemGroup>
 
 </Project>
