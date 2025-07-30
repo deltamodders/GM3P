@@ -9,10 +9,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Collections.Immutable;
-using System.Collections.Generic;
 using GM3P;
 
 namespace GM3P.Program;
@@ -170,9 +166,9 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Command Santax:   GM3P.exe result [whether or not compare was called before] [(required if the previous arg is \"false\", otherwise ingored) amount of mods or chapters] [(optional) output folder]");
+                                Console.WriteLine("Command Santax:   GM3P.exe result [modpack or modset name] [whether or not compare was called before] [(required if the previous arg is \"false\", otherwise ingored) amount of mods or chapters] [(optional) output folder]");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Example:          GM3P.exe result true 4 \"C:/Undertale Mods\"");
+                                Console.WriteLine("Example:          GM3P.exe \"My Modset\" result true 4 \"C:/Undertale Mods\"");
                             }
                             if (commandHelp == "console")
                             {
@@ -218,7 +214,8 @@ class Program
             //Console App
             static void consoleApp()
             {
-                Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if you just want to compare and combine:");
+                Console.WriteLine("Read the README for Operating Instructions\n");
+                Console.WriteLine("Insert the path to the vanilla data.win, or type \"skip\" if want skip to compare and combine:");
                 GM3P.Main.vanilla2 = Console.ReadLine().Replace("\"", "");
                 GM3P.Main.output = GM3P.Main.@pwd + "/output";
                 GM3P.Main.DeltaPatcher = GM3P.Main.@pwd + "/xdelta3-3.0.11-x86_64.exe";

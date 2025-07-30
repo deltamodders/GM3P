@@ -408,10 +408,10 @@ namespace GM3P
                                             {
                                                 Console.WriteLine(vanillaHash);
                                                 Console.WriteLine(modFileDir);
-                                                if (modFileDir == (modNumber + "/Objects"))
+                                                if (modFileDir == ("/Objects/CodeEntries"))
                                                 {
 
-                                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "/" + Path.GetFileName(modFiles[i]), @output + "/xDeltaCombiner/1/Objects/" + Path.GetFileName(vanillaFiles[j]), true);
+                                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "/" + Path.GetFileName(modFiles[i]), @output + "/xDeltaCombiner/1/Objects/CodeEntries" + Path.GetFileName(vanillaFiles[j]), true);
                                                     modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                                 }
                                                 if (modFileDir != (modNumber + "/Objects"))
@@ -447,13 +447,13 @@ namespace GM3P
                         string[] modFilesParent = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/" + modNumber + "/Objects/", modFileAdditions[i], SearchOption.AllDirectories);
                         string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFilesParent[0])).Name + "/" + Directory.GetParent(modFilesParent[0]).Name;
 
-                        if (modFileDir == (modNumber + "/Objects"))
+                        if (Path.GetExtension(modFileAdditions[i]) == ".gml")
                         {
 
-                            File.Copy(Path.GetDirectoryName(modFiles[0]) + "/" + Path.GetFileName(modFilesParent[0]), @output + "/xDeltaCombiner/1/Objects/" + Path.GetFileName(modFileAdditions[i]), true);
+                            File.Copy(Path.GetDirectoryName(modFiles[0]) + "/" + Path.GetFileName(modFilesParent[0]), @output + "/xDeltaCombiner/1/Objects/CodeEntries" + Path.GetFileName(modFileAdditions[i]), true);
                             modifedAssets.Add(Path.GetFileName(modFilesParent[0]) + "        ");
                         }
-                        if (modFileDir != (modNumber + "/Objects"))
+                        if (Path.GetExtension(modFileAdditions[i]) == ".png")
                         {
                             Directory.CreateDirectory(@output + "/xDeltaCombiner/1/Objects/" + modFileDir);
 
