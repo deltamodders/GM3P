@@ -18,14 +18,15 @@ class Program
     static void Main(string[] args = null)
     {
         //Store version as a double and print full version #
-        double Version = 0.4;
-        Console.WriteLine("GM3P v" + Version + ".1");
+        double Version = 0.5;
+        Console.WriteLine("GM3P v" + Version + ".0");
 
         //Create logging file and start logging
         string startTime = DateTime.Now.ToString("yy") + DateTime.Now.ToString("MM") + DateTime.Now.ToString("dd") + DateTime.Now.ToString("HH") + DateTime.Now.ToString("mm") + DateTime.Now.ToString("zz");
         GM3P.Main.output = GM3P.Main.pwd + "/output";
         Directory.CreateDirectory(GM3P.Main.@output + "/Cache");
         Directory.CreateDirectory(GM3P.Main.@output + "/Cache/Logs/");
+        Directory.CreateDirectory(GM3P.Main.@output + "/Cache/Logs/running");
         File.Create(GM3P.Main.@output + "/Cache/Logs/" + startTime + ".txt").Close();
         using (var cc = new ConsoleCopy(GM3P.Main.@output + "/Cache/Logs/" + startTime + ".txt"))
         {
@@ -62,7 +63,7 @@ class Program
                         GM3P.Main.modAmount = Convert.ToInt32(args[3]);
                         GM3P.Main.CreateCombinerDirectories();
                         GM3P.Main.CopyVanilla();
-                        GM3P.Main.massPatch(args[4].Split(",").ToArray());
+                        GM3P.Main.massPatch(args[4].Split(":").ToArray());
                         break;
                     case "compare":
                         GM3P.Main.output = GM3P.Main.pwd + "/output";
@@ -239,7 +240,7 @@ class Program
 
                     GM3P.Main.CreateCombinerDirectories();
                     GM3P.Main.CopyVanilla();
-                    Console.WriteLine("Now Enter in the xDeltas, one at a time: ");
+                    Console.WriteLine("Now Enter in the patches, one at a time (Note if it's a multi-chapter: ");
                     GM3P.Main.massPatch();
                 }
                 if (!GM3P.Main.game_change)
