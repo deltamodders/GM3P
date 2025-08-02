@@ -61,7 +61,7 @@ class Program
                         GM3P.Main.modAmount = Convert.ToInt32(args[3]);
                         GM3P.Main.CreateCombinerDirectories();
                         GM3P.Main.CopyVanilla();
-                        GM3P.Main.massPatch(args[4].Split(":").ToArray());
+                        GM3P.Main.massPatch(args[4].Split("::").ToArray());
                         break;
                     case "compare":
                         GM3P.Main.output = GM3P.Main.pwd + "/output";

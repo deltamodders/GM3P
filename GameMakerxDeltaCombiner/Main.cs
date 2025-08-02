@@ -162,13 +162,13 @@ namespace GM3P
                 }
                 else
                 {
-                    string? chapterMods = Convert.ToString(filepath);
+                    string? chapterMods = Convert.ToString(filepath[chapter]);
                     xDeltaFile = chapterMods.Split(",");
-                    for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
-                    {
-                        xDeltaFile[modNumber] = filepath[modNumber].Replace("\"", "");
+                    //for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
+                    //{
+                    //    xDeltaFile[modNumber] = filepath[modNumber].Replace("\"", "");
 
-                    }
+                    //}
                 }
 
                 for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
