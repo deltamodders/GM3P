@@ -12,9 +12,10 @@ using UndertaleModCli;
 
 EnsureDataLoaded();
 
-      string modNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/Cache/modNumbersCache.txt"));
+        string chapterNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/Cache/running/chapterNumber.txt"));
+      string modNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/Cache/running/modNumbersCache.txt"));
 //for (int modNumber=0;modNumber<DirectoryInfo.GetDirectories(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName))))).Length + "/output/xDeltaCombiner/";modNumber++){
-      string texFolder = @Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/xDeltaCombiner/"+modNo+"/Objects/");
+      string texFolder = @Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/xDeltaCombiner/"+chapterNo+"/"+modNo+"/Objects/");
 //    if (modNumber != 1){
         if (@texFolder is null)
         {

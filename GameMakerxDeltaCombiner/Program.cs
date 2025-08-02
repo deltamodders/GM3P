@@ -19,14 +19,14 @@ class Program
     {
         //Store version as a double and print full version #
         double Version = 0.5;
-        Console.WriteLine("GM3P v" + Version + ".0");
+        Console.WriteLine("GM3P v" + Version + ".0-alpha1");
 
         //Create logging file and start logging
         string startTime = DateTime.Now.ToString("yy") + DateTime.Now.ToString("MM") + DateTime.Now.ToString("dd") + DateTime.Now.ToString("HH") + DateTime.Now.ToString("mm") + DateTime.Now.ToString("zz");
         GM3P.Main.output = GM3P.Main.pwd + "/output";
         Directory.CreateDirectory(GM3P.Main.@output + "/Cache");
         Directory.CreateDirectory(GM3P.Main.@output + "/Cache/Logs/");
-        Directory.CreateDirectory(GM3P.Main.@output + "/Cache/Logs/running");
+        Directory.CreateDirectory(GM3P.Main.@output + "/Cache/running");
         File.Create(GM3P.Main.@output + "/Cache/Logs/" + startTime + ".txt").Close();
         using (var cc = new ConsoleCopy(GM3P.Main.@output + "/Cache/Logs/" + startTime + ".txt"))
         {
@@ -48,11 +48,9 @@ class Program
                         GM3P.Main.output = GM3P.Main.pwd + "/output";
                         if (args.Length > 5)
                         {
-                            GM3P.Main.game_change = Convert.ToBoolean(args[5]);
-                            if (args.Length > 6)
-                            {
-                                GM3P.Main.output = args[6];
-                            }
+                           
+                                GM3P.Main.output = args[5];
+                            
                         }
                         GM3P.Main.DeltaPatcher = GM3P.Main.pwd + "/xdelta3-3.0.11-x86_64.exe";
                         if (OperatingSystem.IsLinux())
@@ -143,7 +141,7 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod File Paths] [(optional) whether or not the game uses game_change()] [(optional) Output Folder]");
+                                Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod File Paths] [(optional) Output Folder]");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Example:          GM3P.exe massPatch \"C:/Program Files(x86)/Steam/steamapps/common/DELTARUNE/chapter3_windows/data.win\" GM 2 \",,F:/Downloads/a.xDelta,F:/Downloads/b.csx\" false \"C:/Undertale Mods\"");
                                 Console.WriteLine(" ");
@@ -224,15 +222,7 @@ class Program
                 {
                     GM3P.Main.DeltaPatcher = "xdelta3 ";
                 }
-                GM3P.Main.game_change = UtilsConsole.Confirm("Did you enter a directory to a GameMaker game that uses game_change? If you are unsure or are linking directly to the data.win, hit \"N\": ");
-                if (!GM3P.Main.game_change)
-                {
-                    Console.WriteLine("Type however many mods you want to patch: ");
-                }
-                else
-                {
-                    Console.WriteLine("Type however many chapters the game has: ");
-                }
+                    Console.WriteLine("Type however many mods you want to patch (If you are patching multiple chapters, this would be the amount of mods for a single chapter): ");
                 GM3P.Main.modAmount = Convert.ToInt32(Console.ReadLine());
                 if (GM3P.Main.vanilla2 != "skip")
                 {
@@ -240,14 +230,14 @@ class Program
 
                     GM3P.Main.CreateCombinerDirectories();
                     GM3P.Main.CopyVanilla();
-                    Console.WriteLine("Now Enter in the patches, one at a time (Note if it's a multi-chapter: ");
+                    Console.WriteLine("Now Enter in the patches, one at a time (Note if it's a multi-chapter game, do the mods for the root first): ");
                     GM3P.Main.massPatch();
                 }
-                if (!GM3P.Main.game_change)
-                {
                     Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
                     Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may exit the terminal now");
                     GM3P.Main.modTool = Console.ReadLine();
+                if (GM3P.Main.modTool != "skip")
+                {
                     if (GM3P.Main.modTool == null || GM3P.Main.modTool == "")
                     {
                         GM3P.Main.modTool = GM3P.Main.@pwd + "/UTMTCLI/UndertaleModCli.exe";
@@ -270,7 +260,7 @@ class Program
                     GM3P.Main.modifiedListCreate();
                     GM3P.Main.CompareCombine();
 
-                    File.WriteAllLines(GM3P.Main.@output + "/xDeltaCombiner/1/modifedAssets.txt", GM3P.Main.modifedAssets);
+                    File.WriteAllLines(GM3P.Main.@output + "/xDeltaCombiner/0/1/modifedAssets.txt", GM3P.Main.modifedAssets);
                     Console.WriteLine("Comparing is done. Hit Enter to Continue.");
                     Console.ReadLine();
                     GM3P.Main.import();

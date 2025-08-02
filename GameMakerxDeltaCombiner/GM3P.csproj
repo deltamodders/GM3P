@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageIcon>GM3P logo 1x1 256.png</PackageIcon>
-    <Version>0.5.0.03</Version>
+    <Version>0.5.0.12</Version>
     <ApplicationIcon>bin\Debug\net8.0\Logo\GM3P logo 1x1 256.ico</ApplicationIcon>
     <RepositoryUrl>https://github.com/techy804/MassModPatcher</RepositoryUrl>
   </PropertyGroup>

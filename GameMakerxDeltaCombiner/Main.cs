@@ -45,10 +45,6 @@ namespace GM3P
         /// </summary>
         public static string? gameEngine { get; set; }
         /// <summary>
-        /// Whether or not the game uses game_change
-        /// </summary>
-        public static bool game_change { get; set; }
-        /// <summary>
         /// A (probably) temporary bool to tell if compareCombine() has been called
         /// </summary>
         public static bool combined { get; set; }
@@ -83,7 +79,7 @@ namespace GM3P
             }
             else
             {
-                chapterAmount = 0;
+                chapterAmount = 1;
             }
         }
         /// <summary>
@@ -98,7 +94,7 @@ namespace GM3P
             Directory.CreateDirectory(@output + "/xDeltaCombiner");
             if (File.Exists(@output + "/Cache/running/chapterAmount.txt"))
             loadCachedNumbers();
-                for (int chapter = 0; chapter <= chapterAmount; ++chapter)
+                for (int chapter = 0; chapter < chapterAmount; chapter++)
                 {
                     for (int modNumber = 0; modNumber < (Main.modAmount + 2); modNumber++)
                     {
@@ -114,10 +110,29 @@ namespace GM3P
         /// </summary>
         public static void CopyVanilla()
         {
-            string[] vanilla = Directory.GetFiles(Main.@vanilla2, "*.win", SearchOption.AllDirectories);
-            chapterAmount = vanilla.Length-1;
+            string[] vanilla = [""];
+            if (Path.GetExtension(@vanilla2) != ".win")
+            {
+                vanilla = Directory.GetFiles(Main.@vanilla2, "*.win", SearchOption.AllDirectories);
+            }
+            else
+            {
+                vanilla[0] = vanilla2;
+            }
+
+                chapterAmount = vanilla.Length;
+            for (int chapter = 0; chapter < chapterAmount; chapter++)
+            {
+                for (int modNumber = 0; modNumber < (Main.modAmount + 2); modNumber++)
+                {
+
+                    Directory.CreateDirectory(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects");
+
+                }
+            }
+
             File.WriteAllText(@output + "/Cache/running/chapterAmount.txt", Convert.ToString(chapterAmount));
-            for (int chapter = 0; chapter <= chapterAmount; ++chapter)
+            for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
                 for (int modNumber = 0; modNumber < (Main.modAmount + 2); modNumber++)
                 {
@@ -132,7 +147,7 @@ namespace GM3P
         /// </summary>
         public static void massPatch(string[] filepath = null)
         {
-            for (int chapter = 0; chapter <= chapterAmount; chapter++)
+            for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
                 
                 xDeltaFile = new string[(modAmount + 2)];
@@ -242,7 +257,7 @@ namespace GM3P
         public static void modifiedListCreate()
         {
             loadCachedNumbers();
-            for (int i = 0; i <= chapterAmount; i++)
+            for (int i = 0; i < chapterAmount; i++)
             {
                 if (!File.Exists(@output + "/xDeltaCombiner/" + i + "/1/modifedAssets.txt"))
                 {
@@ -257,12 +272,13 @@ namespace GM3P
         public static void dump()
         {
             loadCachedNumbers();
-            for (int chapter = 0; chapter <= chapterAmount; chapter++)
+            for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
+                File.WriteAllText(@output + "/Cache/running/chapterNumber.txt", Convert.ToString(chapter));
                 Console.WriteLine("Starting dump, this may take up to a minute per mod (and vanilla)");
                 for (int modNumber = 0; modNumber < (Main.modAmount + 2); modNumber++)
                 {
-                    Directory.CreateDirectory(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries");
+                    Directory.CreateDirectory(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries/");
                     File.WriteAllText(@output + "/Cache/running/modNumbersCache.txt", Convert.ToString(modNumber));
                     if (modNumber != 1)
                     {
@@ -302,7 +318,7 @@ namespace GM3P
         public static void CompareCombine()
         {
             loadCachedNumbers();
-            for (int chapter = 0; chapter <= chapterAmount; chapter++)
+            for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
 
                 string[] vanillaFiles = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/"+chapter+"/0/Objects/", "*", SearchOption.AllDirectories);
@@ -466,12 +482,12 @@ namespace GM3P
                     }
                     if (modFileAdditionsCount >= 1)
                     {
-                        string[] modFileAddtionsDir = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/" + modNumber + "/Objects/", "*", SearchOption.AllDirectories).Select(Path.GetFullPath).ToArray();
+                        string[] modFileAddtionsDir = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/", "*", SearchOption.AllDirectories).Select(Path.GetFullPath).ToArray();
                         for (int i = 0; i < modFileAdditionsCount; i++)
                         {
 
 
-                            string[] modFilesParent = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/" + modNumber + "/Objects/", modFileAdditions[i], SearchOption.AllDirectories);
+                            string[] modFilesParent = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/", modFileAdditions[i], SearchOption.AllDirectories);
                             string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFilesParent[0])).Name + "/" + Directory.GetParent(modFilesParent[0]).Name;
 
                             if (Path.GetExtension(modFileAdditions[i]) == ".gml")
@@ -612,13 +628,13 @@ namespace GM3P
         public static void result(string modname)
         {
             loadCachedNumbers();
-            for (int chapter = 0; chapter <= chapterAmount; chapter++)
+            for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
                 if (modname != null || modname != "")
                 {
                     if (combined)
                     {
-                        Directory.CreateDirectory(@output + "/result/" + modname + "/");
+                        Directory.CreateDirectory(@output + "/result/" + modname + "/" + chapter);
                         using (var bashProc = new Process())
                         {
                             if (OperatingSystem.IsWindows())
@@ -635,8 +651,8 @@ namespace GM3P
                             bashProc.Start();
                             bashProc.WaitForExit();
                         }
-                        File.Copy(@output + "/xDeltaCombiner/" + chapter + "/1/data.win", @output + "/result/" + chapter + "/" + modname + "/data.win");
-                        File.Copy(@output + "/xDeltaCombiner/" + chapter + "/1/modifedAssets.txt", @output + "/result/" + chapter + "/" + modname + "/modifedAssets.txt");
+                        File.Copy(@output + "/xDeltaCombiner/" + chapter + "/1/data.win", @output + "/result/" + modname + "/" + chapter + "/data.win");
+                        File.Copy(@output + "/xDeltaCombiner/0/1/modifedAssets.txt", @output + "/result/" + modname + "/0/modifedAssets.txt");
                     }
                     else
                     {
@@ -722,7 +738,6 @@ namespace GM3P
                     output = Main.GetLine(filepath, 5);
                     DeltaPatcher = Main.GetLine(filepath, 6);
                     modTool = Main.GetLine(filepath, 7);
-                    game_change = Convert.ToBoolean(Main.GetLine(filepath, 10));
                     if (OpToPerform == "regular")
                     {
                         CreateCombinerDirectories();
