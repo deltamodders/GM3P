@@ -72,8 +72,38 @@ void SubmitList()
 
     switch (currentType)
     {
+        case "sounds":
+            Reorganize<UndertaleSound>(Data.Sounds, currentList);
+            break;
         case "sprites":
             Reorganize<UndertaleSprite>(Data.Sprites, currentList);
+            break;
+        case "backgrounds":
+            Reorganize<UndertaleBackground>(Data.Backgrounds, currentList);
+            break;
+        case "paths":
+            Reorganize<UndertalePath>(Data.Paths, currentList);
+            break;
+        case "scripts":
+            Reorganize<UndertaleScript>(Data.Scripts, currentList);
+            break;
+        case "fonts":
+            Reorganize<UndertaleFont>(Data.Fonts, currentList);
+            break;
+        case "objects":
+            Reorganize<UndertaleGameObject>(Data.GameObjects, currentList);
+            break;
+        case "timelines":
+            Reorganize<UndertaleTimeline>(Data.Timelines, currentList);
+            break;
+        case "rooms":
+            Reorganize<UndertaleRoom>(Data.Rooms, currentList);
+            break;
+        case "shaders":
+            Reorganize<UndertaleShader>(Data.Shaders, currentList);
+            break;
+        case "extensions":
+            Reorganize<UndertaleExtension>(Data.Extensions, currentList);
             break;
     }
 }

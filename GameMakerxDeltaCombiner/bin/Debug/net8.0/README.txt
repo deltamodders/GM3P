@@ -5,9 +5,9 @@ Section 1: Operation Instructions
 	Part 1.1: Console
 		1.1.1 First Enter in the path of the vanilla data.win of the file. If you just want to dump and combine already prepared modded data.win files, enter "skip" into this field. Hit Enter. 
 		1.1.2 Then enter in the amount of mods you want to operate on as an integer (e.g. "2" for 2 mods).
-		1.1.3 One at a time, enter in the path of your xDelta patches, hitting enter in between each one.
-		1.1.4 Wait for xDelta3 to finish patching the data.win files
-		1.1.5 If you just wanted to make a ton of single-mod data.win copies of your game, you may exit the terminal now
+		1.1.3 One at a time, enter in the path of your patches, hitting enter in between each one.
+		1.1.4 If you are patching multiple chapters, when it asks you to enter the patches, enter them in this order: ROOT, Chapter 1, Chapter 2, Chapter 3, etc. . If your mod doesn’t modify one or more of these, you can skip those when it’s their turn. Example: Let's say you want to patch a 2 chapter game with 3 mods. mod1 only modifies chapter 2, mod2 modifies the root and both chapters, and mod3 modifies chapters 1 and 2, but not root. You would enter them in this order: blank, mod2 root, blank, blank, mod2 ch1, mod3 ch1, mod1, mod2 ch2, mod3 ch2.
+		1.1.5 Wait for GM3P to finish patching the data.win files
 		1.1.6 Hit Enter, unless you want to dump and import manually or you have your own version of UTMT CLI that you prefer. If you want to use your own version of UTMT CLI, enter in the path for that. If you want to dump and import manually, enter "skip".
 		1.1.7 Once it is done dumping, hit enter
 		1.1.8 wait for the app to compare the modded files to the vanilla files, hit enter once it is finished, it will then import the difference
@@ -21,38 +21,31 @@ Section 1: Operation Instructions
 		massPatch - patches a ton of identical data.win files with a single mod each (currently supports .csx, .win, and .xdelta mod formats)
 		compare - Compares and combine GM objects. Dumping and importing optional, but recommended. Can Only be successfully called if massPatch was called before or the user manually set things up in output\xDeltaCombiner.
 		result - saves a copy of the result to output\result\
-	Part 1.3: Multi-Chapter patching
-		1.3.1 BEFORE STARTING: Multi-Chapter patching is very limited at the moment, it is currently only partly supported by the Mass Patching and Results features. It is not supported by the Comparing & Combining feature. You can only patch one mod at a time and it will result in 1 copy. This operation guide will assume you are using the console app. 
-		1.3.2 When it asks for The vanilla path, enter in the path to the unmodified root data.win. Example: “C:\Program Files(x86)\Steam\steamlibrary\common\DELTARUNE\”
-		1.3.3 When it asks whether it is a game_change game, hit “Y” for yes. 
-		1.3.4 For the amount of chapters, enter however much the game has.
-		1.3.5 When it asks you to enter the xDeltas, enter in the modified them in this order: ROOT, Chapter 1, Chapter 2, Chapter 3, etc. . If your mod doesn’t modify one or more of these, you can skip those when it’s their turn.
-		1.3.6 It will ask you to name your modpack, enter in whatever you like to call your mod.
-		1.3.7 Your mod will be in “output\result\mod name\” under the GM3P folder. Full data.wins are in subfolders 0-*amount of chapters*
 
 
 Section 2: Technical Information
 	Part 2.1: System Requirements
 		2.1.2: System Requirements
-			OS: Windows 10 (Unix systems, including Android, Mac, Linux, and ChromeOS, are not supported atm)
-			CPU: x86_64
+			OS: Windows 7 or later; Linux
+			CPU: 64-bit x86 processor with 2 or more cores
 			Storage: 256MB
 			RAM: 256MB
 			Software: .NET 8.0 runtime
 		2.1.3: System Recommended
-			OS: Windows 11
-			Storage: 2GB
-			RAM: 512MB	
+			OS: Windows 10 or 11
+			CPU: Intel i5-2400 or later
+			Storage: 2GB SSD
+			RAM: 512MB (2GB on Linux)
 	Part 2.2: output directory structure
-		xDeltaCombiner\0: Vanilla Folder
-		xDeltaCombiner\1: Finished Product Folder
-		xDeltaCombiner\(2+): Single Mod Folder
-		xDeltaCombiner\#\Objects: GameMaker Objects location
+		xDeltaCombiner\chapter#\0: Vanilla Folder
+		xDeltaCombiner\chapter#\1: Finished Product Folder
+		xDeltaCombiner\chapter#\(2+): Single Mod Folder
+		xDeltaCombiner\chapter#\#\Objects: GameMaker Objects location
 		result\: resulting merges
 		Cache\: temp storage to help with various things
 		Cache\vanilla: currently unused, will be used for storing vanilla data.win files
 		Cache\Logs: stores logs, goes by YYMMDDHHmm-TZ
-		Cache\modNumbersCache.txt: used to pass off a variable value from GM3P to UTMTCLI during runtime. 
+		Cache\running: passes off variable values from GM3P to UTMTCLI during runtime. 
 	Part 2.3: Known Issues and limitations
 		Issue: Sprites that are not in the vanilla game may be out of order, except for the last mod applied.
 		Issue: Backported mods don't compare correctly (A backported mod means a mod using an older version of a game, but the xDelta or mod file is meant to be applied to a later version of said game)
@@ -72,18 +65,18 @@ Section 2: Technical Information
 		SHA1 Hashing was used for comparing files
 
 Section 3: Installation and run Instructions
-	Part 3.1: Common for both UIs
+	Part 3.1: Common for both UIs (Windows)
 		3.1.1 Make sure you have the .NET runtime v8.0 or later installed
 		3.1.2 Once downloaded the .zip folder, extract it to it's own folder
 		3.1.3 To update your data from an older version, simply copy the "output" folder from the old version into folder of the new version. 
-	Part 3.2: Running the console app:
+	Part 3.2: Running the console app (Windows):
 		To Run the console app via command line/terminal:
-			3.2.1 use the "ls" and "cd" commands to navigate to the extracted folder
+			3.2.1 use the "ls" and "cd" commands to navigate to the extracted folder, or go to the extracted folder in File Explorer, right-click, and hit "Open in Terminal"
 			3.2.2 type ".\GM3P.exe" to run the program
 		To Run the console app via File Explorer:
 			3.2.3 navigate to the extracted folder
 			3.2.4 double-click "GM3P.exe"
-	Part 3.3: Running CLI commands:
+	Part 3.3: Running CLI commands (Windows):
 		To Run CLI commands via command line/terminal:
 			3.3.1 use the "ls" and "cd" commands to navigate to the extracted folder
 			3.3.2 type ".\GM3P.exe *command* *args*" to run the program with your specified command
@@ -94,3 +87,9 @@ Section 3: Installation and run Instructions
 			3.2.6 Under "target", encase the path in double quotes (") and enter your command after the path.
 			3.2.7 Hit "Apply" then "Ok"
 			3.2.8 Double-click the shortcut, it will open a terminal window that'll close once the command is completed
+	Part 3.4: Running on Linux
+			3.4.1 Extract the .zip file whereever you like
+			3.4.1 Open up a new terminal window
+			3.4.2 Make sure you have .NET runtime 8.0 or later installed. If you don't have it installed and you are on a distro with snap, you can install this using the command "sudo snap install dotnet"
+			3.4.3 use the "ls" and "cd" commands to navigate to the extracted folder
+			3.4.4 typing in the command "dotnet GM3P.dll" will launch the console app, for CLI, you can use "dotnet GM3P.dll *command* *args*"
