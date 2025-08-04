@@ -139,7 +139,6 @@ namespace GM3P
                     File.Copy(@vanilla[chapter], @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win", true);
                 }
             }
-            
         }
         public static string[] xDeltaFile { get; set; }
         /// <summary>
@@ -248,9 +247,9 @@ namespace GM3P
                     }
                     Console.WriteLine("Patched: " + xDeltaFile[modNumber]);
                 }
-                Console.WriteLine("Chapter complete, if you are using the console app and that wasn't the final chapter, enter in the chapter "+chapter+"s patches");
+                Console.WriteLine("Chapter complete, if you are using the console app and that wasn't the final chapter, enter in the chapter "+(chapter+1)+"s patches");
             }
-            Console.WriteLine("Mass Patch complete, continue or use the compare command to combine mods");
+            Console.WriteLine("\nMass Patch complete, continue or use the compare command to combine mods");
         }
 
         public static List<string> modifedAssets = new List<string> { "Asset Name                       Hash (SHA1 in Base64)" };
@@ -385,8 +384,40 @@ namespace GM3P
                                                 Console.WriteLine(modFileDir);
                                                 if (modFileDir == ("Objects/CodeEntries"))
                                                 {
+                                                    if (File.Exists(@output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + vanillaFilesName[j]))
+                                                    {
+                                                        //using (var modToolProc = new Process())
+                                                        //{
+                                                        //    if (OperatingSystem.IsWindows())
+                                                        //    {
+                                                        //        modToolProc.StartInfo.FileName = Directory.GetParent(System.Environment.GetEnvironmentVariable("TMP", EnvironmentVariableTarget.User))+"/Programs/KDiff3/bin/kdiff3.exe";
+                                                        //        modToolProc.StartInfo.Arguments = "--auto -o \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + vanillaFilesName[j] + "\" \"" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/CodeEntries/" + vanillaFilesName[j] + "\" \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/"+ vanillaFilesName[j] +"\" \"" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries/" + vanillaFilesName[j] +"\"";
+                                                        //    }
+                                                        //    if (OperatingSystem.IsLinux())
+                                                        //    {
+                                                        //        modToolProc.StartInfo.FileName = "/bin/bash";
+                                                        //        modToolProc.StartInfo.Arguments = "-c \"kdiff3 --auto -o '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + vanillaFilesName[j] + "' '" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/CodeEntries/" + vanillaFilesName[j] + "' '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/' '" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries/'\"";
+                                                        //    }
+                                                        //    modToolProc.StartInfo.CreateNoWindow = false;
+                                                        //    modToolProc.StartInfo.UseShellExecute = false;
+                                                        //    modToolProc.StartInfo.RedirectStandardOutput = true;
+                                                        //    modToolProc.Start();
+
+                                                        //    // Synchronously read the standard output of the spawned process.
+                                                        //    StreamReader reader = modToolProc.StandardOutput;
+                                                        //    string ProcOutput = reader.ReadToEnd();
+
+                                                        //    // Write the redirected output to this application's window.
+                                                        //    Console.WriteLine(ProcOutput);
+
+                                                        //    modToolProc.WaitForExit();
+                                                        //}
+                                                    }
+                                                    else
+                                                    {
+                                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "/" + Path.GetFileName(modFiles[i]), @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + Path.GetFileName(vanillaFiles[j]), true);
+                                                    }
                                                     Console.WriteLine("Copying " + Path.GetFileName(modFiles[i]));
-                                                    File.Copy(Path.GetDirectoryName(modFiles[i]) + "/" + Path.GetFileName(modFiles[i]), @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + Path.GetFileName(vanillaFiles[j]), true);
                                                     Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                                 }
                                                 if (modFileDir != ("Objects/CodeEntries"))
@@ -509,50 +540,113 @@ namespace GM3P
                         }
                     }
 
-                    //string assetOrderSeperator = "a bunch of random characters to define this";
-                    //var vanillaAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/0/Objects/AssetOrder.txt").ToList();
-                    //int vanillaAssetOrderCount = vanillaAssetOrder.Count;
-                    //var modAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/" + modNumber + "/Objects/AssetOrder.txt").ToList();
-                    //int modAssetOrderCount = modAssetOrder.Count;
-                    //if (!File.Exists(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt"))
-                    //{
-                    //    File.Create(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt").Close();
-                    //}
+                    //A new attempt at sorting AssetOrder.txt, using KDiff3
 
-                    //var finalModAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt").ToList();
-                    //if (modNumber == 2)
+                    //if (File.Exists(@output + "/xDeltaCombiner/" + chapter + "/1/Objects/"))
                     //{
-                    //    finalModAssetOrder = vanillaAssetOrder;
-                    //}
-                    //for (int i = 0; i < modAssetOrderCount; i++)
-                    //{
-                    //    Console.WriteLine("Comparing asset order of vanilla to mod # " + (modNumber - 1) + ", Line " + i);
-
-                    //    string modAssetOrderLine = modAssetOrder[i];
-                    //    for (int j = 0; j < vanillaAssetOrderCount; j++)
+                    //    using (var modToolProc = new Process())
                     //    {
-                    //        string vanillaAssetOrderLine = vanillaAssetOrder[j];
-                    //        bool modAssetOrderinvanillaAssetOrder = vanillaAssetOrder.Contains(modAssetOrderLine);
-                    //        if (modAssetOrderLine == vanillaAssetOrderLine && modAssetOrderLine.StartsWith("@@"))
+                    //        if (OperatingSystem.IsWindows())
                     //        {
-                    //            assetOrderSeperator = modAssetOrderLine;
+                    //            modToolProc.StartInfo.FileName = Directory.GetParent(System.Environment.GetEnvironmentVariable("TMP", EnvironmentVariableTarget.User)) + "/Programs/KDiff3/bin/kdiff3.exe";
+                    //            modToolProc.StartInfo.Arguments = "--auto -o \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt\" \"" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt" + "\" \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt\" \"" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt\"";
                     //        }
-
-                    //        if (modAssetOrderLine == vanillaAssetOrderLine && !finalModAssetOrder.Contains(assetOrderSeperator) && !modAssetOrderinvanillaAssetOrder && !finalModAssetOrder.Contains(modAssetOrderLine))
+                    //        if (OperatingSystem.IsLinux())
                     //        {
-
-                    //            finalModAssetOrder.Add(modAssetOrderLine); 
-
+                    //            modToolProc.StartInfo.FileName = "/bin/bash";
+                    //            modToolProc.StartInfo.Arguments = "-c \"kdiff3 --auto -o '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt' '" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt" + "' '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt' '" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt'\"";
                     //        }
-                    //        if (modAssetOrderLine != vanillaAssetOrderLine && !modAssetOrderinvanillaAssetOrder && !finalModAssetOrder.Contains(modAssetOrderLine))
-                    //        {
-                    //            finalModAssetOrder.Add(modAssetOrderLine); 
+                    //        modToolProc.StartInfo.CreateNoWindow = false;
+                    //        modToolProc.StartInfo.UseShellExecute = false;
+                    //        modToolProc.StartInfo.RedirectStandardOutput = true;
+                    //        modToolProc.Start();
 
-                    //        }
+                    //        // Synchronously read the standard output of the spawned process.
+                    //        StreamReader reader = modToolProc.StandardOutput;
+                    //        string ProcOutput = reader.ReadToEnd();
+
+                    //        // Write the redirected output to this application's window.
+                    //        Console.WriteLine(ProcOutput);
+
+                    //        modToolProc.WaitForExit();
                     //    }
-                    //    File.WriteAllLines(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt", finalModAssetOrder);
                     //}
-                }
+                    //else 
+                    //{
+                    //    using (var modToolProc = new Process())
+                    //    {
+                    //        if (OperatingSystem.IsWindows())
+                    //        {
+                    //            modToolProc.StartInfo.FileName = Directory.GetParent(System.Environment.GetEnvironmentVariable("TMP", EnvironmentVariableTarget.User)) + "/Programs/KDiff3/bin/kdiff3.exe";
+                    //            modToolProc.StartInfo.Arguments = "--auto -o \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt\" \"" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt" + "\" \"" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt\"";
+                    //        }
+                    //        if (OperatingSystem.IsLinux())
+                    //        {
+                    //            modToolProc.StartInfo.FileName = "/bin/bash";
+                    //            modToolProc.StartInfo.Arguments = "-c \"kdiff3 --auto -o '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt' '" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt" + "' '" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt'\"";
+                    //        }
+                    //        modToolProc.StartInfo.CreateNoWindow = false;
+                    //        modToolProc.StartInfo.UseShellExecute = false;
+                    //        modToolProc.StartInfo.RedirectStandardOutput = true;
+                    //        modToolProc.Start();
+
+                    //        // Synchronously read the standard output of the spawned process.
+                    //        StreamReader reader = modToolProc.StandardOutput;
+                    //        string ProcOutput = reader.ReadToEnd();
+
+                    //        // Write the redirected output to this application's window.
+                    //        Console.WriteLine(ProcOutput);
+
+                    //        modToolProc.WaitForExit();
+                    //    }
+                    //}
+
+                        //A previous attempt at sorting AssetOrder.txt, here if anybody wants to repair it.
+
+                        //string assetOrderSeperator = "a bunch of random characters to define this";
+                        //var vanillaAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/0/Objects/AssetOrder.txt").ToList();
+                        //int vanillaAssetOrderCount = vanillaAssetOrder.Count;
+                        //var modAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/" + modNumber + "/Objects/AssetOrder.txt").ToList();
+                        //int modAssetOrderCount = modAssetOrder.Count;
+                        //if (!File.Exists(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt"))
+                        //{
+                        //    File.Create(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt").Close();
+                        //}
+
+                        //var finalModAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt").ToList();
+                        //if (modNumber == 2)
+                        //{
+                        //    finalModAssetOrder = vanillaAssetOrder;
+                        //}
+                        //for (int i = 0; i < modAssetOrderCount; i++)
+                        //{
+                        //    Console.WriteLine("Comparing asset order of vanilla to mod # " + (modNumber - 1) + ", Line " + i);
+
+                        //    string modAssetOrderLine = modAssetOrder[i];
+                        //    for (int j = 0; j < vanillaAssetOrderCount; j++)
+                        //    {
+                        //        string vanillaAssetOrderLine = vanillaAssetOrder[j];
+                        //        bool modAssetOrderinvanillaAssetOrder = vanillaAssetOrder.Contains(modAssetOrderLine);
+                        //        if (modAssetOrderLine == vanillaAssetOrderLine && modAssetOrderLine.StartsWith("@@"))
+                        //        {
+                        //            assetOrderSeperator = modAssetOrderLine;
+                        //        }
+
+                        //        if (modAssetOrderLine == vanillaAssetOrderLine && !finalModAssetOrder.Contains(assetOrderSeperator) && !modAssetOrderinvanillaAssetOrder && !finalModAssetOrder.Contains(modAssetOrderLine))
+                        //        {
+
+                        //            finalModAssetOrder.Add(modAssetOrderLine); 
+
+                        //        }
+                        //        if (modAssetOrderLine != vanillaAssetOrderLine && !modAssetOrderinvanillaAssetOrder && !finalModAssetOrder.Contains(modAssetOrderLine))
+                        //        {
+                        //            finalModAssetOrder.Add(modAssetOrderLine); 
+
+                        //        }
+                        //    }
+                        //    File.WriteAllLines(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt", finalModAssetOrder);
+                        //}
+                    }
             }
             Main.combined = true;
         }
@@ -562,7 +656,7 @@ namespace GM3P
         public static void import()
         {
             loadCachedNumbers();
-            for (int chapter =  0; chapter <= chapterAmount; chapter++) {
+            for (int chapter =  0; chapter < chapterAmount; chapter++) {
                 if (Main.modTool == "skip")
                 {
                     Console.WriteLine("In order to replace and import manually, load up the data.win in /xDeltaCombiner/*chapter*/1/ into the GUI version of UTMT and run the script ImportGML.csx. Select \"C:/xDeltaCombiner/*currentsubfolder*/Objects/\" as the import folder. Once finished, exit and saving.");
@@ -594,11 +688,8 @@ namespace GM3P
                         Console.WriteLine(ProcOutput);
                         modToolProc.WaitForExit();
                     }
-                    for (int modNumber = 2; modNumber > modAmount + 2; modNumber++)
-                    {
                         using (var modToolProc = new Process())
                         {
-                            File.WriteAllText(@output + "/Cache/running/modNumbersCache.txt", Convert.ToString(modNumber));
                             if (OperatingSystem.IsWindows())
                             {
                                 modToolProc.StartInfo.FileName = Main.@modTool;
@@ -621,7 +712,7 @@ namespace GM3P
                             Console.WriteLine(ProcOutput);
                             modToolProc.WaitForExit();
                         }
-                    }
+                    
                 }
             }
         }
@@ -686,6 +777,11 @@ namespace GM3P
             switch (erase)
             {
                 case "runningCache":
+                    Directory.Delete(@output + "/xDeltaCombiner/", true);
+                    Directory.Delete(@output + "/Cache/running", true);
+                    break;
+
+                case null:
                     Directory.Delete(@output + "/xDeltaCombiner/", true);
                     Directory.Delete(@output + "/Cache/running", true);
                     break;

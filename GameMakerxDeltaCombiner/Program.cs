@@ -1,15 +1,16 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using GM3P;
+using GM3P.modNumbers;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
-using GM3P;
 
 namespace GM3P.Program;
 
@@ -121,11 +122,18 @@ class Program
                         consoleApp();
                         break;
                     case "clear":
+                        if (args.Length > 2)
+                        {
+                            GM3P.Main.output = args[2];
+                        }
                         if (args.Length > 1)
                         {
-                            GM3P.Main.output = args[1];
+                            GM3P.Main.clear(args[1]);
                         }
-                        GM3P.Main.clear();
+                        if (args.Length == 1) 
+                        {
+                            GM3P.Main.clear();
+                        }
                         break;
                     case null:
                         consoleApp();
@@ -154,9 +162,9 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Command Santax:   GM3P.exe clear [(optional) Output Folder]");
+                                Console.WriteLine("Command Santax:   GM3P.exe clear [(optional) what to clear] [(optional) Output Folder]");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Example:          GM3P.exe clear \"C:/Undertale Mods\"");
+                                Console.WriteLine("Example:          GM3P.exe clear modpacks \"C:/Undertale Mods\"");
                             }
                             if (commandHelp == "result")
                             {
