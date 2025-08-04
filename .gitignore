@@ -362,3 +362,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /GameMakerxDeltaCombiner/depend
 /GameMakerxDeltaCombiner/bin/Debug/net8.0/output
+/GameMakerxDeltaCombiner/bin/Debug/net8.0/Packager
