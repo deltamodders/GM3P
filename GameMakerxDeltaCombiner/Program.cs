@@ -20,7 +20,7 @@ class Program
     {
         //Store version as a double and print full version #
         double Version = 0.5;
-        Console.WriteLine("GM3P v" + Version + ".0-alpha1");
+        Console.WriteLine("GM3P v" + Version + ".0");
 
         //Create logging file and start logging
         string startTime = DateTime.Now.ToString("yy") + DateTime.Now.ToString("MM") + DateTime.Now.ToString("dd") + DateTime.Now.ToString("HH") + DateTime.Now.ToString("mm") + DateTime.Now.ToString("zz");
@@ -151,20 +151,32 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Command Santax:   GM3P.exe massPatch [Vanilla Copy] [Game Engine] [Amount of Mods] [Mod File Paths] [(optional) Output Folder]");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Example:          GM3P.exe massPatch \"C:/Program Files(x86)/Steam/steamapps/common/DELTARUNE/chapter3_windows/data.win\" GM 2 \",,F:/Downloads/a.xDelta,F:/Downloads/b.csx\" false \"C:/Undertale Mods\"");
+                                Console.WriteLine("Example:          GM3P.exe massPatch \"C:/Program Files(x86)/Steam/steamapps/common/DELTARUNE/chapter3_windows/data.win\" GM 2 \",,F:/Downloads/a.xDelta,F:/Downloads/b.csx\" \"C:/Undertale Mods\"");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Note: The Mod File Paths arg must be encased with a double quote (\"), but the individual paths cannot be encased with, nor contain, a double quote. Mod File Paths are delimited by commas (,) and paths entered before the second delimiter are ingored unless game_change is true.");
+                                Console.WriteLine("Args: ");
+                                Console.WriteLine(" ");
+                                Console.WriteLine("[Vanilla Copy]                The path of either the folder containing the unmodified data.win(s), or a data.win itself. For Example, if you have a Deltarune installation at the root of C:, acceptable arguments would be \"C:\\DELTARUNE\", \"C:\\DELTARUNE\\chapter3_windows\", or \"C:\\DELTARUNE\\chapter3_windows\\data.win\"");
+                                Console.WriteLine("[Game Engine]                 Currently Unused, but may be used in the far future when this tool gets ported for use with other game engines, \"GM\" is for GameMaker games.");
+                                Console.WriteLine("[Amount of Mods]              The amount of mods to patch. If you are doing multi-chapter patching, this would be the most amount of mods you want to patch for any chapter you are patching.");
+                                Console.WriteLine("[Mod File Paths]              The Mod File Paths arg must be encased with a double quote (\"), but the individual paths cannot be encased with, nor contain, a double quote. Mod File Paths are 2D arrays first delimited by double collins (::) for chapters, then are delimited by commas (,) for the mod paths for the chapter. Paths entered before the second comma delimiter are ingored.");
+                                Console.WriteLine("[Mod File Paths](cont.)       Examples of accepable inputs for this argument: \",,F:\\UTDR Mods\\mod1.xdelta,F:\\UTDR Mods\\mod2.xdelta\" and \",,F:\\UTDR Mods\\mod1-root.csx,::,,F:\\UTDR Mods\\mod1-ch1.win,F:\\UTDR Mods\\mod2-ch1.xdelta::,,F:\\UTDR Mods\\mod1-ch2.xdelta,F:\\UTDR Mods\\mod2-ch2.csx\"");
+                                Console.WriteLine("[(optional) Output Folder]    Where the output folder would be (as specified in README section 2.2), the default is under the GM3P executable folder");
                             }
                             if (commandHelp == "clear")
                             {
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Clears the xDeltaCombiner folders for reuse on future uses.");
+                                Console.WriteLine("Clears the xDeltaCombiner folders for reuse on future uses. Optionally clears other stuff GM3P modifies or writes to");
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Command Santax:   GM3P.exe clear [(optional) what to clear] [(optional) Output Folder]");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Example:          GM3P.exe clear modpacks \"C:/Undertale Mods\"");
+                                Console.WriteLine(" ");
+                                Console.WriteLine("Args: ");
+                                Console.WriteLine(" ");
+                                Console.WriteLine("[(optional) what to clear]    Acceptable inputs: runningCache (deletes \"xDeltaCombiner\" and \"Cache/running\" folders; default), modpacks (deletes \"result\" folder), cache (deletes \"Cache\" folder), and output (deletes everything that's modifiable by GM3P)");
+                                Console.WriteLine("[(optional) Output Folder]    Where the output folder would be (as specified in README section 2.2), the default is under the GM3P executable folder");
                             }
                             if (commandHelp == "result")
                             {
@@ -173,9 +185,17 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Command Santax:   GM3P.exe result [modpack or modset name] [whether or not compare was called before] [(required if the previous arg is \"false\", otherwise ingored) amount of mods or chapters] [(optional) output folder]");
+                                Console.WriteLine("Command Santax:   GM3P.exe result [modpack or modset name] [whether or not compare was called before] [amount of mods] [(optional) output folder]");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Example:          GM3P.exe \"My Modset\" result true 4 \"C:/Undertale Mods\"");
+                                Console.WriteLine(" ");
+                                Console.WriteLine(" ");
+                                Console.WriteLine("Args: ");
+                                Console.WriteLine(" ");
+                                Console.WriteLine("[modpack or modset name]                     The name you would wish to call the modpack or modset.");
+                                Console.WriteLine("[whether or not compare was called before]   Whether or not compare was called before this. Enter as a boolean.");
+                                Console.WriteLine("[Amount of Mods]                             Required if the previous arg is \"false\", otherwise ingored. The amount of mods to patch. If you are doing multi-chapter patching, this would be the most amount of mods you want to patch for any chapter you are patching.");
+                                Console.WriteLine("[(optional) Output Folder]                   Where the output folder would be (as specified in README section 2.2), the default is under the GM3P executable folder");
                             }
                             if (commandHelp == "console")
                             {
@@ -202,6 +222,13 @@ class Program
                                 Console.WriteLine("Example:          GM3P.exe compare 2 false true \"C:/Undertale Mods\"");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Note: Can only be successfully called if massPatch was called before. Will be buggy.");
+                                Console.WriteLine(" ");
+                                Console.WriteLine("Args: ");
+                                Console.WriteLine(" "); 
+                                Console.WriteLine("[Amount of Mods]              The amount of mods to patch. If you are doing multi-chapter patching, this would be the most amount of mods you want to patch for any chapter you are patching.");
+                                Console.WriteLine("[(optional) Dump]             whether or not to automatically dump objects. For those wanting to manually dump and for toolmakers who want to implement their own way to dump objects. Default is true.");
+                                Console.WriteLine("[(optional) Import]           whether or not to automatically import objects. For those wanting to manually import objects and for toolmakers who want to implement their own way to import. ");
+                                Console.WriteLine("[(optional) Output Folder]    Where the output folder would be (as specified in README section 2.2), the default is under the GM3P executable folder. Automatic dumping and importing is currently not supported with a custom output folder.");
                             }
                         }
                         if (args.Length == 1)
@@ -238,13 +265,13 @@ class Program
 
                     GM3P.Main.CreateCombinerDirectories();
                     GM3P.Main.CopyVanilla();
-                    Console.WriteLine("Now Enter in the patches, one at a time (Note if it's a multi-chapter game, do the mods for the root first): ");
+                    Console.WriteLine("Now Enter in the patches, one at a time (If you are doing multi-chapter patching, do the mods for the root first): ");
                     GM3P.Main.massPatch();
                 }
                     Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
-                    Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may exit the terminal now");
+                    Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may enter \"noCombine\"");
                     GM3P.Main.modTool = Console.ReadLine();
-                if (GM3P.Main.modTool != "skip")
+                if (GM3P.Main.modTool != "noCombine")
                 {
                     if (GM3P.Main.modTool == null || GM3P.Main.modTool == "")
                     {

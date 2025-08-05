@@ -204,7 +204,7 @@ namespace GM3P
                     //If it's a full data.win, copy the file
                     else if (Path.GetExtension(xDeltaFile[modNumber]) == ".win")
                     {
-                        File.Copy(xDeltaFile[modNumber], @output + "/xDeltaCombiner/" + modNumber + "/data.win" + " ", true);
+                        File.Copy(xDeltaFile[modNumber], @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + " ", true);
                     }
                     //else if (Path.GetExtension(xDeltaFile[modNumber]) == "" || Path.GetExtension(xDeltaFile[modNumber]) == null)
                     //{
@@ -247,7 +247,7 @@ namespace GM3P
                     }
                     Console.WriteLine("Patched: " + xDeltaFile[modNumber]);
                 }
-                Console.WriteLine("Chapter complete, if you are using the console app and that wasn't the final chapter, enter in the chapter "+(chapter+1)+"s patches");
+                Console.WriteLine("Chapter complete, if you are using the console app and that wasn't the final chapter, enter in the chapter "+(chapter+1)+" patches");
             }
             Console.WriteLine("\nMass Patch complete, continue or use the compare command to combine mods");
         }
@@ -747,26 +747,26 @@ namespace GM3P
                     }
                     else
                     {
-                        for (int modNumber = 0; modNumber < (Main.modAmount + 1); modNumber++)
+                        for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
                         {
-                            Directory.CreateDirectory(@output + "/result/" + modname + "/" + modNumber);
+                            Directory.CreateDirectory(@output + "/result/" + modname + "/" + chapter + "/" + modNumber);
                             using (var bashProc = new Process())
                             {
                                 if (OperatingSystem.IsWindows())
                                 {
                                     bashProc.StartInfo.FileName = Main.@DeltaPatcher;
-                                    bashProc.StartInfo.Arguments = "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + modNumber + "/vanilla/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + modNumber + ".xdelta\"";
+                                    bashProc.StartInfo.Arguments = "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/0/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + chapter + "/" + modNumber + ".xdelta\"";
                                 }
                                 if (OperatingSystem.IsLinux())
                                 {
                                     bashProc.StartInfo.FileName = "bin/bash";
-                                    bashProc.StartInfo.Arguments = @DeltaPatcher + "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + modNumber + "/vanilla/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + modNumber + ".xdelta\"";
+                                    bashProc.StartInfo.Arguments = @DeltaPatcher + "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/vanilla/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + chapter + "/" + modNumber + ".xdelta\"";
                                 }
                                 bashProc.StartInfo.CreateNoWindow = false;
                                 bashProc.Start();
                                 bashProc.WaitForExit();
                             }
-                            File.Copy(@output + "/xDeltaCombiner/" + modNumber + "/data.win", @output + "/result/" + modname + "/" + modNumber + "/data.win");
+                            File.Copy(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win", @output + "/result/" + modname + "/" + chapter + "/" + modNumber + "/data.win");
                         }
                     }
                 }
