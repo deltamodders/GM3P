@@ -37,6 +37,14 @@ namespace GM3P
         /// </summary>
         public static string? DeltaPatcher { get; set; }
         /// <summary>
+        /// Path to KDiff3, used for merging code files
+        /// </summary>
+        public static string? KDiff3Path { get; set; }
+        /// <summary>
+        /// Path to the Meld GUI, used for merging code files
+        /// </summary>
+        public static string? MeldPath { get; set; }
+        /// <summary>
         /// Amount of mods to merge
         /// </summary>
         public static int modAmount { get; set; }
@@ -71,6 +79,105 @@ namespace GM3P
                 return sr.ReadLine();
             }
         }
+        
+        // Add this method to locate KDiff3
+        public static string FindKDiff3()
+        {
+            // Check if bundled with GM3P - looking for the exe directly in the GM3P folder
+            string bundledPath = Path.Combine(pwd, "kdiff3.exe");
+            if (File.Exists(bundledPath))
+                return bundledPath;
+    
+            // Also check in a kdiff3 subfolder
+            string bundledSubfolderPath = Path.Combine(pwd, "kdiff3", "kdiff3.exe");
+            if (File.Exists(bundledSubfolderPath))
+                return bundledSubfolderPath;
+    
+            // Check common installation paths on Windows
+            string[] commonPaths = {
+                @"C:\Program Files\KDiff3\kdiff3.exe",
+                @"C:\Program Files (x86)\KDiff3\kdiff3.exe",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "KDiff3", "kdiff3.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "KDiff3", "kdiff3.exe")
+            };
+    
+            foreach (string path in commonPaths)
+            {
+                if (File.Exists(path))
+                    return path;
+            }
+    
+            // On Linux, check if it's in PATH
+            if (OperatingSystem.IsLinux())
+            {
+                using (var process = new Process())
+                {
+                    process.StartInfo.FileName = "which";
+                    process.StartInfo.Arguments = "kdiff3";
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.UseShellExecute = false;
+                    process.Start();
+                    string output = process.StandardOutput.ReadToEnd().Trim();
+                    process.WaitForExit();
+            
+                    if (!string.IsNullOrEmpty(output) && File.Exists(output))
+                        return output;
+                }
+            }
+    
+            return null;
+        }
+        /// <summary>
+        /// Locate Meld merge tool
+        /// </summary>
+        public static string FindMeld()
+        {
+            // Check if bundled with GM3P - looking for the exe directly in the GM3P folder
+            string bundledPath = Path.Combine(pwd, "meld.exe");
+            if (File.Exists(bundledPath))
+                return bundledPath;
+
+            // Also check in a meld subfolder
+            string bundledSubfolderPath = Path.Combine(pwd, "meld", "meld.exe");
+            if (File.Exists(bundledSubfolderPath))
+                return bundledSubfolderPath;
+
+            // Check common installation paths on Windows
+            string[] commonPaths = {
+                @"C:\Program Files\Meld\meld.exe",
+                @"C:\Program Files (x86)\Meld\meld.exe",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Meld", "meld.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Meld", "meld.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Meld", "meld.exe")
+            };
+
+            foreach (string path in commonPaths)
+            {
+                if (File.Exists(path))
+                    return path;
+            }
+
+            // On Linux, check if it's in PATH
+            if (OperatingSystem.IsLinux())
+            {
+                using (var process = new Process())
+                {
+                    process.StartInfo.FileName = "which";
+                    process.StartInfo.Arguments = "meld";
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.UseShellExecute = false;
+                    process.Start();
+                    string output = process.StandardOutput.ReadToEnd().Trim();
+                    process.WaitForExit();
+            
+                    if (!string.IsNullOrEmpty(output) && File.Exists(output))
+                        return output;
+                }
+            }
+
+            return null;
+        }
+        
         public static void loadCachedNumbers()
         {
             if (File.Exists(@output + "/Cache/running/chapterAmount.txt"))
@@ -103,8 +210,42 @@ namespace GM3P
 
                     }
                 }
-        ;
         }
+        
+        public static void CheckMeldAvailability()
+        {
+            string meldPath = FindMeld();
+    
+            if (string.IsNullOrEmpty(meldPath))
+            {
+                Console.WriteLine("════════════════════════════════════════════════════════════");
+                Console.WriteLine("⚠  WARNING: Meld not found!");
+                Console.WriteLine("════════════════════════════════════════════════════════════");
+                Console.WriteLine();
+                Console.WriteLine("Meld is REQUIRED for proper merging of multiple mods, especially");
+                Console.WriteLine("sprite mods that modify AssetOrder.txt");
+                Console.WriteLine();
+                Console.WriteLine("Without Meld:");
+                Console.WriteLine("  • Code conflicts will overwrite each other");
+                Console.WriteLine("  • Sprite ordering will be incorrect");
+                Console.WriteLine("  • Only the last mod's changes will be preserved");
+                Console.WriteLine();
+                Console.WriteLine("Please install Meld from: https://meldmerge.org/");
+                Console.WriteLine("Or place meld.exe in the GM3P folder");
+                Console.WriteLine("════════════════════════════════════════════════════════════");
+                Console.WriteLine();
+        
+                if (!UtilsConsole.Confirm("Continue without Meld? (NOT recommended)"))
+                {
+                    Environment.Exit(1);
+                }
+            }
+            else
+            {
+                Console.WriteLine($"✓ Meld found at: {meldPath}");
+            }
+        }
+        
         /// <summary>
         /// Copy vanilla files as much as needed
         /// </summary>
@@ -140,6 +281,9 @@ namespace GM3P
                 }
             }
         }
+        
+        
+        
         public static string[] xDeltaFile { get; set; }
         /// <summary>
         /// The titular function; patches a bunch of mods into data.win files
@@ -204,7 +348,7 @@ namespace GM3P
                     //If it's a full data.win, copy the file
                     else if (Path.GetExtension(xDeltaFile[modNumber]) == ".win")
                     {
-                        File.Copy(xDeltaFile[modNumber], @output + "/xDeltaCombiner/" + modNumber + "/data.win" + " ", true);
+                        File.Copy(xDeltaFile[modNumber], @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + " ", true);
                     }
                     //else if (Path.GetExtension(xDeltaFile[modNumber]) == "" || Path.GetExtension(xDeltaFile[modNumber]) == null)
                     //{
@@ -247,7 +391,7 @@ namespace GM3P
                     }
                     Console.WriteLine("Patched: " + xDeltaFile[modNumber]);
                 }
-                Console.WriteLine("Chapter complete, if you are using the console app and that wasn't the final chapter, enter in the chapter "+(chapter+1)+"s patches");
+                Console.WriteLine("Chapter complete, if you are using the console app and that wasn't the final chapter, enter in the chapter "+(chapter+1)+" patches");
             }
             Console.WriteLine("\nMass Patch complete, continue or use the compare command to combine mods");
         }
@@ -311,6 +455,7 @@ namespace GM3P
                 }
             }
         }
+        
         /// <summary>
         /// The function that's the main draw of GM3P; Compares and Combines objects
         /// </summary>
@@ -319,10 +464,17 @@ namespace GM3P
             loadCachedNumbers();
             for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
-
                 string[] vanillaFiles = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/"+chapter+"/0/Objects/", "*", SearchOption.AllDirectories);
                 string[] vanillaFilesName = vanillaFiles.Select(Path.GetFileName).ToArray();
                 int vanillaFileCount = Convert.ToInt32(vanillaFiles.Length);
+                
+                // Create a dictionary for faster vanilla file lookup
+                Dictionary<string, string> vanillaFileDict = new Dictionary<string, string>();
+                for (int i = 0; i < vanillaFiles.Length; i++)
+                {
+                    vanillaFileDict[Path.GetFileName(vanillaFiles[i])] = vanillaFiles[i];
+                }
+                
                 for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
                 {
                     int modFileCount = Convert.ToInt32(Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/", "*", SearchOption.AllDirectories).Length);
@@ -330,389 +482,505 @@ namespace GM3P
                     string[] modFilesName = modFiles.Select(Path.GetFileName).ToArray();
                     string[] modFileAdditions = modFilesName.Except(vanillaFilesName).ToArray();
                     int modFileAdditionsCount = Convert.ToInt32(modFileAdditions.Length);
+                    
+                    // Process each mod file
                     for (int i = 0; i < modFileCount; i++)
                     {
-                        int k = 0;
+                        string modFileName = Path.GetFileName(modFiles[i]);
                         string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFiles[i]))?.Name + "/" + Directory.GetParent(modFiles[i])?.Name;
-                        for (int j = 0; j < vanillaFileCount; j++)
+                        
+                        // Skip AssetOrder.txt for now (handled separately)
+                        if (modFileName == "AssetOrder.txt")
+                            continue;
+                        
+                        // Check if this file exists in vanilla
+                        if (vanillaFileDict.ContainsKey(modFileName))
                         {
-                            //For copying vanilla files straight into the import folder (note: outdated as of v0.5.0-alpha1)
-                            //if (i == 0 && k == 0)
-                            //{
-                            //    for (int k2 = 0; k2 < vanillaFileCount; k2++)
-                            //    {
-                            //        string? vanillaFileDir = Directory.GetParent(Path.GetDirectoryName(vanillaFiles[k2])).Name + "/" + Directory.GetParent(vanillaFiles[k2]).Name;
-                            //        if (vanillaFileDir != "Objects/CodeEntries")
-                            //        {
-                            //            if (vanillaFileDir == ("0/Objects"))
-                            //            {
-
-                            //                File.Copy(Path.GetDirectoryName(vanillaFiles[k2]) + "/" + Path.GetFileName(vanillaFiles[k2]), Main.output + "/xDeltaCombiner/1/Objects/" + Path.GetFileName(vanillaFiles[k2]), true);
-                            //            }
-                            //            if (vanillaFileDir != ("0/Objects"))
-                            //            {
-                            //                Directory.CreateDirectory(Main.output + "/xDeltaCombiner/1/Objects/" + modFileDir);
-
-                            //                File.Copy(Path.GetDirectoryName(vanillaFiles[k2]) + "/" + Path.GetFileName(vanillaFiles[k2]), Main.output + "/xDeltaCombiner/1/Objects/" + modFileDir + "/" + Path.GetFileName(vanillaFiles[k2]), true);
-                            //            }
-                            //        }
-                            //        Console.WriteLine("Copying" + vanillaFiles[k2]);
-                            //    }
-                            //    k++;
-                            //}
-                            if (Path.GetFileName(vanillaFiles[j]) == Path.GetFileName(modFiles[i]) && (modFilesName[i] != "AssetOrder.txt"))
+                            string vanillaFile = vanillaFileDict[modFileName];
+                            Console.WriteLine("Currently Comparing " + modFileName + " (vanilla vs mod " + (modNumber - 1) + ")");
+                            
+                            // Compare the files
+                            SHA1 vanillaHashing = new SHA1CryptoServiceProvider();
+                            using (FileStream fs = File.OpenRead(vanillaFile))
                             {
-                                Console.WriteLine("Currently Comparing " + Path.GetFileName(vanillaFiles[j]) + " to " + Path.GetFileName(modFiles[i]));
-
-                                if (vanillaFileCount <= modFileCount)
+                                string vanillaHash = Convert.ToBase64String(vanillaHashing.ComputeHash(fs));
+                                SHA1 modHashing = new SHA1CryptoServiceProvider();
+                                
+                                using (FileStream fx = File.OpenRead(modFiles[i]))  // Use the correct mod file
                                 {
-                                    SHA1 vanillaHashing = new SHA1CryptoServiceProvider();
-
-                                    using (FileStream fs = File.OpenRead(vanillaFiles[j]))
+                                    string modHash = Convert.ToBase64String(modHashing.ComputeHash(fx));
+                                    Console.WriteLine(modHash);
+                                    
+                                    if (modHash != vanillaHash)
                                     {
-                                        string vanillaHash = Convert.ToBase64String(vanillaHashing.ComputeHash(fs));
-                                        SHA1 modHashing = new SHA1CryptoServiceProvider();
-
-                                        using (FileStream fx = File.OpenRead(modFiles[j]))
+                                        Console.WriteLine(vanillaHash);
+                                        Console.WriteLine(modFileDir);
+                                        
+                                        if (modFileDir == ("Objects/CodeEntries"))
                                         {
-                                            string modHash = Convert.ToBase64String(modHashing.ComputeHash(fx));
-                                            Console.WriteLine(modHash);
-
-                                            if (modHash != vanillaHash)
+                                            string targetPath = @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + modFileName;
+                                            
+                                            if (File.Exists(targetPath))
                                             {
-                                                Console.WriteLine(vanillaHash);
-                                                Console.WriteLine(modFileDir);
-                                                if (modFileDir == ("Objects/CodeEntries"))
+                                                Console.WriteLine($"Conflict detected: {modFileName} modified by multiple mods");
+                                                
+                                                // Try to find Meld
+                                                if (string.IsNullOrEmpty(MeldPath))
                                                 {
-                                                    if (File.Exists(@output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + vanillaFilesName[j]))
+                                                    MeldPath = FindMeld();
+                                                    if (!string.IsNullOrEmpty(MeldPath))
                                                     {
-                                                        //using (var modToolProc = new Process())
-                                                        //{
-                                                        //    if (OperatingSystem.IsWindows())
-                                                        //    {
-                                                        //        modToolProc.StartInfo.FileName = Directory.GetParent(System.Environment.GetEnvironmentVariable("TMP", EnvironmentVariableTarget.User))+"/Programs/KDiff3/bin/kdiff3.exe";
-                                                        //        modToolProc.StartInfo.Arguments = "--auto -o \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + vanillaFilesName[j] + "\" \"" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/CodeEntries/" + vanillaFilesName[j] + "\" \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/"+ vanillaFilesName[j] +"\" \"" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries/" + vanillaFilesName[j] +"\"";
-                                                        //    }
-                                                        //    if (OperatingSystem.IsLinux())
-                                                        //    {
-                                                        //        modToolProc.StartInfo.FileName = "/bin/bash";
-                                                        //        modToolProc.StartInfo.Arguments = "-c \"kdiff3 --auto -o '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + vanillaFilesName[j] + "' '" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/CodeEntries/" + vanillaFilesName[j] + "' '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/' '" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries/'\"";
-                                                        //    }
-                                                        //    modToolProc.StartInfo.CreateNoWindow = false;
-                                                        //    modToolProc.StartInfo.UseShellExecute = false;
-                                                        //    modToolProc.StartInfo.RedirectStandardOutput = true;
-                                                        //    modToolProc.Start();
-
-                                                        //    // Synchronously read the standard output of the spawned process.
-                                                        //    StreamReader reader = modToolProc.StandardOutput;
-                                                        //    string ProcOutput = reader.ReadToEnd();
-
-                                                        //    // Write the redirected output to this application's window.
-                                                        //    Console.WriteLine(ProcOutput);
-
-                                                        //    modToolProc.WaitForExit();
-                                                        //}
+                                                        Console.WriteLine($"Found Meld at: {MeldPath}");
                                                     }
-                                                    else
-                                                    {
-                                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "/" + Path.GetFileName(modFiles[i]), @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + Path.GetFileName(vanillaFiles[j]), true);
-                                                    }
-                                                    Console.WriteLine("Copying " + Path.GetFileName(modFiles[i]));
-                                                    Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                                 }
-                                                if (modFileDir != ("Objects/CodeEntries"))
+                                                
+                                                if (!string.IsNullOrEmpty(MeldPath))
                                                 {
-
-
-                                                    if (Path.GetExtension(modFiles[i]) == ".png")
+                                                    Console.WriteLine("Attempting 3-way merge using Meld...");
+                                                    
+                                                    string vanillaCodeFile = vanillaFile;
+                                                    string currentMerged = targetPath;
+                                                    string newModFile = modFiles[i];
+                                                    string outputFile = currentMerged; // Overwrite the current merged file
+                                                    
+                                                    using (var meldProc = new Process())
                                                     {
-                                                        try
+                                                        if (OperatingSystem.IsWindows())
                                                         {
-                                                            bool CompareMemCmp = ImageSharpCompare.ImagesAreEqual(modFiles[i], vanillaFiles[j]);
-
-
-                                                            if (!CompareMemCmp)
+                                                            meldProc.StartInfo.FileName = MeldPath;
+                                                            // Meld arguments: --auto-merge mine base theirs --output result
+                                                            meldProc.StartInfo.Arguments = $"--auto-merge \"{currentMerged}\" \"{vanillaCodeFile}\" \"{newModFile}\" --output=\"{outputFile}\"";
+                                                        }
+                                                        else if (OperatingSystem.IsLinux())
+                                                        {
+                                                            meldProc.StartInfo.FileName = MeldPath;
+                                                            meldProc.StartInfo.Arguments = $"--auto-merge '{currentMerged}' '{vanillaCodeFile}' '{newModFile}' --output='{outputFile}'";
+                                                        }
+                                                        
+                                                        meldProc.StartInfo.CreateNoWindow = true;
+                                                        meldProc.StartInfo.UseShellExecute = false;
+                                                        meldProc.StartInfo.RedirectStandardOutput = true;
+                                                        meldProc.StartInfo.RedirectStandardError = true;
+                                                        
+                                                        meldProc.Start();
+                                                        string output = meldProc.StandardOutput.ReadToEnd();
+                                                        string errors = meldProc.StandardError.ReadToEnd();
+                                                        meldProc.WaitForExit();
+                                                        
+                                                        if (meldProc.ExitCode == 0 || meldProc.ExitCode == 1)
+                                                        {
+                                                            Console.WriteLine("Successfully merged changes from both mods");
+                                                            
+                                                            // Check if file has conflict markers
+                                                            if (File.Exists(outputFile))
                                                             {
-                                                                Directory.CreateDirectory(@output + "/xDeltaCombiner/" + chapter + "/1/Objects/" + modFileDir);
-
-                                                                File.Copy(Path.GetDirectoryName(modFiles[i]) + "/" + Path.GetFileName(modFiles[i]), @output + "/xDeltaCombiner/1/Objects/" + modFileDir + "/" + Path.GetFileName(vanillaFiles[j]), true);
-                                                                Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
+                                                                string mergedContent = File.ReadAllText(outputFile);
+                                                                if (mergedContent.Contains("<<<<<<<") || mergedContent.Contains(">>>>>>>"))
+                                                                {
+                                                                    Console.WriteLine("Warning: Unresolved conflicts may remain in the file");
+                                                                }
                                                             }
-
                                                         }
-                                                        catch (Exception ex)
+                                                        else
                                                         {
-                                                            StackTrace rew = new StackTrace();
-                                                            Console.WriteLine(rew);
-                                                            Console.WriteLine(ex.Message);
-                                                            Console.WriteLine(modFiles[i]);
+                                                            Console.WriteLine($"Meld merge failed with exit code {meldProc.ExitCode}");
+                                                            if (!string.IsNullOrEmpty(errors))
+                                                                Console.WriteLine($"Error: {errors}");
+                                                            
+                                                            // Fall back to simple overwrite
+                                                            Console.WriteLine("Falling back to overwrite mode - keeping changes from latest mod");
+                                                            File.Copy(newModFile, outputFile, true);
                                                         }
-
-
                                                     }
-
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Meld not found - cannot merge code changes");
+                                                    Console.WriteLine("WARNING: Overwriting with latest mod's changes. Previous mod's code changes will be lost!");
+                                                    Console.WriteLine("To enable automatic merging, install Meld from https://meldmerge.org/");
+                                                    
+                                                    // Simple overwrite
+                                                    File.Copy(modFiles[i], targetPath, true);
                                                 }
                                             }
-
-
-                                        }
-
-                                    }
-                                }
-                                if (vanillaFileCount > modFileCount)
-                                {
-                                    SHA1 modHashing = new SHA1CryptoServiceProvider();
-
-                                    using (FileStream fs = File.OpenRead(modFiles[i]))
-                                    {
-                                        string modHash = Convert.ToBase64String(modHashing.ComputeHash(fs));
-                                        SHA1 vanillaHashing = new SHA1CryptoServiceProvider();
-
-                                        using (FileStream fx = File.OpenRead(vanillaFiles[i]))
-                                        {
-                                            try
+                                            else
                                             {
-                                                string vanillaHash = Convert.ToBase64String(vanillaHashing.ComputeHash(fx));
-                                                Console.WriteLine(modHash);
-
-                                                if (modHash != vanillaHash)
+                                                // First mod to modify this file - just copy it
+                                                File.Copy(modFiles[i], targetPath, true);
+                                            }
+                                            Console.WriteLine("Copying " + Path.GetFileName(modFiles[i]));
+                                            Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
+                                        }
+                                        else if (modFileDir != ("Objects/CodeEntries"))
+                                        {
+                                            if (Path.GetExtension(modFiles[i]) == ".png")
+                                            {
+                                                try
                                                 {
-                                                    Console.WriteLine(vanillaHash);
-                                                    Console.WriteLine(modFileDir);
-                                                    if (modFileDir == ("/Objects/CodeEntries"))
-                                                    {
+                                                    bool compareMemCmp = ImageSharpCompare.ImagesAreEqual(modFiles[i], vanillaFile);
 
-                                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "/" + Path.GetFileName(modFiles[i]), @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries" + Path.GetFileName(vanillaFiles[j]), true);
-                                                        modifedAssets.Add(modFilesName[i] + "        " + modHash);
-                                                    }
-                                                    if (modFileDir != ("/Objects/CodeEntries"))
+                                                    if (!compareMemCmp)
                                                     {
                                                         Directory.CreateDirectory(@output + "/xDeltaCombiner/" + chapter + "/1/Objects/" + modFileDir);
-
-                                                        File.Copy(Path.GetDirectoryName(modFiles[i]) + "/" + Path.GetFileName(modFiles[i]), @output + "/xDeltaCombiner/" + chapter + "/1/Objects/" + modFileDir + "/" + Path.GetFileName(vanillaFiles[j]), true);
-                                                        modifedAssets.Add(modFilesName[i] + "        " + modHash);
+                                                        File.Copy(modFiles[i], @output + "/xDeltaCombiner/" + chapter + "/1/Objects/" + modFileDir + "/" + modFileName, true);
+                                                        Main.modifedAssets.Add(modFilesName[i] + "        " + modHash);
                                                     }
                                                 }
+                                                catch (Exception ex)
+                                                {
+                                                    StackTrace rew = new StackTrace();
+                                                    Console.WriteLine(rew);
+                                                    Console.WriteLine(ex.Message);
+                                                    Console.WriteLine(modFiles[i]);
+                                                }
                                             }
-                                            catch (Exception ex)
-                                            {
-                                                StackTrace rew = new StackTrace();
-                                                Console.WriteLine(ex.ToString());
-                                                Console.WriteLine(rew);
-                                            }
-
                                         }
-
                                     }
                                 }
-
                             }
-
                         }
-
                     }
+                    
+                    // Handle new files (additions)
                     if (modFileAdditionsCount >= 1)
                     {
                         string[] modFileAddtionsDir = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/", "*", SearchOption.AllDirectories).Select(Path.GetFullPath).ToArray();
                         for (int i = 0; i < modFileAdditionsCount; i++)
                         {
-
-
                             string[] modFilesParent = Directory.GetFiles("" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/", modFileAdditions[i], SearchOption.AllDirectories);
                             string? modFileDir = Directory.GetParent(Path.GetDirectoryName(modFilesParent[0])).Name + "/" + Directory.GetParent(modFilesParent[0]).Name;
 
                             if (Path.GetExtension(modFileAdditions[i]) == ".gml")
                             {
-
-                                File.Copy(Path.GetDirectoryName(modFiles[0]) + "/" + Path.GetFileName(modFilesParent[0]), @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries" + Path.GetFileName(modFileAdditions[i]), true);
+                                File.Copy(modFilesParent[0], @output + "/xDeltaCombiner/" + chapter + "/1/Objects/CodeEntries/" + Path.GetFileName(modFileAdditions[i]), true);
                                 modifedAssets.Add(Path.GetFileName(modFilesParent[0]) + "        ");
                             }
                             if (Path.GetExtension(modFileAdditions[i]) == ".png")
                             {
                                 Directory.CreateDirectory(@output + "/xDeltaCombiner/" + chapter + "/1/Objects/" + modFileDir);
-
-                                File.Copy(Directory.GetParent(modFilesParent[0]) + "/" + Path.GetFileName(modFilesParent[0]), @output + "/xDeltaCombiner/" + chapter + "/1/Objects/" + modFileDir + "/" + Path.GetFileName(modFileAdditions[i]), true);
+                                File.Copy(modFilesParent[0], @output + "/xDeltaCombiner/" + chapter + "/1/Objects/" + modFileDir + "/" + Path.GetFileName(modFileAdditions[i]), true);
                                 modifedAssets.Add(Path.GetFileName(modFilesParent[0]) + "        ");
                             }
                             Console.WriteLine("Currently Copying " + Path.GetFileName(modFileAdditions[i]));
-
                             Console.WriteLine(modFileAdditionsCount);
                         }
                     }
+                    
+                    // Handle AssetOrder.txt merging with Meld
+                    string assetOrderFile = @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt";
+                    string vanillaAssetOrder = @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt";
+                    string modAssetOrder = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt";
 
-                    //A new attempt at sorting AssetOrder.txt, using KDiff3
-
-                    //if (File.Exists(@output + "/xDeltaCombiner/" + chapter + "/1/Objects/"))
-                    //{
-                    //    using (var modToolProc = new Process())
-                    //    {
-                    //        if (OperatingSystem.IsWindows())
-                    //        {
-                    //            modToolProc.StartInfo.FileName = Directory.GetParent(System.Environment.GetEnvironmentVariable("TMP", EnvironmentVariableTarget.User)) + "/Programs/KDiff3/bin/kdiff3.exe";
-                    //            modToolProc.StartInfo.Arguments = "--auto -o \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt\" \"" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt" + "\" \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt\" \"" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt\"";
-                    //        }
-                    //        if (OperatingSystem.IsLinux())
-                    //        {
-                    //            modToolProc.StartInfo.FileName = "/bin/bash";
-                    //            modToolProc.StartInfo.Arguments = "-c \"kdiff3 --auto -o '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt' '" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt" + "' '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt' '" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt'\"";
-                    //        }
-                    //        modToolProc.StartInfo.CreateNoWindow = false;
-                    //        modToolProc.StartInfo.UseShellExecute = false;
-                    //        modToolProc.StartInfo.RedirectStandardOutput = true;
-                    //        modToolProc.Start();
-
-                    //        // Synchronously read the standard output of the spawned process.
-                    //        StreamReader reader = modToolProc.StandardOutput;
-                    //        string ProcOutput = reader.ReadToEnd();
-
-                    //        // Write the redirected output to this application's window.
-                    //        Console.WriteLine(ProcOutput);
-
-                    //        modToolProc.WaitForExit();
-                    //    }
-                    //}
-                    //else 
-                    //{
-                    //    using (var modToolProc = new Process())
-                    //    {
-                    //        if (OperatingSystem.IsWindows())
-                    //        {
-                    //            modToolProc.StartInfo.FileName = Directory.GetParent(System.Environment.GetEnvironmentVariable("TMP", EnvironmentVariableTarget.User)) + "/Programs/KDiff3/bin/kdiff3.exe";
-                    //            modToolProc.StartInfo.Arguments = "--auto -o \"" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt\" \"" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt" + "\" \"" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt\"";
-                    //        }
-                    //        if (OperatingSystem.IsLinux())
-                    //        {
-                    //            modToolProc.StartInfo.FileName = "/bin/bash";
-                    //            modToolProc.StartInfo.Arguments = "-c \"kdiff3 --auto -o '" + @output + "/xDeltaCombiner/" + chapter + "/1/Objects/AssetOrder.txt' '" + @output + "/xDeltaCombiner/" + chapter + "/0/Objects/AssetOrder.txt" + "' '" + @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/AssetOrder.txt'\"";
-                    //        }
-                    //        modToolProc.StartInfo.CreateNoWindow = false;
-                    //        modToolProc.StartInfo.UseShellExecute = false;
-                    //        modToolProc.StartInfo.RedirectStandardOutput = true;
-                    //        modToolProc.Start();
-
-                    //        // Synchronously read the standard output of the spawned process.
-                    //        StreamReader reader = modToolProc.StandardOutput;
-                    //        string ProcOutput = reader.ReadToEnd();
-
-                    //        // Write the redirected output to this application's window.
-                    //        Console.WriteLine(ProcOutput);
-
-                    //        modToolProc.WaitForExit();
-                    //    }
-                    //}
-
-                        //A previous attempt at sorting AssetOrder.txt, here if anybody wants to repair it.
-
-                        //string assetOrderSeperator = "a bunch of random characters to define this";
-                        //var vanillaAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/0/Objects/AssetOrder.txt").ToList();
-                        //int vanillaAssetOrderCount = vanillaAssetOrder.Count;
-                        //var modAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/" + modNumber + "/Objects/AssetOrder.txt").ToList();
-                        //int modAssetOrderCount = modAssetOrder.Count;
-                        //if (!File.Exists(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt"))
-                        //{
-                        //    File.Create(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt").Close();
-                        //}
-
-                        //var finalModAssetOrder = File.ReadAllLines(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt").ToList();
-                        //if (modNumber == 2)
-                        //{
-                        //    finalModAssetOrder = vanillaAssetOrder;
-                        //}
-                        //for (int i = 0; i < modAssetOrderCount; i++)
-                        //{
-                        //    Console.WriteLine("Comparing asset order of vanilla to mod # " + (modNumber - 1) + ", Line " + i);
-
-                        //    string modAssetOrderLine = modAssetOrder[i];
-                        //    for (int j = 0; j < vanillaAssetOrderCount; j++)
-                        //    {
-                        //        string vanillaAssetOrderLine = vanillaAssetOrder[j];
-                        //        bool modAssetOrderinvanillaAssetOrder = vanillaAssetOrder.Contains(modAssetOrderLine);
-                        //        if (modAssetOrderLine == vanillaAssetOrderLine && modAssetOrderLine.StartsWith("@@"))
-                        //        {
-                        //            assetOrderSeperator = modAssetOrderLine;
-                        //        }
-
-                        //        if (modAssetOrderLine == vanillaAssetOrderLine && !finalModAssetOrder.Contains(assetOrderSeperator) && !modAssetOrderinvanillaAssetOrder && !finalModAssetOrder.Contains(modAssetOrderLine))
-                        //        {
-
-                        //            finalModAssetOrder.Add(modAssetOrderLine); 
-
-                        //        }
-                        //        if (modAssetOrderLine != vanillaAssetOrderLine && !modAssetOrderinvanillaAssetOrder && !finalModAssetOrder.Contains(modAssetOrderLine))
-                        //        {
-                        //            finalModAssetOrder.Add(modAssetOrderLine); 
-
-                        //        }
-                        //    }
-                        //    File.WriteAllLines(@output + "/xDeltaCombiner/1/Objects/AssetOrder.txt", finalModAssetOrder);
-                        //}
+                    if (File.Exists(modAssetOrder))
+                    {
+                        if (File.Exists(assetOrderFile))
+                        {
+                            // AssetOrder.txt exists from previous mod - need to merge
+                            Console.WriteLine("Merging AssetOrder.txt files...");
+                            
+                            // Try to find Meld if not already found
+                            if (string.IsNullOrEmpty(MeldPath))
+                            {
+                                MeldPath = FindMeld();
+                            }
+                            
+                            if (!string.IsNullOrEmpty(MeldPath))
+                            {
+                                using (var meldProc = new Process())
+                                {
+                                    if (OperatingSystem.IsWindows())
+                                    {
+                                        meldProc.StartInfo.FileName = MeldPath;
+                                        meldProc.StartInfo.Arguments = $"--auto-merge \"{assetOrderFile}\" \"{vanillaAssetOrder}\" \"{modAssetOrder}\" --output=\"{assetOrderFile}\"";
+                                    }
+                                    else if (OperatingSystem.IsLinux())
+                                    {
+                                        meldProc.StartInfo.FileName = MeldPath;
+                                        meldProc.StartInfo.Arguments = $"--auto-merge '{assetOrderFile}' '{vanillaAssetOrder}' '{modAssetOrder}' --output='{assetOrderFile}'";
+                                    }
+                                    
+                                    meldProc.StartInfo.CreateNoWindow = true;
+                                    meldProc.StartInfo.UseShellExecute = false;
+                                    meldProc.StartInfo.RedirectStandardOutput = true;
+                                    meldProc.StartInfo.RedirectStandardError = true;
+                                    
+                                    meldProc.Start();
+                                    meldProc.WaitForExit();
+                                    
+                                    if (meldProc.ExitCode == 0 || meldProc.ExitCode == 1)
+                                    {
+                                        Console.WriteLine("Successfully merged AssetOrder.txt");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("AssetOrder.txt merge had issues - sprite ordering may be affected");
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // No Meld - critical for sprite mods
+                                Console.WriteLine("WARNING: Cannot merge AssetOrder.txt without Meld!");
+                                Console.WriteLine("Sprite ordering will be incorrect. Install Meld from https://meldmerge.org/");
+                                
+                                // Simple append approach as fallback
+                                var existingLines = File.ReadAllLines(assetOrderFile).ToList();
+                                var modLines = File.ReadAllLines(modAssetOrder).ToList();
+                                var vanillaLines = File.ReadAllLines(vanillaAssetOrder).ToList();
+                                
+                                // Find new entries in mod that aren't in vanilla or existing
+                                var newEntries = modLines.Except(vanillaLines).Except(existingLines).ToList();
+                                
+                                if (newEntries.Count > 0)
+                                {
+                                    Console.WriteLine($"Adding {newEntries.Count} new asset entries (order may be wrong)");
+                                    existingLines.AddRange(newEntries);
+                                    File.WriteAllLines(assetOrderFile, existingLines);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // First mod's AssetOrder - just copy it
+                            File.Copy(modAssetOrder, assetOrderFile, true);
+                        }
                     }
+
+                    // Also ensure we have the vanilla AssetOrder as a base
+                    if (!File.Exists(assetOrderFile) && File.Exists(vanillaAssetOrder))
+                    {
+                        File.Copy(vanillaAssetOrder, assetOrderFile, true);
+                    }
+                }
             }
             Main.combined = true;
         }
+        
+        /// <summary>
+        /// Detects and handles new objects added by mods
+        /// </summary>
+        public static void HandleNewObjects()
+        {
+            loadCachedNumbers();
+            for (int chapter = 0; chapter < chapterAmount; chapter++)
+            {
+                Console.WriteLine($"Checking for new objects in chapter {chapter}...");
+                
+                // Get list of objects from vanilla
+                HashSet<string> vanillaObjects = new HashSet<string>();
+                string vanillaCodePath = @output + "/xDeltaCombiner/" + chapter + "/0/Objects/CodeEntries/";
+                if (Directory.Exists(vanillaCodePath))
+                {
+                    foreach (string file in Directory.GetFiles(vanillaCodePath, "gml_Object_*"))
+                    {
+                        // Extract object name from filename like "gml_Object_obj_name_Create_0.gml"
+                        string filename = Path.GetFileName(file);
+                        if (filename.StartsWith("gml_Object_"))
+                        {
+                            string[] parts = filename.Split('_');
+                            if (parts.Length >= 3)
+                            {
+                                // Get the object name (everything between "gml_Object_" and the event type)
+                                int startIndex = "gml_Object_".Length;
+                                int endIndex = filename.LastIndexOf("_Create_") != -1 ? filename.LastIndexOf("_Create_") :
+                                              filename.LastIndexOf("_Step_") != -1 ? filename.LastIndexOf("_Step_") :
+                                              filename.LastIndexOf("_Draw_") != -1 ? filename.LastIndexOf("_Draw_") :
+                                              filename.LastIndexOf("_Alarm_") != -1 ? filename.LastIndexOf("_Alarm_") :
+                                              filename.LastIndexOf("_Destroy_") != -1 ? filename.LastIndexOf("_Destroy_") :
+                                              filename.LastIndexOf("_Collision_") != -1 ? filename.LastIndexOf("_Collision_") :
+                                              filename.LastIndexOf("_Other_") != -1 ? filename.LastIndexOf("_Other_") :
+                                              filename.LastIndexOf("_PreCreate_") != -1 ? filename.LastIndexOf("_PreCreate_") : -1;
+                                
+                                if (endIndex > startIndex)
+                                {
+                                    string objectName = filename.Substring(startIndex, endIndex - startIndex);
+                                    vanillaObjects.Add(objectName);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Check each mod for new objects
+                for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
+                {
+                    HashSet<string> newObjects = new HashSet<string>();
+                    string modCodePath = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries/";
+                    
+                    if (Directory.Exists(modCodePath))
+                    {
+                        foreach (string file in Directory.GetFiles(modCodePath, "gml_Object_*"))
+                        {
+                            string filename = Path.GetFileName(file);
+                            if (filename.StartsWith("gml_Object_"))
+                            {
+                                int startIndex = "gml_Object_".Length;
+                                int endIndex = filename.LastIndexOf("_Create_") != -1 ? filename.LastIndexOf("_Create_") :
+                                              filename.LastIndexOf("_Step_") != -1 ? filename.LastIndexOf("_Step_") :
+                                              filename.LastIndexOf("_Draw_") != -1 ? filename.LastIndexOf("_Draw_") :
+                                              filename.LastIndexOf("_Alarm_") != -1 ? filename.LastIndexOf("_Alarm_") :
+                                              filename.LastIndexOf("_Destroy_") != -1 ? filename.LastIndexOf("_Destroy_") :
+                                              filename.LastIndexOf("_Collision_") != -1 ? filename.LastIndexOf("_Collision_") :
+                                              filename.LastIndexOf("_Other_") != -1 ? filename.LastIndexOf("_Other_") :
+                                              filename.LastIndexOf("_PreCreate_") != -1 ? filename.LastIndexOf("_PreCreate_") : -1;
+                                
+                                if (endIndex > startIndex)
+                                {
+                                    string objectName = filename.Substring(startIndex, endIndex - startIndex);
+                                    if (!vanillaObjects.Contains(objectName))
+                                    {
+                                        newObjects.Add(objectName);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (newObjects.Count > 0)
+                    {
+                        Console.WriteLine($"Mod {modNumber - 1} adds {newObjects.Count} new objects: {string.Join(", ", newObjects)}");
+                        
+                        // Create a file listing new objects for the import script to use
+                        string newObjectsFile = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/NewObjects.txt";
+                        File.WriteAllLines(newObjectsFile, newObjects);
+                    }
+                }
+            }
+        }
+        
         /// <summary>
         /// Imports resulting GameMaker Objects from the "CompareCombine()" function into a data.win
         /// </summary>
-        public static void import()
+        public static void importWithNewObjects()
         {
             loadCachedNumbers();
-            for (int chapter =  0; chapter < chapterAmount; chapter++) {
+            for (int chapter = 0; chapter < chapterAmount; chapter++)
+            {
                 if (Main.modTool == "skip")
                 {
                     Console.WriteLine("In order to replace and import manually, load up the data.win in /xDeltaCombiner/*chapter*/1/ into the GUI version of UTMT and run the script ImportGML.csx. Select \"C:/xDeltaCombiner/*currentsubfolder*/Objects/\" as the import folder. Once finished, exit and saving.");
                 }
                 else
                 {
+                    // First, we need to apply any mods that add new objects to get their object definitions
+                    List<int> modsWithNewObjects = new List<int>();
+                    for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
+                    {
+                        string newObjectsFile = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/NewObjects.txt";
+                        if (File.Exists(newObjectsFile))
+                        {
+                            modsWithNewObjects.Add(modNumber);
+                        }
+                    }
+                    
+                    // If any mods add new objects, we need to apply them first to create the object definitions
+                    if (modsWithNewObjects.Count > 0)
+                    {
+                        Console.WriteLine($"Found {modsWithNewObjects.Count} mods that add new objects. Creating object definitions...");
+                        
+                        // Copy vanilla data.win to working file
+                        File.Copy(@output + "/xDeltaCombiner/" + chapter + "/0/data.win", 
+                                  @output + "/xDeltaCombiner/" + chapter + "/1/data.win", true);
+                        
+                        // Apply each mod that adds new objects using UTMT scripts
+                        foreach (int modNumber in modsWithNewObjects)
+                        {
+                            Console.WriteLine($"Creating object definitions from mod {modNumber - 1}...");
+                            
+                            // We need a special script that creates the new objects
+                            // For now, we'll apply the full mod to get the object definitions
+                            using (var bashProc = new Process())
+                            {
+                                if (OperatingSystem.IsWindows())
+                                {
+                                    bashProc.StartInfo.FileName = Main.@DeltaPatcher;
+                                    bashProc.StartInfo.Arguments = "-v -d -f -s \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win\"" + 
+                                                                 " \"" + Main.xDeltaFile[modNumber] + "\" \"" + 
+                                                                 Main.@output + "/xDeltaCombiner/" + chapter + "/1/data_temp.win" + "\" ";
+                                }
+                                if (OperatingSystem.IsLinux())
+                                {
+                                    bashProc.StartInfo.FileName = "/bin/bash";
+                                    bashProc.StartInfo.Arguments = "-c \"" + @DeltaPatcher + "-v -d -f -s '" + 
+                                                                 Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win'" + 
+                                                                 " '" + Main.xDeltaFile[modNumber] + "' '" + 
+                                                                 Main.@output + "/xDeltaCombiner/" + chapter + "/1/data_temp.win" + "'\" ";
+                                }
+                                bashProc.StartInfo.CreateNoWindow = false;
+                                bashProc.StartInfo.UseShellExecute = false;
+                                bashProc.StartInfo.RedirectStandardOutput = true;
+                                bashProc.Start();
+                                bashProc.WaitForExit();
+                                
+                                if (File.Exists(Main.@output + "/xDeltaCombiner/" + chapter + "/1/data_temp.win"))
+                                {
+                                    File.Delete(Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win");
+                                    File.Move(Main.@output + "/xDeltaCombiner/" + chapter + "/1/data_temp.win", 
+                                              Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win");
+                                }
+                            }
+                        }
+                        
+                        Console.WriteLine("Object definitions created. Now importing code and assets...");
+                    }
+                    
+                    // Now proceed with normal import
                     using (var modToolProc = new Process())
                     {
                         if (OperatingSystem.IsWindows())
                         {
                             modToolProc.StartInfo.FileName = Main.@modTool;
-                            modToolProc.StartInfo.Arguments = "load \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win\" " + "--verbose --output \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + "\" --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ImportGraphicsAdvanced.csx\" --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ImportGML.csx\"";
+                            modToolProc.StartInfo.Arguments = "load \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win\" " + 
+                                                            "--verbose --output \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + 
+                                                            "\" --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ImportGraphicsAdvanced.csx\" --scripts \"" + 
+                                                            Main.@pwd + "/UTMTCLI/Scripts/ImportGML.csx\"";
                         }
                         if (OperatingSystem.IsLinux())
                         {
                             modToolProc.StartInfo.FileName = "/bin/bash";
-                            modToolProc.StartInfo.Arguments = "-c \"" + @modTool + "load '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win' " + "--verbose --output '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + "' --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ImportGraphicsAdvanced.csx' --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ImportGML.csx'\"";
-
+                            modToolProc.StartInfo.Arguments = "-c \"" + @modTool + "load '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win' " + 
+                                                             "--verbose --output '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + 
+                                                             "' --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ImportGraphicsAdvanced.csx' --scripts '" + 
+                                                             Main.@pwd + "/UTMTCLI/Scripts/ImportGML.csx'\"";
                         }
                         modToolProc.StartInfo.CreateNoWindow = false;
                         modToolProc.StartInfo.UseShellExecute = false;
                         modToolProc.StartInfo.RedirectStandardOutput = true;
                         modToolProc.Start();
-                        // Synchronously read the standard output of the spawned process.
+                        
                         StreamReader reader = modToolProc.StandardOutput;
                         string ProcOutput = reader.ReadToEnd();
-
-                        // Write the redirected output to this application's window.
                         Console.WriteLine(ProcOutput);
                         modToolProc.WaitForExit();
                     }
-                        using (var modToolProc = new Process())
-                        {
-                            if (OperatingSystem.IsWindows())
-                            {
-                                modToolProc.StartInfo.FileName = Main.@modTool;
-                                modToolProc.StartInfo.Arguments = "load \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win\" " + "--verbose --output \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + "\" --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ImportAssetOrder.csx\"";
-                            }
-                            if (OperatingSystem.IsLinux())
-                            {
-                                modToolProc.StartInfo.FileName = "/bin/bash";
-                                modToolProc.StartInfo.Arguments = "-c \"" + @modTool + "load '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win' " + "--verbose --output '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + "' --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ImportAssetOrder.csx'";
-                            }
-                            modToolProc.StartInfo.CreateNoWindow = false;
-                            modToolProc.StartInfo.UseShellExecute = false;
-                            modToolProc.StartInfo.RedirectStandardOutput = true;
-                            modToolProc.Start();
-                            // Synchronously read the standard output of the spawned process.
-                            StreamReader reader = modToolProc.StandardOutput;
-                            string ProcOutput = reader.ReadToEnd();
-
-                            // Write the redirected output to this application's window.
-                            Console.WriteLine(ProcOutput);
-                            modToolProc.WaitForExit();
-                        }
                     
+                    // Import AssetOrder
+                    using (var modToolProc = new Process())
+                    {
+                        if (OperatingSystem.IsWindows())
+                        {
+                            modToolProc.StartInfo.FileName = Main.@modTool;
+                            modToolProc.StartInfo.Arguments = "load \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win\" " + 
+                                                            "--verbose --output \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + 
+                                                            "\" --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ImportAssetOrder.csx\"";
+                        }
+                        if (OperatingSystem.IsLinux())
+                        {
+                            modToolProc.StartInfo.FileName = "/bin/bash";
+                            modToolProc.StartInfo.Arguments = "-c \"" + @modTool + "load '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win' " + 
+                                                             "--verbose --output '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + 
+                                                             "' --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ImportAssetOrder.csx'\"";
+                        }
+                        modToolProc.StartInfo.CreateNoWindow = false;
+                        modToolProc.StartInfo.UseShellExecute = false;
+                        modToolProc.StartInfo.RedirectStandardOutput = true;
+                        modToolProc.Start();
+                        
+                        StreamReader reader = modToolProc.StandardOutput;
+                        string ProcOutput = reader.ReadToEnd();
+                        Console.WriteLine(ProcOutput);
+                        modToolProc.WaitForExit();
+                    }
                 }
             }
         }
@@ -747,26 +1015,26 @@ namespace GM3P
                     }
                     else
                     {
-                        for (int modNumber = 0; modNumber < (Main.modAmount + 1); modNumber++)
+                        for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
                         {
-                            Directory.CreateDirectory(@output + "/result/" + modname + "/" + modNumber);
+                            Directory.CreateDirectory(@output + "/result/" + modname + "/" + chapter + "/" + modNumber);
                             using (var bashProc = new Process())
                             {
                                 if (OperatingSystem.IsWindows())
                                 {
                                     bashProc.StartInfo.FileName = Main.@DeltaPatcher;
-                                    bashProc.StartInfo.Arguments = "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + modNumber + "/vanilla/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + modNumber + ".xdelta\"";
+                                    bashProc.StartInfo.Arguments = "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/0/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + chapter + "/" + modNumber + ".xdelta\"";
                                 }
                                 if (OperatingSystem.IsLinux())
                                 {
                                     bashProc.StartInfo.FileName = "bin/bash";
-                                    bashProc.StartInfo.Arguments = @DeltaPatcher + "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + modNumber + "/vanilla/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + modNumber + ".xdelta\"";
+                                    bashProc.StartInfo.Arguments = @DeltaPatcher + "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/vanilla/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + chapter + "/" + modNumber + ".xdelta\"";
                                 }
                                 bashProc.StartInfo.CreateNoWindow = false;
                                 bashProc.Start();
                                 bashProc.WaitForExit();
                             }
-                            File.Copy(@output + "/xDeltaCombiner/" + modNumber + "/data.win", @output + "/result/" + modname + "/" + modNumber + "/data.win");
+                            File.Copy(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win", @output + "/result/" + modname + "/" + chapter + "/" + modNumber + "/data.win");
                         }
                     }
                 }
