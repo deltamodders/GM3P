@@ -21,9 +21,7 @@ class Program
         //Store version as a double and print full version #
         double Version = 0.5;
         Console.WriteLine("GM3P v" + Version + ".0");
-        
-        //Check if Meld is on it's corresponding path.
-        GM3P.Main.CheckMeldAvailability();
+
         
         //Create logging file and start logging
         string startTime = DateTime.Now.ToString("yy") + DateTime.Now.ToString("MM") + DateTime.Now.ToString("dd") + DateTime.Now.ToString("HH") + DateTime.Now.ToString("mm") + DateTime.Now.ToString("zz");
@@ -188,7 +186,7 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Command Santax:   GM3P.exe result [modpack or modset name] [whether or not compare was called before] [amount of mods] [(optional) output folder]");
+                                Console.WriteLine("Command Santax:   GM3P.exe result [modpack or modset name] [whether or not compare was called before] [(required if the previous arg is \\\"false\\\", otherwise ignored) amount of mods or chapters] [(optional) output folder]");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Example:          GM3P.exe \"My Modset\" result true 4 \"C:/Undertale Mods\"");
                                 Console.WriteLine(" ");
@@ -260,16 +258,25 @@ class Program
                 {
                     GM3P.Main.DeltaPatcher = "xdelta3 ";
                 }
-                    Console.WriteLine("Type however many mods you want to patch (If you are patching multiple chapters, this would be the amount of mods for a single chapter): ");
+
+                Console.WriteLine("Type however many mods you want to patch (If you are patching multiple chapters, this would be the amount of mods for a single chapter): ");
                 GM3P.Main.modAmount = Convert.ToInt32(Console.ReadLine());
+
                 if (GM3P.Main.vanilla2 != "skip")
                 {
-                    //Console.WriteLine("Enter in the path of a xdelta3 executable: ");
-
                     GM3P.Main.CreateCombinerDirectories();
                     GM3P.Main.CopyVanilla();
                     Console.WriteLine("Now Enter in the patches, one at a time (If you are doing multi-chapter patching, do the mods for the root first): ");
                     GM3P.Main.massPatch();
+                }
+                else
+                {
+                    // When skipping, we still need to know the chapter count
+                    Console.WriteLine("How many chapters are you working with? ");
+                    GM3P.Main.chapterAmount = Convert.ToInt32(Console.ReadLine());
+
+                    // Try to load cached patch paths
+                    GM3P.Main.loadCachedNumbers();
                 }
                     Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
                     Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may enter \"noCombine\"");
@@ -287,18 +294,18 @@ class Program
                     if (GM3P.Main.modTool != "skip")
                     {
                         GM3P.Main.dump();
-                        Console.WriteLine("The dumping process(es) are finished");
+                        Console.WriteLine("The dumping process(es) are finished, waiting 5 seconds before proceeding...");
+                        Thread.Sleep(5000);
                     }
                     else
                     {
                         Console.WriteLine("In order to dump manually, load up the data.win in each of the /xDeltaCombiner/ subfolders into the GUI version of UTMT and run the script ExportAllCode.csx. Select \"C:/xDeltaCombiner/*currentsubfolder*/Objects/\" as your destination. Once finished, exit without saving.");
                         Console.WriteLine("Press Enter when done with the above instructions");
                     }
-                    Console.ReadLine();
                     GM3P.Main.modifiedListCreate();
                     GM3P.Main.CompareCombine();
 
-                    File.WriteAllLines(GM3P.Main.@output + "/xDeltaCombiner/0/1/modifedAssets.txt", GM3P.Main.modifedAssets);
+                    File.WriteAllLines(GM3P.Main.@output + "/xDeltaCombiner/0/1/modifiedAssets.txt", GM3P.Main.modifiedAssets);
                     Console.WriteLine("Comparing is done. Hit Enter to Continue.");
                     Console.ReadLine();
                     GM3P.Main.HandleNewObjects();
