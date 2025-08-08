@@ -305,7 +305,6 @@ namespace GM3P
                     winFiles.Add(rootDataWin);
 
                 var directories = Directory.GetDirectories(@vanilla2)
-                    .Where(d => Path.GetFileName(d).Contains("chapter"))
                     .OrderBy(d => d);
 
                 foreach (var dir in directories)
@@ -538,7 +537,7 @@ namespace GM3P
         }
 
         /// <summary>
-        /// The main function of GM3P, compares and combines the vanilla game files with the mod files.
+        /// The main draw of GM3P, compares and combines the vanilla game files with the mod files.
         /// </summary>
         public static void CompareCombine()
         {
@@ -641,12 +640,6 @@ namespace GM3P
 
                     // Fix naming for global scripts
                     string correctedFileName = fileName;
-                    if (fileName == "scr_enemy_hurt.gml" && !fileName.StartsWith("gml_"))
-                    {
-                        // This should be gml_GlobalScript_scr_enemy_hurt.gml
-                        correctedFileName = "gml_GlobalScript_" + fileName;
-                        Console.WriteLine($"  Correcting filename: {fileName} -> {correctedFileName}");
-                    }
 
                     var versions = allFileVersions[fileName];
                     string fileDir = fileDirectories.ContainsKey(fileName) ? fileDirectories[fileName] : "";

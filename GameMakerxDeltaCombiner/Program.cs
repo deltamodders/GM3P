@@ -186,7 +186,7 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Command Santax:   GM3P.exe result [modpack or modset name] [whether or not compare was called before] [(required if the previous arg is \\\"false\\\", otherwise ignored) amount of mods or chapters] [(optional) output folder]");
+                                Console.WriteLine("Command Santax:   GM3P.exe result [modpack or modset name] [whether or not compare was called before] [amount of mods] [(optional) output folder]");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Example:          GM3P.exe \"My Modset\" result true 4 \"C:/Undertale Mods\"");
                                 Console.WriteLine(" ");
@@ -271,10 +271,7 @@ class Program
                 }
                 else
                 {
-                    // When skipping, we still need to know the chapter count
-                    Console.WriteLine("How many chapters are you working with? ");
                     GM3P.Main.chapterAmount = Convert.ToInt32(Console.ReadLine());
-
                     // Try to load cached patch paths
                     GM3P.Main.loadCachedNumbers();
                 }
@@ -294,14 +291,14 @@ class Program
                     if (GM3P.Main.modTool != "skip")
                     {
                         GM3P.Main.dump();
-                        Console.WriteLine("The dumping process(es) are finished, waiting 5 seconds before proceeding...");
-                        Thread.Sleep(5000);
+                        Console.WriteLine("The dumping process(es) are finished. Hit Enter to Continue.");
                     }
                     else
                     {
                         Console.WriteLine("In order to dump manually, load up the data.win in each of the /xDeltaCombiner/ subfolders into the GUI version of UTMT and run the script ExportAllCode.csx. Select \"C:/xDeltaCombiner/*currentsubfolder*/Objects/\" as your destination. Once finished, exit without saving.");
                         Console.WriteLine("Press Enter when done with the above instructions");
                     }
+                    Console.ReadLine();
                     GM3P.Main.modifiedListCreate();
                     GM3P.Main.CompareCombine();
 
