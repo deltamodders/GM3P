@@ -26,29 +26,30 @@ Section 1: Operation Instructions
 Section 2: Technical Information
 	Part 2.1: System Requirements
 		2.1.2: System Requirements
-			OS: Windows 7 or later; Linux
+			OS: Windows 7 or later; Debian-based or Azure Linux
 			CPU: 64-bit x86 processor with 2 or more cores
 			Storage: 256MB
-			RAM: 256MB
-			Software: .NET 8.0 runtime
+			RAM: 64MB
+			Software: .NET 8.0 runtime (Windows and Linux); xDelta3 (Linux only)
 		2.1.3: System Recommended
 			OS: Windows 10 or 11
 			CPU: Intel i5-2400 or later
-			Storage: 2GB SSD
-			RAM: 512MB (2GB on Linux)
+			Storage: 2GB 7200+RPM HDD or SATA SSD or NvME SSD
+			RAM: 1GB on Windows; 2GB on Linux
 	Part 2.2: output directory structure
+		xDeltaCombiner\: The main folder, responsible for the patching and combining
 		xDeltaCombiner\chapter#\0: Vanilla Folder
 		xDeltaCombiner\chapter#\1: Finished Product Folder
 		xDeltaCombiner\chapter#\(2+): Single Mod Folder
 		xDeltaCombiner\chapter#\#\Objects: GameMaker Objects location
-		result\: resulting merges
+		result\: resulting modpacks and modsets
 		Cache\: temp storage to help with various things
 		Cache\vanilla: currently unused, will be used for storing vanilla data.win files
 		Cache\Logs: stores logs, goes by YYMMDDHHmm-TZ
 		Cache\running: passes off variable values from GM3P to UTMTCLI during runtime. 
 	Part 2.3: Known Issues and limitations
 		Issue: Sprites that are not in the vanilla game may be out of order, except for the last mod applied.
-		Issue: Backported mods don't compare correctly (A backported mod means a mod using an older version of a game, but the xDelta or mod file is meant to be applied to a later version of said game)
+		Issue: Backported mods don't compare correctly (A backported mod means a mod made with an older version of a game, but the xDelta or mod file is meant to be applied to a later version of said game)
 		Issue: Sprites may not export or import at the right size (specifically observed with the Running Animations mod for Deltarune)
 		Issue: Dumping and Importing fails if a custom output folder is specified.
 		Issue: Logging doesn't save user input

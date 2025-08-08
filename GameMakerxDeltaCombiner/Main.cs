@@ -1662,6 +1662,14 @@ namespace GM3P
                         }
                     }
 
+                    //If it's a full data.win, copy the file
+                    else if (Path.GetExtension(xDeltaFile[modNumber]) == ".win")
+                    {
+                        File.Copy(xDeltaFile[modNumber], @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + " ", true);
+                    }
+                    //else if (Path.GetExtension(xDeltaFile[modNumber]) == "" || Path.GetExtension(xDeltaFile[modNumber]) == null)
+                    //{
+
                     if (newObjects.Count > 0)
                     {
                         Console.WriteLine($"Mod {modNumber - 1} adds {newObjects.Count} new objects: {string.Join(", ", newObjects)}");
@@ -1669,6 +1677,7 @@ namespace GM3P
                         File.WriteAllLines(newObjectsFile, newObjects);
                     }
                 }
+                Console.WriteLine("Chapter complete, if you are using the console app and that wasn't the final chapter, enter in the chapter "+(chapter+1)+" patches");
             }
         }
 
