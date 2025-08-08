@@ -22,6 +22,7 @@ class Program
         double Version = 0.5;
         Console.WriteLine("GM3P v" + Version + ".0");
 
+        
         //Create logging file and start logging
         string startTime = DateTime.Now.ToString("yy") + DateTime.Now.ToString("MM") + DateTime.Now.ToString("dd") + DateTime.Now.ToString("HH") + DateTime.Now.ToString("mm") + DateTime.Now.ToString("zz");
         GM3P.Main.output = GM3P.Main.pwd + "/output";
@@ -82,7 +83,6 @@ class Program
                             {
                                 GM3P.Main.dump();
                             }
-
                         }
                         GM3P.Main.modifiedListCreate();
                         GM3P.Main.CompareCombine();
@@ -90,7 +90,8 @@ class Program
                         {
                             if (args[3] == "true")
                             {
-                                GM3P.Main.import();
+                                GM3P.Main.HandleNewObjects();    
+                                GM3P.Main.importWithNewObjects(); 
                             }
                         }
                         break;
@@ -233,7 +234,7 @@ class Program
                         }
                         if (args.Length == 1)
                         {
-                            Console.WriteLine("Avalible commands:\nhelp        Display a satanax for a command and exit (use \"GM3P.exe help *command*\")\nmassPatch   Patches a lot of data.win files with a single mod each\nconsole     launches console app\nclear       Clears the xDeltaCombiner folder for future use.\ncompare     Compares modded GM Objects to vanilla and puts changes in a list. Dumping and Importing optional.\nresult      Name and copy modpack to a folder\n");
+                            Console.WriteLine("Avalible commands:\nhelp        Display uses of the commands and exits. (use \"GM3P.exe help *command*\")\nmassPatch   Patches a lot of data.win files with a single mod each\nconsole     launches console app\nclear       Clears the xDeltaCombiner folder for future use.\ncompare     Compares modded GM Objects to vanilla and puts changes in a list. Dumping and Importing optional.\nresult      Name and copy modpack to a folder\n");
                         }
                         break;
                     default:
@@ -257,16 +258,22 @@ class Program
                 {
                     GM3P.Main.DeltaPatcher = "xdelta3 ";
                 }
-                    Console.WriteLine("Type however many mods you want to patch (If you are patching multiple chapters, this would be the amount of mods for a single chapter): ");
+
+                Console.WriteLine("Type however many mods you want to patch (If you are patching multiple chapters, this would be the amount of mods for a single chapter): ");
                 GM3P.Main.modAmount = Convert.ToInt32(Console.ReadLine());
+
                 if (GM3P.Main.vanilla2 != "skip")
                 {
-                    //Console.WriteLine("Enter in the path of a xdelta3 executable: ");
-
                     GM3P.Main.CreateCombinerDirectories();
                     GM3P.Main.CopyVanilla();
                     Console.WriteLine("Now Enter in the patches, one at a time (If you are doing multi-chapter patching, do the mods for the root first): ");
                     GM3P.Main.massPatch();
+                }
+                else
+                {
+                    GM3P.Main.chapterAmount = Convert.ToInt32(Console.ReadLine());
+                    // Try to load cached patch paths
+                    GM3P.Main.loadCachedNumbers();
                 }
                     Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
                     Console.WriteLine("If you don't want to combine patches and just wanted to apply them, you may enter \"noCombine\"");
@@ -284,7 +291,7 @@ class Program
                     if (GM3P.Main.modTool != "skip")
                     {
                         GM3P.Main.dump();
-                        Console.WriteLine("The dumping process(es) are finished");
+                        Console.WriteLine("The dumping process(es) are finished. Hit Enter to Continue.");
                     }
                     else
                     {
@@ -295,10 +302,11 @@ class Program
                     GM3P.Main.modifiedListCreate();
                     GM3P.Main.CompareCombine();
 
-                    File.WriteAllLines(GM3P.Main.@output + "/xDeltaCombiner/0/1/modifedAssets.txt", GM3P.Main.modifedAssets);
+                    File.WriteAllLines(GM3P.Main.@output + "/xDeltaCombiner/0/1/modifiedAssets.txt", GM3P.Main.modifiedAssets);
                     Console.WriteLine("Comparing is done. Hit Enter to Continue.");
                     Console.ReadLine();
-                    GM3P.Main.import();
+                    GM3P.Main.HandleNewObjects();
+                    GM3P.Main.importWithNewObjects();
                 }
                 Console.WriteLine("To save your modpack, name it: ");
                 GM3P.Main.result(Console.ReadLine());

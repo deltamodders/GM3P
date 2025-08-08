@@ -27,4 +27,16 @@
     <PackageReference Include="DiffPlex" Version="1.8.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="System.Text.Json">
+      <HintPath>..\System.Text.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Underanalyzer">
+      <HintPath>..\Underanalyzer.dll</HintPath>
+    </Reference>
+    <Reference Include="UndertaleModLib">
+      <HintPath>..\UndertaleModLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
