@@ -22,16 +22,41 @@ namespace GM3P
 
     internal class Main
     {
+        /// <summary>
+        /// The path to the vanilla game
+        /// </Summary>
         public static string? vanilla2 { get; set; }
+        /// <summary>
+        /// Current working directory
+        /// </summary>
         public static string? pwd = Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetExecutingAssembly().Location)));
+        /// <summary>
+        /// Output folder
+        /// </summary>
         public static string? output { get; set; }
+        /// <summary>
+        /// path to an xDelta patcher, e.g. xDelta3 or Deltapatcher
+        /// </summary>
         public static string? DeltaPatcher { get; set; }
-        public static string? KDiff3Path { get; set; }
-        public static string? MeldPath { get; set; }
+        /// <summary>
+        /// Amount of mods to merge
+        /// </summary>
         public static int modAmount { get; set; }
+        /// <summary>
+        /// Currently unused except as a CLI arg, but this will be used to determine what Game Engine the game is in in a far future release. Use "GM" is for GameMaker
+        /// </summary>
         public static string? gameEngine { get; set; }
+        /// <summary>
+        /// A bool to tell if compareCombine() has been called
+        /// </summary>
         public static bool combined { get; set; }
+        /// <summary>
+        /// How many chapters vanilla has
+        /// </summary>
         public static int chapterAmount { get; set; }
+        /// <summary>
+        /// Path to the modTool for Dumping
+        /// </summary>
         public static string? modTool { get; set; }
         public static string[] xDeltaFile { get; set; }
 
@@ -39,6 +64,12 @@ namespace GM3P
 
         public static List<string> modifiedAssets = new List<string> { "Asset Name                       Hash (SHA1 in Base64)" };
 
+        /// <summary>
+        /// Returns a line from a text file as a string
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="line"></param>
+        /// <returns></returns>
         public static string GetLine(string fileName, int line)
         {
             using (var sr = new StreamReader(fileName))
@@ -49,7 +80,11 @@ namespace GM3P
             }
         }
 
-        // Validate if a file is a valid PNG
+        /// <summary>
+        /// Validate if a file is a valid PNG
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
         private static bool IsValidPNG(string filePath)
         {
             try
@@ -74,7 +109,12 @@ namespace GM3P
             }
         }
 
-        // Find the best sprite version from available mods
+        /// <summary>
+        /// Find the best sprite version from available mods
+        /// </summary>
+        /// <param name="sprites"></param>
+        /// <param name="vanillaVersion"></param>
+        /// <returns></returns>
         private static ModFileInfo SelectBestSprite(List<ModFileInfo> sprites, ModFileInfo vanillaVersion = null)
         {
             Console.WriteLine($"    Selecting best sprite from {sprites.Count} version(s)");
@@ -106,7 +146,10 @@ namespace GM3P
             return sprites[0];
         }
 
-        // Validate all sprites after merge
+        /// <summary>
+        /// Validate all sprites after merge
+        /// </summary>
+        /// <param name="chapter"></param>
         private static void ValidateSprites(int chapter)
         {
             string spritesPath = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects", "Sprites");
@@ -142,7 +185,12 @@ namespace GM3P
             }
         }
 
-        // Compare sprites considering they might be part of animation strips
+        /// <summary>
+        /// Compare sprites considering they might be part of animation strips
+        /// </summary>
+        /// <param name="sprite1Path"></param>
+        /// <param name="sprite2Path"></param>
+        /// <returns></returns>
         private static bool AreSpritesDifferent(string sprite1Path, string sprite2Path)
         {
             try
@@ -273,7 +321,9 @@ namespace GM3P
                 chapterAmount = 1;
             }
         }
-
+        /// <summary>
+        /// Creates the folders where other functions in this class works in
+        /// </summary>
         public static void CreateCombinerDirectories()
         {
             Directory.CreateDirectory(@output + "/Cache/vanilla");
@@ -291,7 +341,9 @@ namespace GM3P
                 }
             }
         }
-
+        /// <summary>
+        /// Copy vanilla data.wins as much as needed
+        /// </summary>
         public static void CopyVanilla()
         {
             string[] vanilla;
@@ -343,7 +395,10 @@ namespace GM3P
                 }
             }
         }
-
+        /// <summary>
+        /// The titular function; patches a bunch of mods into data.win files
+        /// </summary>
+        /// <param name="filepath"></param>
         public static void massPatch(string[] filepath = null)
         {
             for (int chapter = 0; chapter < chapterAmount; chapter++)
@@ -463,7 +518,9 @@ namespace GM3P
 
             Console.WriteLine("\nMass Patch complete, continue or use the compare command to combine mods");
         }
-
+        /// <summary>
+        /// Creates modifiedAssets.txt and exists
+        /// </summary>
         public static void modifiedListCreate()
         {
             loadCachedNumbers();
@@ -475,7 +532,9 @@ namespace GM3P
                 }
             }
         }
-
+        /// <summary>
+        /// Dumps game objects from mods
+        /// </summary>
         public static void dump()
         {
             loadCachedNumbers();
@@ -537,7 +596,7 @@ namespace GM3P
         }
 
         /// <summary>
-        /// The main draw of GM3P, compares and combines the vanilla game files with the mod files.
+        /// The main draw (marketing-wise) of GM3P, compares and combines the vanilla game files with the mod files.
         /// </summary>
         public static void CompareCombine()
         {
@@ -901,7 +960,13 @@ namespace GM3P
             Main.combined = true;
         }
 
-        // New simple merge that preserves content
+        /// <summary>
+        /// New simple merge that preserves content
+        /// </summary>
+        /// <param name="baseFile"></param>
+        /// <param name="mods"></param>
+        /// <param name="outputFile"></param>
+        /// <returns></returns>
         private static bool PerformSimpleMerge(string baseFile, List<ModFileInfo> mods, string outputFile)
         {
             try
@@ -979,7 +1044,13 @@ namespace GM3P
             }
         }
 
-        // Simplified git merge with better error handling and debugging
+        /// <summary>
+        /// Simplified git merge with better error handling and debugging
+        /// </summary>
+        /// <param name="baseFile"></param>
+        /// <param name="mods"></param>
+        /// <param name="outputFile"></param>
+        /// <returns></returns>
         private static bool PerformGitMerge(string baseFile, List<ModFileInfo> mods, string outputFile)
         {
             try
@@ -1118,8 +1189,15 @@ namespace GM3P
                 return false;
             }
         }
-
-        private static string RunGitCommand(string gitPath, string workingDir, string arguments, bool allowNonZeroExit = false)
+        /// <summary>
+        /// Runs a command through Git
+        /// </summary>
+        /// <param name="gitPath"></param>
+        /// <param name="workingDir"></param>
+        /// <param name="arguments"></param>
+        /// <param name="allowNonZeroExit"></param>
+        /// <returns></returns>
+        public static string RunGitCommand(string gitPath, string workingDir, string arguments, bool allowNonZeroExit = false)
         {
             try
             {
@@ -1187,7 +1265,12 @@ namespace GM3P
             });
         }
 
-        // Improved AssetOrder handling. Now it treats it as a special case.
+        /// <summary>
+        /// Improved AssetOrder handling. Now it treats it as a special case.
+        /// </summary>
+        /// <param name="chapter"></param>
+        /// <param name="allFileVersions"></param>
+        /// <param name="vanillaFileDict"></param>
         private static void HandleAssetOrderFile(int chapter, Dictionary<string, List<ModFileInfo>> allFileVersions, Dictionary<string, string> vanillaFileDict)
         {
             Console.WriteLine("\n=== Processing AssetOrder.txt ===");
@@ -1329,7 +1412,12 @@ namespace GM3P
             ValidateAssetOrder(assetOrderFile, chapter);
         }
 
-        // New method for intelligent AssetOrder merging
+        /// <summary>
+        /// New method for intelligent AssetOrder merging
+        /// </summary>
+        /// <param name="vanillaPath"></param>
+        /// <param name="modVersions"></param>
+        /// <returns></returns>
         private static List<string> MergeAssetOrderIntelligently(string vanillaPath, List<ModFileInfo> modVersions)
         {
             var result = new List<string>();
@@ -1406,7 +1494,14 @@ namespace GM3P
             return result;
         }
 
-        // Helper method to find the best position to insert a new asset
+        /// <summary>
+        /// Helper method to find the best position to insert a new asset
+        /// </summary>
+        /// <param name="currentOrder"></param>
+        /// <param name="modOrder"></param>
+        /// <param name="modIndex"></param>
+        /// <param name="newAsset"></param>
+        /// <returns></returns>
         private static int FindBestInsertPosition(
             List<string> currentOrder,
             List<string> modOrder,
@@ -1463,7 +1558,12 @@ namespace GM3P
             return currentOrder.Count;
         }
 
-        // Helper method to detect ordering conflicts between mods
+        /// <summary>
+        /// Helper method to detect ordering conflicts between mods
+        /// </summary>
+        /// <param name="vanillaOrder"></param>
+        /// <param name="modVersions"></param>
+        /// <param name="mergedOrder"></param>
         private static void DetectAndLogOrderingConflicts(
             List<string> vanillaOrder,
             List<ModFileInfo> modVersions,
@@ -1537,7 +1637,11 @@ namespace GM3P
             }
         }
 
-        // New validation method for AssetOrder.txt
+        /// <summary>
+        /// New validation method for AssetOrder.txt
+        /// </summary>
+        /// <param name="assetOrderPath"></param>
+        /// <param name="chapter"></param>
         private static void ValidateAssetOrder(string assetOrderPath, int chapter)
         {
             if (!File.Exists(assetOrderPath))
@@ -1680,7 +1784,11 @@ namespace GM3P
                 Console.WriteLine("Chapter complete, if you are using the console app and that wasn't the final chapter, enter in the chapter "+(chapter+1)+" patches");
             }
         }
-
+        /// <summary>
+        /// Groups GML objects that start with "gml_Object_" by name
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns></returns>
         private static string ExtractObjectName(string filename)
         {
             int startIndex = "gml_Object_".Length;
@@ -1766,8 +1874,13 @@ namespace GM3P
                 Console.WriteLine($"Import complete for chapter {chapter + 1}");
             }
         }
-
-        private static void RunImportScript(string dataWin, string scriptName, bool allowErrors = false)
+        /// <summary>
+        /// Run a script through UndertaleModTool
+        /// </summary>
+        /// <param name="dataWin"></param>
+        /// <param name="scriptName"></param>
+        /// <param name="allowErrors"></param>
+        public static void RunImportScript(string dataWin, string scriptName, bool allowErrors = false)
         {
             using (var modToolProc = new Process())
             {
@@ -1803,7 +1916,10 @@ namespace GM3P
                 modToolProc.WaitForExit();
             }
         }
-
+        /// <summary>
+        /// Finalises the modpack or set and places a resulting .xdelta and .win in it's own folder
+        /// </summary>
+        /// <param name="modname"></param>
         public static void result(string modname)
         {
             loadCachedNumbers();
@@ -1862,7 +1978,10 @@ namespace GM3P
                 }
             }
         }
-
+        /// <summary>
+        /// Deletes folders that are in the GM3P executable folder, by default it deletes /output/xDeltaCombiner and /Cache/running
+        /// </summary>
+        /// <param name="erase"></param>
         public static void clear(string erase = "runningCache")
         {
             switch (erase)
@@ -1897,9 +2016,14 @@ namespace GM3P
                     break;
             }
         }
-
+        /// <summary>
+        /// Errors to print when running load()
+        /// </summary>
         public static string loadError { get; set; }
-
+        /// <summary>
+        /// load templates
+        /// </summary>
+        /// <param name="filepath"></param>
         public static void load(string filepath = null)
         {
             if (filepath == null)
@@ -1912,7 +2036,7 @@ namespace GM3P
 
             if (filepath != null)
             {
-                if (Main.GetLine(filepath, 1) == "0.4")
+                if (Convert.ToDouble(Main.GetLine(filepath, 1)) >= 0.4)
                 {
                     string OpToPerform = Main.GetLine(filepath, 2);
                     modAmount = Convert.ToInt32(Main.GetLine(filepath, 3));
@@ -1936,8 +2060,7 @@ namespace GM3P
                     loadError = "The template's version is not supported";
                 }
             }
-
-            if (filepath == null)
+            else
             {
                 loadError = "The Template doesn't exist";
             }

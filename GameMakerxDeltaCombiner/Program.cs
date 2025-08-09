@@ -20,7 +20,7 @@ class Program
     {
         //Store version as a double and print full version #
         double Version = 0.5;
-        Console.WriteLine("GM3P v" + Version + ".0");
+        Console.WriteLine("GM3P v" + Version + ".1");
 
         
         //Create logging file and start logging
@@ -271,8 +271,7 @@ class Program
                 }
                 else
                 {
-                    GM3P.Main.chapterAmount = Convert.ToInt32(Console.ReadLine());
-                    // Try to load cached patch paths
+                    // Try to load cached chapter amount
                     GM3P.Main.loadCachedNumbers();
                 }
                     Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
@@ -308,7 +307,7 @@ class Program
                     GM3P.Main.HandleNewObjects();
                     GM3P.Main.importWithNewObjects();
                 }
-                Console.WriteLine("To save your modpack, name it: ");
+                Console.WriteLine("To save your modpack or modset, name it: ");
                 GM3P.Main.result(Console.ReadLine());
                 Console.WriteLine("Press Enter To Clean up (Will delete output/xDeltaCombiner) and exit");
                 Console.ReadLine();

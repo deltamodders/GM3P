@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "GM3P/0.5.0.15": {
+      "GM3P/0.5.1.2": {
         "dependencies": {
           "Codeuctivity.ImageSharpCompare": "4.1.342",
           "DiffPlex": "1.8.0"
@@ -45,7 +45,7 @@
     }
   },
   "libraries": {
-    "GM3P/0.5.0.15": {
+    "GM3P/0.5.1.2": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
