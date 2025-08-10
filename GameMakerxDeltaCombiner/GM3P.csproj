@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageIcon>GM3P logo 1x1 256.png</PackageIcon>
-    <Version>0.5.1.2</Version>
+    <Version>0.5.1.5</Version>
     <ApplicationIcon>bin\Debug\net8.0\Logo\GM3P logo 1x1 256.ico</ApplicationIcon>
     <RepositoryUrl>https://github.com/techy804/MassModPatcher</RepositoryUrl>
   </PropertyGroup>
@@ -23,14 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Codeuctivity.ImageSharpCompare" Version="4.1.342" />
-    <PackageReference Include="DiffPlex" Version="1.8.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="System.Text.Json">
-      <HintPath>..\System.Text.Json.dll</HintPath>
-    </Reference>
+    <PackageReference Include="Codeuctivity.ImageSharpCompare" Version="4.1.350" />
   </ItemGroup>
 
 </Project>

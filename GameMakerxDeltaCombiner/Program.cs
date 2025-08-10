@@ -222,7 +222,7 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Example:          GM3P.exe compare 2 false true \"C:/Undertale Mods\"");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Note: Can only be successfully called if massPatch was called before. Will be buggy.");
+                                Console.WriteLine("Note: Can only be successfully called if massPatch was called before.");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Args: ");
                                 Console.WriteLine(" "); 

@@ -6,70 +6,54 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "GM3P/0.5.1.2": {
+      "GM3P/0.5.1.5": {
         "dependencies": {
-          "Codeuctivity.ImageSharpCompare": "4.1.342",
-          "DiffPlex": "1.8.0"
+          "Codeuctivity.ImageSharpCompare": "4.1.350"
         },
         "runtime": {
           "GM3P.dll": {}
         }
       },
-      "Codeuctivity.ImageSharpCompare/4.1.342": {
+      "Codeuctivity.ImageSharpCompare/4.1.350": {
         "dependencies": {
-          "SixLabors.ImageSharp": "3.1.10"
+          "SixLabors.ImageSharp": "3.1.11"
         },
         "runtime": {
           "lib/net8.0/Codeuctivity.ImageSharpCompare.dll": {
-            "assemblyVersion": "4.1.342.0",
-            "fileVersion": "4.1.342.0"
+            "assemblyVersion": "4.1.350.0",
+            "fileVersion": "4.1.350.0"
           }
         }
       },
-      "DiffPlex/1.8.0": {
-        "runtime": {
-          "lib/net6.0/DiffPlex.dll": {
-            "assemblyVersion": "1.8.0.0",
-            "fileVersion": "1.8.0.0"
-          }
-        }
-      },
-      "SixLabors.ImageSharp/3.1.10": {
+      "SixLabors.ImageSharp/3.1.11": {
         "runtime": {
           "lib/net6.0/SixLabors.ImageSharp.dll": {
             "assemblyVersion": "3.0.0.0",
-            "fileVersion": "3.1.10.0"
+            "fileVersion": "3.1.11.0"
           }
         }
       }
     }
   },
   "libraries": {
-    "GM3P/0.5.1.2": {
+    "GM3P/0.5.1.5": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "Codeuctivity.ImageSharpCompare/4.1.342": {
+    "Codeuctivity.ImageSharpCompare/4.1.350": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-wYO61moheDL1v8qrNhA919120sy24ifRcQZZ2cVsYUD1K/DTo7ZxaSPyMmbbtQRRi3YsnahD2GJIhRb26IOm9A==",
-      "path": "codeuctivity.imagesharpcompare/4.1.342",
-      "hashPath": "codeuctivity.imagesharpcompare.4.1.342.nupkg.sha512"
+      "sha512": "sha512-h5GJSPfCSe5HH0EDs5OHFx9Lksgqk7CpZ8kPeh76BjBocGZaKtg2hhn2yeio08gjfVDtt8kAv3h0H+8VZtkcCg==",
+      "path": "codeuctivity.imagesharpcompare/4.1.350",
+      "hashPath": "codeuctivity.imagesharpcompare.4.1.350.nupkg.sha512"
     },
-    "DiffPlex/1.8.0": {
+    "SixLabors.ImageSharp/3.1.11": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-gnyDsNbi0/mdW3qOXtmsuD3ZtbdKn4FIai7znhUPviuIHvV20bjWIt15gbky7RgH6Q8MMWyXhv8nk52HW37BAQ==",
-      "path": "diffplex/1.8.0",
-      "hashPath": "diffplex.1.8.0.nupkg.sha512"
-    },
-    "SixLabors.ImageSharp/3.1.10": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-R1HEPcqx3v+kvlOTPouP0g/Nzzud9pHtjlgGbFax3Ivaz8kkaGfS2EPfyDGpmfoTUQ3nQ5wxdhYyYa9fwYA9cw==",
-      "path": "sixlabors.imagesharp/3.1.10",
-      "hashPath": "sixlabors.imagesharp.3.1.10.nupkg.sha512"
+      "sha512": "sha512-JfPLyigLthuE50yi6tMt7Amrenr/fA31t2CvJyhy/kQmfulIBAqo5T/YFUSRHtuYPXRSaUHygFeh6Qd933EoSw==",
+      "path": "sixlabors.imagesharp/3.1.11",
+      "hashPath": "sixlabors.imagesharp.3.1.11.nupkg.sha512"
     }
   }
 }
