@@ -1,4 +1,5 @@
-﻿using System;
+﻿//TODO: Remove a refrence to this class in UTMT-For-GM3P, then delete this class
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

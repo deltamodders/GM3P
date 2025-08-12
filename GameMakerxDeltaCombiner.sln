@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UndertaleModCli", "..\UTMT-
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Underanalyzer", "..\UTMT-For-GM3P\Underanalyzer\Underanalyzer\Underanalyzer.csproj", "{719EB2DC-2711-BE21-10D1-2077784BF1DB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GM3P for Toolmakers", "GM3P for Toolmakers", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

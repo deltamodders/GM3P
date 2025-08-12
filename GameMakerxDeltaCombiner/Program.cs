@@ -20,8 +20,7 @@ class Program
     {
         //Store version as a double and print full version #
         double Version = 0.5;
-        Console.WriteLine("GM3P v" + Version + ".0");
-
+        Console.WriteLine("GM3P v" + Version + ".1");
         
         //Create logging file and start logging
         string startTime = DateTime.Now.ToString("yy") + DateTime.Now.ToString("MM") + DateTime.Now.ToString("dd") + DateTime.Now.ToString("HH") + DateTime.Now.ToString("mm") + DateTime.Now.ToString("zz");
@@ -50,9 +49,9 @@ class Program
                         GM3P.Main.output = GM3P.Main.pwd + "/output";
                         if (args.Length > 5)
                         {
-                           
+
                                 GM3P.Main.output = args[5];
-                            
+
                         }
                         GM3P.Main.DeltaPatcher = GM3P.Main.pwd + "/xdelta3-3.0.11-x86_64.exe";
                         if (OperatingSystem.IsLinux())
@@ -86,6 +85,11 @@ class Program
                         }
                         GM3P.Main.modifiedListCreate();
                         GM3P.Main.CompareCombine();
+                        GM3P.Main.loadCachedNumbers();
+                        for (int ch = 0; ch < GM3P.Main.chapterAmount; ch++)
+                        {
+                            File.WriteAllLines(GM3P.Main.@output + $"/xDeltaCombiner/{ch}/1/modifiedAssets.txt", GM3P.Main.modifiedAssets);
+                        }
                         if (args.Length > 3)
                         {
                             if (args[3] == "true")
@@ -222,7 +226,7 @@ class Program
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Example:          GM3P.exe compare 2 false true \"C:/Undertale Mods\"");
                                 Console.WriteLine(" ");
-                                Console.WriteLine("Note: Can only be successfully called if massPatch was called before. Will be buggy.");
+                                Console.WriteLine("Note: Can only be successfully called if massPatch was called before.");
                                 Console.WriteLine(" ");
                                 Console.WriteLine("Args: ");
                                 Console.WriteLine(" "); 
@@ -271,8 +275,7 @@ class Program
                 }
                 else
                 {
-                    GM3P.Main.chapterAmount = Convert.ToInt32(Console.ReadLine());
-                    // Try to load cached patch paths
+                    // Try to load cached chapter amount
                     GM3P.Main.loadCachedNumbers();
                 }
                     Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");
@@ -308,7 +311,7 @@ class Program
                     GM3P.Main.HandleNewObjects();
                     GM3P.Main.importWithNewObjects();
                 }
-                Console.WriteLine("To save your modpack, name it: ");
+                Console.WriteLine("To save your modpack or modset, name it: ");
                 GM3P.Main.result(Console.ReadLine());
                 Console.WriteLine("Press Enter To Clean up (Will delete output/xDeltaCombiner) and exit");
                 Console.ReadLine();

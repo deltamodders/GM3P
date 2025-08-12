@@ -26,35 +26,33 @@ Section 1: Operation Instructions
 Section 2: Technical Information
 	Part 2.1: System Requirements
 		2.1.2: System Requirements
-			OS: Windows 7 or later; Linux
+			OS: Windows 7 or later; Debian-based or Azure Linux
 			CPU: 64-bit x86 processor with 2 or more cores
 			Storage: 256MB
-			RAM: 256MB
-			Software: .NET 8.0 runtime
+			RAM: 64MB
+			Software: .NET 8.0 runtime (Windows and Linux); xDelta3 (Linux only)
 		2.1.3: System Recommended
 			OS: Windows 10 or 11
 			CPU: Intel i5-2400 or later
-			Storage: 2GB SSD
-			RAM: 512MB (2GB on Linux)
+			Storage: 2GB NvME SSD
+			RAM: 2GB
 	Part 2.2: output directory structure
+		xDeltaCombiner\: The main folder, responsible for the patching and combining
 		xDeltaCombiner\chapter#\0: Vanilla Folder
 		xDeltaCombiner\chapter#\1: Finished Product Folder
 		xDeltaCombiner\chapter#\(2+): Single Mod Folder
 		xDeltaCombiner\chapter#\#\Objects: GameMaker Objects location
-		result\: resulting merges
+		result\: resulting modpacks and modsets
 		Cache\: temp storage to help with various things
 		Cache\vanilla: currently unused, will be used for storing vanilla data.win files
 		Cache\Logs: stores logs, goes by YYMMDDHHmm-TZ
 		Cache\running: passes off variable values from GM3P to UTMTCLI during runtime. 
 	Part 2.3: Known Issues and limitations
-		Issue: Sprites that are not in the vanilla game may be out of order, except for the last mod applied.
-		Issue: Backported mods don't compare correctly (A backported mod means a mod using an older version of a game, but the xDelta or mod file is meant to be applied to a later version of said game)
-		Issue: Sprites may not export or import at the right size (specifically observed with the Running Animations mod for Deltarune)
+		Issue: File size may increase due to texture page duplication
 		Issue: Dumping and Importing fails if a custom output folder is specified.
 		Issue: Logging doesn't save user input
 		Limitation: Can only apply patches meant for the same version of the same game. Can't mix and match
 		Limitation: If 2 mods modify the same object, only the changes for the last affect mod entered applies.
-		Haven't implemented yet: Error Handling
 		Haven't implemented yet: a way for the user to turn off verbosity
 		Found a bug not written here? Use the Issues tab on our GameBanana or GitHub page to report it.
 	Part 2.4: Tools used
@@ -63,6 +61,15 @@ Section 2: Technical Information
 		VS2022 to make and build this program
 		This program was poorly written in C#/.NET
 		SHA1 Hashing was used for comparing files
+		DRA used in installation script
+	Part 2.5 Life Cycle Policy:
+		When it comes to Alpha and Beta versions (v0.x.y), the support cycle is this:
+		Stable versions will be supported until 48 hours after the next one comes out
+		Pre-Release versions will be supported until 2 hours after the next one comes out, or 2 hours after the Stable version comes out.
+		Dev versions are not supported
+		There are 2 exceptions to this policy: v0.1.0 and the DeltaMOD Mod Manager
+		For v0.1.0, support is limited to only those who needs a non-copyleft license. In addition bug fixes and other changes will never come to v0.1.0.
+		For DeltaMOD, support is for whatever the latest version of GM3P that's compatible with whatever is the latest version of DeltaMOD. 
 
 Section 3: Installation and run Instructions
 	Part 3.1: Common for both UIs (Windows)

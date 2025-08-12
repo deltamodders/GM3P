@@ -1,14 +1,8 @@
 ﻿using Codeuctivity.ImageSharpCompare;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Advanced;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -16,8 +10,6 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace GM3P
 {
@@ -26,93 +18,6 @@ namespace GM3P
         public int ModNumber { get; set; }
         public string FilePath { get; set; }
         public string ModName { get; set; }
-    }
-
-
-    //Test: This class provides methods to create hard links or copy files.
-    // It uses P/Invoke to call the CreateHardLink function on Windows and link function
-    internal static class FileLinker
-    {
-        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
-
-        [DllImport("libc", SetLastError = true)]
-        static extern int link(string existingFile, string newFile);
-
-        public static void LinkOrCopy(string src, string dst)
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
-
-            // best-effort delete: AV/Indexer may briefly hold the dest file
-            for (int i = 0; i < 8; i++)
-            {
-                try { if (File.Exists(dst)) File.Delete(dst); break; }
-                catch { Thread.Sleep(100 * (i + 1)); }
-            }
-
-            // hard-link only if same volume; otherwise copy
-            bool sameVolume = string.Equals(Path.GetPathRoot(src), Path.GetPathRoot(dst), StringComparison.OrdinalIgnoreCase);
-
-            if (sameVolume)
-            {
-                try
-                {
-                    if (OperatingSystem.IsWindows())
-                    {
-                        if (!CreateHardLink(dst, src, IntPtr.Zero))
-                            throw new Win32Exception(Marshal.GetLastWin32Error());
-                        return; // linked OK
-                    }
-                    else
-                    {
-                        if (link(src, dst) == 0) return; // linked OK
-                    }
-                }
-                catch
-                {
-                    // fall through to copy
-                }
-            }
-
-            // fallback copy with retries
-            for (int i = 0; i < 12; i++)
-            {
-                try { File.Copy(src, dst, overwrite: true); return; }
-                catch (IOException) { Thread.Sleep(120 * (i + 1)); }
-            }
-            File.Copy(src, dst, overwrite: true); // last attempt (surface error if still failing)
-        }
-    }
-
-    // Test: This class caches SHA1 hashes of files to avoid recomputing them
-    // It uses a ConcurrentDictionary to store file paths as keys and their hashes as values.
-    internal static class HashCache
-    {
-        private sealed class Entry
-        {
-            public long Len;
-            public DateTime LwtUtc;
-            public string Base64 = "";
-        }
-
-        private static readonly ConcurrentDictionary<string, Entry> _map = new();
-
-        public static string Sha1Base64(string path)
-        {
-            string full = Path.GetFullPath(path);
-            var fi = new FileInfo(full);
-
-            var e = _map.GetOrAdd(full, _ => new Entry());
-            if (e.Len == fi.Length && e.LwtUtc == fi.LastWriteTimeUtc && e.Base64.Length > 0)
-                return e.Base64;
-
-            using var fs  = File.OpenRead(full);
-            using var sha = SHA1.Create();
-            e.Base64 = Convert.ToBase64String(sha.ComputeHash(fs));
-            e.Len    = fi.Length;
-            e.LwtUtc = fi.LastWriteTimeUtc;
-            return e.Base64;
-        }
     }
 
     internal class Main
@@ -159,43 +64,6 @@ namespace GM3P
 
         public static List<string> modifiedAssets = new List<string> { "Asset Name                       Hash (SHA1 in Base64)" };
 
-        // <summary>
-        /// A cache for mod numbers to avoid errors in writing to modnumberscache.txt
-        /// </summary>
-        private static readonly object ModNumbersCacheLock = new object();
-
-
-        private static string DumpCacheDirByHash(int chapter, string sig)
-        {
-            var shard = string.IsNullOrEmpty(sig) ? "__" : sig.Substring(0, Math.Min(2, sig.Length));
-            return Path.Combine(@output, "Cache", "export", chapter.ToString(), "byhash", shard, sig);
-        }
-        private static string DumpStampPathByHash(int chapter, string sig)
-            => Path.Combine(DumpCacheDirByHash(chapter, sig), ".stamp");
-
-        static string DumpCacheDir(int chapter, int modNumber)
-            => Path.Combine(@output, "Cache", "exports", chapter.ToString(), modNumber.ToString());
-
-        static string DumpStampPath(int chapter, int modNumber)
-            => Path.Combine(DumpCacheDir(chapter, modNumber), "dump.sha1");
-
-
-        // --- Cache toggles (env) ---
-        static bool CacheEnabled()
-        {
-            var v = Environment.GetEnvironmentVariable("GM3P_EXPORT_CACHE");
-            // default ON; "0" disables
-            return !string.Equals(v, "0", StringComparison.Ordinal);
-        }
-
-        static bool CacheSpritesEnabled()
-        {
-            var v = Environment.GetEnvironmentVariable("GM3P_EXPORT_CACHE_SPRITES");
-            // default ON; "0" disables sprite caching
-            return !string.Equals(v, "0", StringComparison.Ordinal);
-        }
-
-
         /// <summary>
         /// Returns a line from a text file as a string
         /// </summary>
@@ -211,12 +79,6 @@ namespace GM3P
                 return sr.ReadLine();
             }
         }
-        /// <summary>
-        /// TEST: this should help with optimization for xDelta patching.
-        /// </summary>
-        static int XdeltaConcurrency =>
-            Math.Max(1, Math.Min(Environment.ProcessorCount,
-                int.TryParse(Environment.GetEnvironmentVariable("GM3P_XDELTA_CONCURRENCY"), out var n) ? n : 3));
 
         /// <summary>
         /// Validate if a file is a valid PNG
@@ -294,30 +156,34 @@ namespace GM3P
             if (!Directory.Exists(spritesPath))
                 return;
 
-            int total = 0;
+            var pngFiles = Directory.GetFiles(spritesPath, "*.png", SearchOption.AllDirectories);
             var invalidSprites = new List<string>();
 
-            foreach (var pngFile in Directory.EnumerateFiles(spritesPath, "*.png", SearchOption.AllDirectories))
+            foreach (var pngFile in pngFiles)
             {
-                total++;
                 if (!IsValidPNG(pngFile))
+                {
                     invalidSprites.Add(Path.GetFileName(pngFile));
+                }
             }
 
             if (invalidSprites.Count > 0)
             {
                 Console.WriteLine($"  WARNING: {invalidSprites.Count} invalid sprites detected after merge:");
                 foreach (var sprite in invalidSprites.Take(10))
+                {
                     Console.WriteLine($"    - {sprite}");
+                }
                 if (invalidSprites.Count > 10)
+                {
                     Console.WriteLine($"    ... and {invalidSprites.Count - 10} more");
+                }
             }
             else
             {
-                Console.WriteLine($"  ✓ All {total} sprites validated successfully");
+                Console.WriteLine($"  ✓ All {pngFiles.Length} sprites validated successfully");
             }
         }
-
 
         /// <summary>
         /// Compare sprites considering they might be part of animation strips
@@ -325,111 +191,46 @@ namespace GM3P
         /// <param name="sprite1Path"></param>
         /// <param name="sprite2Path"></param>
         /// <returns></returns>
-        private static bool AreSpritesDifferent(string modPng, string vanillaPng)
+        private static bool AreSpritesDifferent(string sprite1Path, string sprite2Path)
         {
             try
             {
-                // If mod PNG is invalid, skip importing it (avoid breaking import)
-                if (!IsValidPNG(modPng)) return false;
-
-                // 1) Fast path: exact file hash match -> identical
-                try
+                // First check if files are valid PNGs
+                if (!IsValidPNG(sprite1Path) || !IsValidPNG(sprite2Path))
                 {
-                    var h1 = HashCache.Sha1Base64(modPng);
-                    var h2 = HashCache.Sha1Base64(vanillaPng);
-                    if (h1 == h2) return false;
+                    return true; // Consider them different if one is invalid
                 }
-                catch { /* fall through */ }
 
-                // 2) Geometry check (IHDR)
-                var s1 = TryGetPngSize(modPng);
-                var s2 = TryGetPngSize(vanillaPng);
-                if (s1.HasValue && s2.HasValue &&
-                    (s1.Value.width != s2.Value.width || s1.Value.height != s2.Value.height))
-                    return true;
-
-                // 3) Pixel compare when available
+                // Try image comparison
                 try
                 {
-                    return !Codeuctivity.ImageSharpCompare.ImageSharpCompare.ImagesAreEqual(modPng, vanillaPng);
+                    return !ImageSharpCompare.ImagesAreEqual(sprite1Path, sprite2Path);
                 }
                 catch
                 {
-                    // 4) Fallback: compare only IDAT data (ignores metadata/gAMA/iCCP, etc.)
-                    var idat1 = HashPngIdat(modPng);
-                    var idat2 = HashPngIdat(vanillaPng);
-                    if (idat1 != null && idat2 != null)
-                        return !idat1.SequenceEqual(idat2);
+                    // If image comparison fails, fall back to binary comparison
+                    var info1 = new FileInfo(sprite1Path);
+                    var info2 = new FileInfo(sprite2Path);
 
-                    // 5) Last resort: different file hashes already seen above; if we got here,
-                    // we couldn't compute IDAT hashes; assume different so sprite changes apply.
-                    try
+                    // Quick size check
+                    if (info1.Length != info2.Length)
+                        return true;
+
+                    // Full binary comparison
+                    using (var fs1 = File.OpenRead(sprite1Path))
+                    using (var fs2 = File.OpenRead(sprite2Path))
                     {
-                        using var a = File.OpenRead(modPng);
-                        using var b = File.OpenRead(vanillaPng);
-                        return !SHA1.Create().ComputeHash(a).SequenceEqual(SHA1.Create().ComputeHash(b));
+                        var hash1 = SHA1.Create().ComputeHash(fs1);
+                        var hash2 = SHA1.Create().ComputeHash(fs2);
+                        return !hash1.SequenceEqual(hash2);
                     }
-                    catch { return true; }
                 }
             }
             catch
             {
-                // Conservative but in favor of applying mods when something changed
-                return true;
+                return true; // Consider them different if comparison fails
             }
         }
-
-        // Hash concatenated IDAT chunk payloads (ignores all ancillary chunks)
-        private static byte[]? HashPngIdat(string path)
-        {
-            try
-            {
-                using var fs = File.OpenRead(path);
-                using var br = new BinaryReader(fs);
-
-                // PNG signature
-                byte[] sig = br.ReadBytes(8);
-                if (sig.Length != 8 || sig[0] != 0x89) return null;
-
-                using var sha1 = SHA1.Create();
-                bool sawIdat = false;
-
-                while (fs.Position < fs.Length)
-                {
-                    // chunk length (big endian)
-                    var lenBytes = br.ReadBytes(4);
-                    if (lenBytes.Length < 4) break;
-                    int len = (lenBytes[0] << 24) | (lenBytes[1] << 16) | (lenBytes[2] << 8) | lenBytes[3];
-
-                    // chunk type
-                    var type = br.ReadBytes(4);
-                    if (type.Length < 4) break;
-
-                    // data
-                    var data = br.ReadBytes(len);
-                    if (data.Length < len) break;
-
-                    // crc
-                    br.ReadUInt32(); // skip CRC
-
-                    // IDAT?
-                    if (type[0] == (byte)'I' && type[1] == (byte)'D' && type[2] == (byte)'A' && type[3] == (byte)'T')
-                    {
-                        sawIdat = true;
-                        sha1.TransformBlock(data, 0, data.Length, null, 0);
-                    }
-
-                    // IEND ends the stream
-                    if (type[0] == (byte)'I' && type[1] == (byte)'E' && type[2] == (byte)'N' && type[3] == (byte)'D')
-                        break;
-                }
-
-                sha1.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-                return sawIdat ? sha1.Hash : null;
-            }
-            catch { return null; }
-        }
-
 
         private static string FindGit()
         {
@@ -556,7 +357,7 @@ namespace GM3P
                     winFiles.Add(rootDataWin);
 
                 var directories = Directory.GetDirectories(@vanilla2)
-                    .OrderBy(d => d, StringComparer.OrdinalIgnoreCase);
+                    .OrderBy(d => d);
 
                 foreach (var dir in directories)
                 {
@@ -590,7 +391,7 @@ namespace GM3P
                 for (int modNumber = 0; modNumber < (Main.modAmount + 2); modNumber++)
                 {
                     string targetPath = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win";
-                    FileLinker.LinkOrCopy(@vanilla[chapter], targetPath);
+                    File.Copy(@vanilla[chapter], targetPath, true);
                 }
             }
         }
@@ -606,7 +407,7 @@ namespace GM3P
 
                 if (filepath == null)
                 {
-                    Console.WriteLine($"Enter patches for Chapter {chapter}:");
+                    Console.WriteLine($"Enter patches for Chapter {chapter + 1}:");
                     for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
                     {
                         Console.Write($"  Patch for Mod {modNumber - 1}: ");
@@ -629,128 +430,94 @@ namespace GM3P
                     }
                 }
 
-                // Test: Parelelize xDelta patching
-                int maxParallel = Math.Max(1, XdeltaConcurrency);
-                var gate = new SemaphoreSlim(maxParallel);
-                var jobs = new List<Task>();
-
                 for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
                 {
                     if (string.IsNullOrWhiteSpace(xDeltaFile[modNumber]))
                         continue;
 
-                    int _chapter = chapter;
-                    int _modNumber = modNumber;
+                    string patchFile = xDeltaFile[modNumber].Trim();
 
-                    jobs.Add(Task.Run(() =>
+                    if (!File.Exists(patchFile))
                     {
-                        gate.Wait();
-                        try
+                        Console.WriteLine($"WARNING: Patch file not found: {patchFile}");
+                        continue;
+                    }
+
+                    if (Path.GetExtension(patchFile) == ".csx")
+                    {
+                        using (var modToolProc = new Process())
                         {
-                            string patchFile = xDeltaFile[_modNumber].Trim();
-
-                            if (!File.Exists(patchFile))
+                            if (OperatingSystem.IsWindows())
                             {
-                                Console.WriteLine($"WARNING: Patch file not found: {patchFile}");
-                                return;
+                                modToolProc.StartInfo.FileName = Main.@modTool;
+                                modToolProc.StartInfo.Arguments = "load " + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win " +
+                                    "--verbose --output " + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" +
+                                    " --scripts " + patchFile;
                             }
-
-                            if (Path.GetExtension(patchFile) == ".csx")
+                            if (OperatingSystem.IsLinux())
                             {
-                                using (var modToolProc = new Process())
-                                {
-                                    string dataPath = Main.@output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/data.win";
-                                    string tmpPath  = Main.@output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/dat.win";
-
-                                    if (OperatingSystem.IsWindows())
-                                    {
-                                        modToolProc.StartInfo.FileName = Main.@modTool;
-                                        modToolProc.StartInfo.Arguments =
-                                            "load \"" + dataPath + "\" " +
-                                            "--verbose --output \"" + tmpPath + "\" " +
-                                            "--scripts \"" + patchFile + "\"";
-                                    }
-                                    if (OperatingSystem.IsLinux())
-                                    {
-                                        modToolProc.StartInfo.FileName = "/bin/bash";
-                                        modToolProc.StartInfo.Arguments =
-                                            "-c \"" + Main.@modTool +
-                                            "load '" + dataPath + "' --verbose --output '" + tmpPath + "' --scripts '" + patchFile + "'\"";
-                                    }
-
-                                    modToolProc.StartInfo.CreateNoWindow = false;
-                                    modToolProc.StartInfo.UseShellExecute = false;
-                                    modToolProc.StartInfo.RedirectStandardOutput = true;
-                                    modToolProc.Start();
-
-                                    string ProcOutput = modToolProc.StandardOutput.ReadToEnd();
-                                    Console.WriteLine(ProcOutput);
-                                    modToolProc.WaitForExit();
-
-                                    // Atomically replace after the tool is done
-                                    if (File.Exists(tmpPath))
-                                    {
-                                        try { File.Delete(dataPath); } catch { /* best effort */ }
-                                        File.Move(tmpPath, dataPath);
-                                    }
-                                }
+                                modToolProc.StartInfo.FileName = "/bin/bash";
+                                modToolProc.StartInfo.Arguments = "-c \"" + Main.@modTool + "load '" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win' " +
+                                    "--verbose --output '" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win'" +
+                                    " --scripts " + patchFile + "\"";
                             }
-                            else if (Path.GetExtension(patchFile) == ".win")
-                            {
-                                File.Copy(patchFile, @output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/data.win", true);
-                            }
-                            else
-                            {
-                                lock (ModNumbersCacheLock)
-                                {
-                                    File.WriteAllText(@output + "/Cache/modNumbersCache.txt", Convert.ToString(_modNumber));
-                                }
-                                using (var bashProc = new Process())
-                                {
-                                    string sourceFile = @output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/data.win";
-                                    string targetFile = @output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/dat.win";
+                            modToolProc.StartInfo.CreateNoWindow = false;
+                            modToolProc.StartInfo.UseShellExecute = false;
+                            modToolProc.StartInfo.RedirectStandardOutput = true;
+                            modToolProc.Start();
 
-                                    if (OperatingSystem.IsWindows())
-                                    {
-                                        bashProc.StartInfo.FileName = Main.@DeltaPatcher;
-                                        bashProc.StartInfo.Arguments = $"-v -d -f -s \"{sourceFile}\" \"{patchFile}\" \"{targetFile}\"";
-                                    }
-                                    if (OperatingSystem.IsLinux())
-                                    {
-                                        bashProc.StartInfo.FileName = "/bin/bash";
-                                        bashProc.StartInfo.Arguments = $"-c \"{@DeltaPatcher} -v -d -f -s '{sourceFile}' '{patchFile}' '{targetFile}'\"";
-                                    }
-                                    bashProc.StartInfo.CreateNoWindow = false;
-                                    bashProc.StartInfo.UseShellExecute = false;
-                                    bashProc.StartInfo.RedirectStandardOutput = true;
-                                    bashProc.Start();
-
-                                    StreamReader reader = bashProc.StandardOutput;
-                                    string ProcOutput = reader.ReadToEnd();
-                                    Console.WriteLine(ProcOutput);
-                                    bashProc.WaitForExit();
-                                }
-
-                                if (File.Exists(@output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/dat.win"))
-                                {
-                                    File.Delete(@output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/data.win");
-                                    File.Move(@output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/dat.win",
-                                             @output + "/xDeltaCombiner/" + _chapter + "/" + _modNumber + "/data.win");
-                                }
-                            }
-                            Console.WriteLine($"Patched: {patchFile}");
+                            StreamReader reader = modToolProc.StandardOutput;
+                            string ProcOutput = reader.ReadToEnd();
+                            Console.WriteLine(ProcOutput);
+                            modToolProc.WaitForExit();
                         }
-                        finally
+                    }
+                    else if (Path.GetExtension(patchFile) == ".win")
+                    {
+                        File.Copy(patchFile, @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win", true);
+                    }
+                    else
+                    {
+                        File.WriteAllText(@output + "/Cache/modNumbersCache.txt", Convert.ToString(modNumber));
+                        using (var bashProc = new Process())
                         {
-                            gate.Release();
+                            string sourceFile = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win";
+                            string targetFile = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/dat.win";
+
+                            if (OperatingSystem.IsWindows())
+                            {
+                                bashProc.StartInfo.FileName = Main.@DeltaPatcher;
+                                bashProc.StartInfo.Arguments = $"-v -d -f -s \"{sourceFile}\" \"{patchFile}\" \"{targetFile}\"";
+                            }
+                            if (OperatingSystem.IsLinux())
+                            {
+                                bashProc.StartInfo.FileName = "/bin/bash";
+                                bashProc.StartInfo.Arguments = $"-c \"{@DeltaPatcher} -v -d -f -s '{sourceFile}' '{patchFile}' '{targetFile}'\"";
+                            }
+                            bashProc.StartInfo.CreateNoWindow = false;
+                            bashProc.StartInfo.UseShellExecute = false;
+                            bashProc.StartInfo.RedirectStandardOutput = true;
+                            bashProc.Start();
+
+                            StreamReader reader = bashProc.StandardOutput;
+                            string ProcOutput = reader.ReadToEnd();
+                            Console.WriteLine(ProcOutput);
+                            bashProc.WaitForExit();
                         }
-                    }));
+
+                        if (File.Exists(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/dat.win"))
+                        {
+                            File.Delete(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win");
+                            File.Move(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/dat.win",
+                                     @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win");
+                        }
+                    }
+                    Console.WriteLine($"Patched: {patchFile}");
                 }
-                Task.WaitAll(jobs.ToArray());
             }
+
             Console.WriteLine("\nMass Patch complete, continue or use the compare command to combine mods");
         }
-
         /// <summary>
         /// Creates modifiedAssets.txt and exists
         /// </summary>
@@ -771,335 +538,62 @@ namespace GM3P
         public static void dump()
         {
             loadCachedNumbers();
-
             for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
                 File.WriteAllText(@output + "/Cache/running/chapterNumber.txt", Convert.ToString(chapter));
                 Console.WriteLine("Starting dump, this may take up to a minute per mod (and vanilla)");
-
                 for (int modNumber = 0; modNumber < (Main.modAmount + 2); modNumber++)
                 {
-                    // Prepare working tree
-                    string workRoot        = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), modNumber.ToString());
-                    string workObjectsRoot = Path.Combine(workRoot, "Objects");
-                    string workCodes       = Path.Combine(workObjectsRoot, "CodeEntries");
-                    string workSprites     = Path.Combine(workObjectsRoot, "Sprites");
-                    string workAssetOrder  = Path.Combine(workObjectsRoot, "AssetOrder.txt");
-                    string dataWin         = Path.Combine(workRoot, "data.win");
-
-                    Directory.CreateDirectory(workCodes);
-                    Directory.CreateDirectory(workSprites);
-
+                    Directory.CreateDirectory(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries/");
                     File.WriteAllText(@output + "/Cache/running/modNumbersCache.txt", Convert.ToString(modNumber));
-                    if (modNumber == 1) continue; // original behavior
-
-                    // Legacy slot-keyed cache (back-compat)
-                    string slotCacheRoot   = DumpCacheDir(chapter, modNumber);
-                    string slotStamp       = DumpStampPath(chapter, modNumber);
-                    string slotObjectsRoot = Path.Combine(slotCacheRoot, "Objects");
-
-                    // Toggles
-                    bool cacheOn        = CacheEnabled();
-                    bool cacheSpritesOn = CacheSpritesEnabled();
-
-                    // === Pre-hash (content of input data.win before UTMT runs) ===
-                    string preSig = File.Exists(dataWin) ? HashCache.Sha1Base64(dataWin) : "";
-
-                    // Hash-keyed cache (keyed by PRE hash)
-                    string? hashCacheRootByPre = !string.IsNullOrEmpty(preSig) ? DumpCacheDirByHash(chapter, preSig) : null;
-                    string? hashStampByPre     = !string.IsNullOrEmpty(preSig) ? DumpStampPathByHash(chapter, preSig) : null;
-
-                    static (string pre, string post) ReadStamp(string path)
+                    if (modNumber != 1)
                     {
-                        try
+                        using (var modToolProc = new Process())
                         {
-                            var txt = File.ReadAllText(path).Trim();
-                            string pre = "", post = "";
-                            foreach (var l in txt.Split('\n'))
-                            {
-                                var s = l.Trim();
-                                if (s.StartsWith("pre="))  pre  = s.Substring(4);
-                                else if (s.StartsWith("post=")) post = s.Substring(5);
-                            }
-                            if (pre == "" && post == "" && !string.IsNullOrEmpty(txt))
-                                pre = txt; // back-compat single-line
-                            return (pre, post);
-                        }
-                        catch { return ("",""); }
-                    }
-
-                    bool haveHashCache =
-                        cacheOn && !string.IsNullOrEmpty(preSig) &&
-                        hashCacheRootByPre != null &&
-                        Directory.Exists(Path.Combine(hashCacheRootByPre, "Objects")) &&
-                        File.Exists(hashStampByPre!) &&
-                        ReadStamp(hashStampByPre!).pre == preSig &&
-                        Directory.Exists(Path.Combine(hashCacheRootByPre, "Objects", "CodeEntries")) &&
-                        (cacheSpritesOn ? Directory.Exists(Path.Combine(hashCacheRootByPre, "Objects", "Sprites")) : true);
-
-                    bool haveSlotCache =
-                        !haveHashCache &&
-                        cacheOn && !string.IsNullOrEmpty(preSig) &&
-                        Directory.Exists(slotObjectsRoot) &&
-                        File.Exists(slotStamp) &&
-                        (ReadStamp(slotStamp).pre == preSig) &&
-                        Directory.Exists(Path.Combine(slotObjectsRoot, "CodeEntries")) &&
-                        (cacheSpritesOn ? Directory.Exists(Path.Combine(slotObjectsRoot, "Sprites")) : true);
-
-                    // Migrate matching legacy slot caches (same PRE) once
-                    bool haveMigratedCache = false;
-                    string? migratedCacheRoot = null;
-                    if (!haveHashCache && !haveSlotCache && cacheOn && !string.IsNullOrEmpty(preSig))
-                    {
-                        string chapterExportDir = Path.Combine(@output, "Cache", "export", chapter.ToString());
-                        if (Directory.Exists(chapterExportDir))
-                        {
-                            foreach (var dir in Directory.EnumerateDirectories(chapterExportDir))
-                            {
-                                var name = Path.GetFileName(dir);
-                                if (name.Equals("byhash", StringComparison.OrdinalIgnoreCase)) continue;
-                                if (!int.TryParse(name, out _)) continue;
-
-                                var stPath  = Path.Combine(dir, ".stamp");
-                                var objPath = Path.Combine(dir, "Objects");
-                                if (!File.Exists(stPath) || !Directory.Exists(objPath)) continue;
-
-                                try
-                                {
-                                    if (ReadStamp(stPath).pre == preSig &&
-                                        Directory.Exists(Path.Combine(objPath, "CodeEntries")) &&
-                                        (cacheSpritesOn ? Directory.Exists(Path.Combine(objPath, "Sprites")) : true))
-                                    {
-                                        haveMigratedCache = true;
-                                        migratedCacheRoot = dir;
-                                        break;
-                                    }
-                                }
-                                catch { }
-                            }
-                        }
-                    }
-
-                    if (haveHashCache || haveSlotCache || haveMigratedCache)
-                    {
-                        Console.WriteLine($"  Mod {modNumber}: unchanged since last dump, reusing cached export");
-
-                        var srcRoot = haveHashCache ? hashCacheRootByPre! : haveSlotCache ? slotCacheRoot : migratedCacheRoot!;
-                        var srcObjects = Path.Combine(srcRoot, "Objects");
-
-                        // Rehydrate Objects/* from cache (optionally skip Sprites to save space)
-                        MirrorObjectsSelective(srcObjects, workObjectsRoot, includeSprites: cacheSpritesOn);
-
-                        if (!cacheSpritesOn)
-                        {
-                            using var proc = new Process();
                             if (OperatingSystem.IsWindows())
                             {
-                                proc.StartInfo.FileName  = Main.@modTool;
-                                proc.StartInfo.Arguments =
-                                    $"load \"{dataWin}\" --verbose --output \"{dataWin}\" " +
-                                    $"--scripts \"{Main.@pwd}/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx\"";
+                                modToolProc.StartInfo.FileName = Main.@modTool;
+                                modToolProc.StartInfo.Arguments = "load \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win\" " + "--verbose --output \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + "\" --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx\" --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ExportAllCode.csx\" --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ExportAssetOrder.csx\"";
                             }
-                            else
+                            if (OperatingSystem.IsLinux())
                             {
-                                proc.StartInfo.FileName  = "/bin/bash";
-                                proc.StartInfo.Arguments =
-                                    "-c \"" + Main.@modTool +
-                                    $" load '{dataWin}' --verbose --output '{dataWin}' " +
-                                    $"--scripts '{Main.@pwd}/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx'\"";
+                                modToolProc.StartInfo.FileName = "/bin/bash";
+                                modToolProc.StartInfo.Arguments = "-c \"" + Main.@modTool + "load '" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win' " + "--verbose --output '" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + "' --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx' --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ExportAllCode.csx' --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ExportAssetOrder.csx'\"";
                             }
-                            proc.StartInfo.CreateNoWindow = false;
-                            proc.StartInfo.UseShellExecute = false;
-                            proc.StartInfo.RedirectStandardOutput = true;
-                            proc.Start();
-                            Console.WriteLine(proc.StandardOutput.ReadToEnd());
-                            proc.WaitForExit();
+                            modToolProc.StartInfo.CreateNoWindow = false;
+                            modToolProc.StartInfo.UseShellExecute = false;
+                            modToolProc.StartInfo.RedirectStandardOutput = true;
+                            modToolProc.Start();
 
-                            string postTex = File.Exists(dataWin) ? HashCache.Sha1Base64(dataWin) : preSig;
-                            if (cacheOn && !string.IsNullOrEmpty(preSig))
+                            StreamReader reader = modToolProc.StandardOutput;
+                            string ProcOutput = reader.ReadToEnd();
+                            Console.WriteLine(ProcOutput);
+                            modToolProc.WaitForExit();
+                        }
+
+                        // Verify key files after dump
+                        string codeEntriesPath = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/CodeEntries/";
+                        if (Directory.Exists(codeEntriesPath))
+                        {
+                            // Check for any empty files
+                            var emptyFiles = Directory.GetFiles(codeEntriesPath, "*.gml")
+                                .Select(f => new FileInfo(f))
+                                .Where(fi => fi.Length == 0)
+                                .ToList();
+
+                            if (emptyFiles.Count > 0)
                             {
-                                try { File.WriteAllText(slotStamp, $"pre={preSig}\npost={postTex}\n"); } catch { }
+                                Console.WriteLine($"  WARNING: {emptyFiles.Count} empty GML files found in Mod {modNumber}:");
+                                foreach (var ef in emptyFiles.Take(5))
+                                {
+                                    Console.WriteLine($"    - {Path.GetFileName(ef.FullName)}");
+                                }
                             }
                         }
-
-                        if (haveMigratedCache)
-                        {
-                            try
-                            {
-                                var outRoot = DumpCacheDirByHash(chapter, preSig);
-                                Directory.CreateDirectory(Path.Combine(outRoot, "Objects"));
-                                MirrorObjectsSelective(srcObjects, Path.Combine(outRoot, "Objects"), includeSprites: true);
-                                File.WriteAllText(DumpStampPathByHash(chapter, preSig), $"pre={preSig}\npost=\n");
-                            }
-                            catch { }
-                        }
-
-                        // warnings
-                        if (Directory.Exists(workCodes))
-                        {
-                            var empties = Directory.EnumerateFiles(workCodes, "*.gml")
-                                                   .Select(f => new FileInfo(f)).Where(fi => fi.Length == 0).ToList();
-                            if (empties.Count > 0)
-                            {
-                                Console.WriteLine($"  WARNING: {empties.Count} empty GML files found in Mod {modNumber}:");
-                                foreach (var ef in empties.Take(5)) Console.WriteLine($"    - {Path.GetFileName(ef.FullName)}");
-                            }
-                        }
-                        if (!File.Exists(workAssetOrder))
-                            Console.WriteLine("  WARNING: AssetOrder.txt missing after cache rehydrate");
-
-                        continue;
-                    }
-
-                    // No valid cache → run UTMT with 3 export scripts
-                    using (var modToolProc = new Process())
-                    {
-                        if (OperatingSystem.IsWindows())
-                        {
-                            modToolProc.StartInfo.FileName = Main.@modTool;
-                            modToolProc.StartInfo.Arguments =
-                                "load \"" + dataWin + "\" --verbose --output \"" + dataWin + "\"" +
-                                " --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx\"" +
-                                " --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ExportAllCode.csx\"" +
-                                " --scripts \"" + Main.@pwd + "/UTMTCLI/Scripts/ExportAssetOrder.csx\"";
-                        }
-                        else
-                        {
-                            modToolProc.StartInfo.FileName = "/bin/bash";
-                            modToolProc.StartInfo.Arguments =
-                                "-c \"" + Main.@modTool + "load '" + dataWin + "' --verbose --output '" + dataWin + "'" +
-                                " --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx'" +
-                                " --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ExportAllCode.csx'" +
-                                " --scripts '" + Main.@pwd + "/UTMTCLI/Scripts/ExportAssetOrder.csx'\"";
-                        }
-                        modToolProc.StartInfo.CreateNoWindow = false;
-                        modToolProc.StartInfo.UseShellExecute = false;
-                        modToolProc.StartInfo.RedirectStandardOutput = true;
-                        modToolProc.Start();
-
-                        Console.WriteLine(modToolProc.StandardOutput.ReadToEnd());
-                        modToolProc.WaitForExit();
-                    }
-
-                    // warnings
-                    if (Directory.Exists(workCodes))
-                    {
-                        var empties = Directory.EnumerateFiles(workCodes, "*.gml")
-                                               .Select(f => new FileInfo(f)).Where(fi => fi.Length == 0).ToList();
-                        if (empties.Count > 0)
-                        {
-                            Console.WriteLine($"  WARNING: {empties.Count} empty GML files found in Mod {modNumber}:");
-                            foreach (var ef in empties.Take(5)) Console.WriteLine($"    - {Path.GetFileName(ef.FullName)}");
-                        }
-                    }
-                    if (!File.Exists(workAssetOrder))
-                        Console.WriteLine("  WARNING: AssetOrder.txt missing after dump");
-
-                    // Persist to cache (keyed by PRE; stamp pre+post)
-                    if (CacheEnabled())
-                    {
-                        try
-                        {
-                            string postSig = File.Exists(dataWin) ? HashCache.Sha1Base64(dataWin) : preSig;
-                            if (!string.IsNullOrEmpty(preSig))
-                            {
-                                var outRoot = DumpCacheDirByHash(chapter, preSig);
-                                Directory.CreateDirectory(Path.Combine(outRoot, "Objects"));
-                                MirrorObjectsSelective(workObjectsRoot, Path.Combine(outRoot, "Objects"),
-                                                       includeSprites: CacheSpritesEnabled());
-                                File.WriteAllText(DumpStampPathByHash(chapter, preSig), $"pre={preSig}\npost={postSig}\n");
-
-                                // Back-compat legacy slot stamp
-                                try { File.WriteAllText(slotStamp, $"pre={preSig}\npost={postSig}\n"); } catch { }
-                            }
-                            PruneExportCacheIfNeeded();
-                        }
-                        catch { }
                     }
                 }
             }
         }
-
-
-
-
-        // TEST: Three new helpers for dump().
-        static long DirSize(string path)
-        {
-            if (!Directory.Exists(path)) return 0;
-            long total = 0;
-            foreach (var f in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
-                try { total += new FileInfo(f).Length; } catch { }
-            return total;
-        }
-
-        static void PruneExportCacheIfNeeded()
-        {
-            // 0 disables cache; default 2048 MB
-            if (!int.TryParse(Environment.GetEnvironmentVariable("GM3P_EXPORT_CACHE_CAP_MB"), out var capMb))
-                capMb = 2048;
-            if (capMb <= 0) return;
-
-            string root = Path.Combine(@output, "Cache", "exports");
-            if (!Directory.Exists(root)) return;
-
-            long capBytes = (long)capMb * 1024 * 1024;
-            long used = DirSize(root);
-            if (used <= capBytes) return;
-
-            // Collect entries <chapter>/<mod> with last access (stamp mtime) and size
-            var entries = new List<(string path, DateTime last, long size)>();
-            foreach (var chapterDir in Directory.EnumerateDirectories(root))
-            foreach (var modDir in Directory.EnumerateDirectories(chapterDir))
-            {
-                string stamp = Path.Combine(modDir, "dump.sha1");
-                DateTime last = File.Exists(stamp) ? new FileInfo(stamp).LastWriteTimeUtc : Directory.GetLastWriteTimeUtc(modDir);
-                long size = DirSize(modDir);
-                entries.Add((modDir, last, size));
-            }
-
-            // Oldest first; delete until under cap
-            foreach (var e in entries.OrderBy(t => t.last))
-            {
-                try { Directory.Delete(e.path, recursive: true); } catch { }
-                used -= e.size;
-                if (used <= capBytes) break;
-            }
-        }
-
-        // Mirrors Objects/*; optionally skips Sprites/*
-        static void MirrorObjectsSelective(string srcObjects, string dstObjects, bool includeSprites)
-        {
-            if (!Directory.Exists(srcObjects)) return;
-            Directory.CreateDirectory(dstObjects);
-
-            // create dirs
-            foreach (var dir in Directory.EnumerateDirectories(srcObjects, "*", SearchOption.AllDirectories))
-            {
-                var rel = Path.GetRelativePath(srcObjects, dir);
-                if (!includeSprites && rel.StartsWith("Sprites", StringComparison.OrdinalIgnoreCase))
-                    continue;
-                Directory.CreateDirectory(Path.Combine(dstObjects, rel));
-            }
-
-            // copy/link files
-            foreach (var file in Directory.EnumerateFiles(srcObjects, "*", SearchOption.AllDirectories))
-            {
-                var rel = Path.GetRelativePath(srcObjects, file);
-                if (!includeSprites && rel.StartsWith("Sprites", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                var target = Path.Combine(dstObjects, rel);
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-
-                // Use LinkOrCopyAtomic to ensure atomicity and avoid stale files
-                // This will either link or copy the file, depending on the platform and capabilities
-                FileLinker.LinkOrCopy(file, target);
-            }
-        }
-
-
-
 
         /// <summary>
         /// The main draw (marketing-wise) of GM3P, compares and combines the vanilla game files with the mod files.
@@ -1109,216 +603,362 @@ namespace GM3P
             loadCachedNumbers();
             for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
-                Console.WriteLine(chapter == 0 ? "Processing Root Chapter:" : $"Processing Chapter {chapter}:");
+                Console.WriteLine($"Processing Chapter {chapter + 1}:");
 
-                int  changedThisChapter = 0;
-                bool anyCodeChanged     = false;
-                bool anySpriteChanged   = false;
-                bool assetOrderChanged  = false;
-
-                var chapterModified = new List<string>();
-
-                string vanillaObjectsPath = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "0", "Objects");
+                string vanillaObjectsPath = Main.@output + "/xDeltaCombiner/" + chapter + "/0/Objects/";
                 if (!Directory.Exists(vanillaObjectsPath))
                 {
-                    Console.WriteLine($"  WARNING: No vanilla Objects folder for chapter {chapter}");
+                    Console.WriteLine($"  WARNING: No vanilla Objects folder for chapter {chapter + 1}");
                     continue;
                 }
 
-                // clear stale merged files
-                string mergedObjectsPath = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects");
-                if (Directory.Exists(mergedObjectsPath)) { try { Directory.Delete(mergedObjectsPath, true); } catch { } }
-                Directory.CreateDirectory(mergedObjectsPath);
+                string[] vanillaFiles = Directory.GetFiles(vanillaObjectsPath, "*", SearchOption.AllDirectories);
+                int vanillaFileCount = vanillaFiles.Length;
+                Console.WriteLine($"  Found {vanillaFileCount} vanilla files");
 
-                var vanillaFiles = Directory.GetFiles(vanillaObjectsPath, "*", SearchOption.AllDirectories);
-                Console.WriteLine($"  Found {vanillaFiles.Length} vanilla files");
+                // Create dictionaries for faster lookup
+                Dictionary<string, string> vanillaFileDict = new Dictionary<string, string>();
+                Dictionary<string, string> vanillaFileRelativePaths = new Dictionary<string, string>();
 
-                // vanilla map keyed by relative path under Objects/
-                var vanillaFileDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-                // collect versions keyed by relative path
-                var allFileVersions = new Dictionary<string, List<ModFileInfo>>(StringComparer.OrdinalIgnoreCase);
-                var allKnown        = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                // add vanilla versions
-                foreach (var vf in vanillaFiles)
+                foreach (var vanillaFile in vanillaFiles)
                 {
-                    string relKey = Path.GetRelativePath(vanillaObjectsPath, vf).Replace('\\','/');
-                    vanillaFileDict[relKey] = vf;
-
-                    allKnown.Add(relKey);
-                    if (!allFileVersions.TryGetValue(relKey, out var list))
-                    {
-                        list = new List<ModFileInfo>();
-                        allFileVersions[relKey] = list;
-                    }
-                    list.Add(new ModFileInfo { ModNumber = 0, FilePath = vf, ModName = "Vanilla" });
+                    string fileName = Path.GetFileName(vanillaFile);
+                    vanillaFileDict[fileName] = vanillaFile;
+                    string relativePath = Path.GetRelativePath(vanillaObjectsPath, vanillaFile);
+                    vanillaFileRelativePaths[fileName] = Path.GetDirectoryName(relativePath)?.Replace('\\', '/') ?? "";
                 }
 
-                // add mod versions
+                // Track ALL files and their versions
+                Dictionary<string, List<ModFileInfo>> allFileVersions = new Dictionary<string, List<ModFileInfo>>();
+                Dictionary<string, string> fileDirectories = new Dictionary<string, string>();
+                HashSet<string> allKnownFiles = new HashSet<string>();
+
+                // Add ALL vanilla files
+                foreach (var vanillaFile in vanillaFiles)
+                {
+                    string fileName = Path.GetFileName(vanillaFile);
+                    string fileDir = vanillaFileRelativePaths[fileName];
+
+                    allKnownFiles.Add(fileName);
+
+                    if (!allFileVersions.ContainsKey(fileName))
+                        allFileVersions[fileName] = new List<ModFileInfo>();
+
+                    allFileVersions[fileName].Add(new ModFileInfo
+                    {
+                        ModNumber = 0,
+                        FilePath = vanillaFile,
+                        ModName = "Vanilla"
+                    });
+
+                    fileDirectories[fileName] = fileDir;
+                }
+
+                // Add files from ALL mods
                 for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
                 {
-                    string modObjectsPath = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), modNumber.ToString(), "Objects");
-                    if (!Directory.Exists(modObjectsPath)) continue;
+                    string modObjectsPath = Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/";
 
-                    var modFiles = Directory.GetFiles(modObjectsPath, "*", SearchOption.AllDirectories);
+                    if (!Directory.Exists(modObjectsPath))
+                        continue;
+
+                    string[] modFiles = Directory.GetFiles(modObjectsPath, "*", SearchOption.AllDirectories);
                     Console.WriteLine($"  Mod {modNumber - 1} has {modFiles.Length} files");
 
-                    foreach (var mf in modFiles)
+                    foreach (string modFile in modFiles)
                     {
-                        string relKey = Path.GetRelativePath(modObjectsPath, mf).Replace('\\','/');
-                        allKnown.Add(relKey);
+                        string fileName = Path.GetFileName(modFile);
+                        string relativePath = Path.GetRelativePath(modObjectsPath, modFile);
+                        string fileDir = Path.GetDirectoryName(relativePath)?.Replace('\\', '/') ?? "";
 
-                        if (!allFileVersions.TryGetValue(relKey, out var list))
+                        allKnownFiles.Add(fileName);
+
+                        if (!fileDirectories.ContainsKey(fileName))
+                            fileDirectories[fileName] = fileDir;
+
+                        if (!allFileVersions.ContainsKey(fileName))
+                            allFileVersions[fileName] = new List<ModFileInfo>();
+
+                        allFileVersions[fileName].Add(new ModFileInfo
                         {
-                            list = new List<ModFileInfo>();
-                            allFileVersions[relKey] = list;
-                        }
-                        list.Add(new ModFileInfo { ModNumber = modNumber, FilePath = mf, ModName = $"Mod {modNumber - 1}" });
+                            ModNumber = modNumber,
+                            FilePath = modFile,
+                            ModName = $"Mod {modNumber - 1}"
+                        });
                     }
                 }
 
-                Console.WriteLine($"Chapter {chapter}: Found {allKnown.Count} unique files across vanilla and {Main.modAmount} mod(s)");
+                Console.WriteLine($"Chapter {chapter + 1}: Found {allKnownFiles.Count} unique files across vanilla and {Main.modAmount} mod(s)");
 
-                // process everything except AssetOrder.txt
-                foreach (string relKey in allKnown)
+                // Process EVERY file
+                foreach (string fileName in allKnownFiles)
                 {
-                    if (relKey.Equals("AssetOrder.txt", StringComparison.OrdinalIgnoreCase)) continue;
+                    // Skip AssetOrder.txt for now
+                    if (fileName == "AssetOrder.txt")
+                        continue;
 
-                    var versions       = allFileVersions[relKey];
+                    // Fix naming for global scripts
+                    string correctedFileName = fileName;
+
+                    var versions = allFileVersions[fileName];
+                    string fileDir = fileDirectories.ContainsKey(fileName) ? fileDirectories[fileName] : "";
+
+                    string targetPath;
+                    if (!string.IsNullOrEmpty(fileDir))
+                    {
+                        targetPath = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects", fileDir, correctedFileName);
+                    }
+                    else
+                    {
+                        targetPath = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects", correctedFileName);
+                    }
+
                     var vanillaVersion = versions.FirstOrDefault(v => v.ModNumber == 0);
-                    var modVersions    = versions.Where(v => v.ModNumber > 0).ToList();
+                    var modVersions = versions.Where(v => v.ModNumber > 0).ToList();
 
-                    // compute diffs vs vanilla
-                    var different = new List<ModFileInfo>();
+                    // Determine which mod versions are ACTUALLY different from vanilla
+                    var differentModVersions = new List<ModFileInfo>();
+
                     if (vanillaVersion != null && modVersions.Count > 0)
                     {
-                        string ext = Path.GetExtension(relKey);
-                        if (ext.Equals(".png", StringComparison.OrdinalIgnoreCase))
+                        foreach (var modVersion in modVersions)
                         {
-                            foreach (var mv in modVersions)
+                            bool isDifferent = false;
+
+                            try
                             {
-                                bool diff = AreSpritesDifferent(mv.FilePath, vanillaVersion.FilePath);
-                                if (diff) different.Add(mv);
+                                if (Path.GetExtension(fileName) == ".png")
+                                {
+                                    try
+                                    {
+                                        isDifferent = AreSpritesDifferent(modVersion.FilePath, vanillaVersion.FilePath);
+                                    }
+                                    catch
+                                    {
+                                        var vanillaInfo = new FileInfo(vanillaVersion.FilePath);
+                                        var modInfo = new FileInfo(modVersion.FilePath);
+                                        isDifferent = vanillaInfo.Length != modInfo.Length;
+                                    }
+                                }
+                                else
+                                {
+                                    using (var fs1 = File.OpenRead(vanillaVersion.FilePath))
+                                    using (var fs2 = File.OpenRead(modVersion.FilePath))
+                                    {
+                                        var hash1 = SHA1.Create().ComputeHash(fs1);
+                                        var hash2 = SHA1.Create().ComputeHash(fs2);
+                                        isDifferent = !hash1.SequenceEqual(hash2);
+                                    }
+                                }
                             }
-                        }
-                        else
-                        {
-                            string vHash = HashCache.Sha1Base64(vanillaVersion.FilePath);
-                            foreach (var mv in modVersions)
+                            catch
                             {
-                                string mHash = HashCache.Sha1Base64(mv.FilePath);
-                                if (!string.Equals(vHash, mHash, StringComparison.Ordinal))
-                                    different.Add(mv);
+                                isDifferent = true;
                             }
+
+                            if (isDifferent)
+                                differentModVersions.Add(modVersion);
                         }
                     }
                     else if (vanillaVersion == null && modVersions.Count > 0)
                     {
-                        different = modVersions;
+                        differentModVersions = modVersions;
                     }
 
-                    // if unchanged, DO NOT copy vanilla into merged/Objects
-                    if (different.Count == 0) continue;
-
-                    string targetPath = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects", relKey);
-                    Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
-
-                    if (different.Count == 1)
+                    // Decide what to do with the file
+                    if (differentModVersions.Count == 0 && vanillaVersion != null)
                     {
-                        var w = different[0];
-                        File.Copy(w.FilePath, targetPath, true);
+                        // No mods modify this file - copy ALL code files to preserve vanilla
+                        if (Path.GetExtension(fileName) == ".gml" ||
+                            Path.GetExtension(fileName) == ".txt" ||
+                            fileDir.Contains("CodeEntries"))
+                        {
+                            Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+                            File.Copy(vanillaVersion.FilePath, targetPath, true);
 
-                        string hash = HashCache.Sha1Base64(targetPath);
-                        Main.modifiedAssets.Add(relKey + "        " + hash);
-                        chapterModified.Add(relKey + "        " + hash);
-
-                        changedThisChapter++;
-                        string ext = Path.GetExtension(relKey);
-                        if (relKey.StartsWith("Sprites/", StringComparison.OrdinalIgnoreCase) || ext.Equals(".png", StringComparison.OrdinalIgnoreCase))
-                            anySpriteChanged = true;
-                        if (relKey.Contains("/CodeEntries/", StringComparison.OrdinalIgnoreCase) || ext.Equals(".gml", StringComparison.OrdinalIgnoreCase))
-                            anyCodeChanged = true;
+                            // Verify the copy worked
+                            if (File.Exists(targetPath))
+                            {
+                                var info = new FileInfo(targetPath);
+                                if (info.Length == 0)
+                                {
+                                    Console.WriteLine($"  WARNING: {fileName} was copied but is empty!");
+                                    // Try to copy again
+                                    File.Copy(vanillaVersion.FilePath, targetPath, true);
+                                }
+                            }
+                        }
+                        else if (Path.GetExtension(fileName) == ".png" && vanillaVersion != null)
+                        {
+                            if (IsValidPNG(vanillaVersion.FilePath))
+                            {
+                                Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+                                File.Copy(vanillaVersion.FilePath, targetPath, true);
+                            }
+                        }
                     }
-                    else // >1 different
+                    else if (differentModVersions.Count == 0 && vanillaVersion == null)
                     {
-                        string ext = Path.GetExtension(relKey).ToLowerInvariant();
-                        if (ext == ".png")
+                        // NEW: Handle case where there's no vanilla version and no mods modify the file
+                        Console.WriteLine($"  WARNING: No vanilla version for {fileName}, skipping");
+                    }
+                    else if (differentModVersions.Count == 1)
+                    {
+                        // Only one mod modifies this file
+                        Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+
+                        // Check source file before copying
+                        var sourceInfo = new FileInfo(differentModVersions[0].FilePath);
+                        if (sourceInfo.Length == 0)
                         {
-                            var best = SelectBestSprite(different, vanillaVersion);
-                            File.Copy(best.FilePath, targetPath, true);
-                            anySpriteChanged = true; changedThisChapter++;
-                        }
-                        else if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
-                        {
-                            var last = different.Last();
-                            File.Copy(last.FilePath, targetPath, true);
-                            changedThisChapter++;
-                        }
-                        else
-                        {
-                            bool ok = false;
+                            Console.WriteLine($"  WARNING: Source file is already empty: {fileName} from {differentModVersions[0].ModName}");
+
+                            // Try to find vanilla version as fallback
                             if (vanillaVersion != null)
-                                ok = PerformSimpleMerge(vanillaVersion.FilePath, different, targetPath);
-                            if (!ok) File.Copy(different[0].FilePath, targetPath, true);
-
-                            string hash = HashCache.Sha1Base64(targetPath);
-                            Main.modifiedAssets.Add(relKey + "        " + hash);
-                            chapterModified.Add(relKey + "        " + hash);
-
-                            anyCodeChanged = true; changedThisChapter++;
+                            {
+                                Console.WriteLine($"    Using vanilla version instead");
+                                File.Copy(vanillaVersion.FilePath, targetPath, true);
+                            }
+                            else
+                            {
+                                if (Path.GetExtension(fileName) == ".png")
+                                {
+                                    if (IsValidPNG(differentModVersions[0].FilePath))
+                                    {
+                                        File.Copy(differentModVersions[0].FilePath, targetPath, true);
+                                        Console.WriteLine($"  Sprite: {fileName} <- {differentModVersions[0].ModName} (valid PNG)");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"  WARNING: {fileName} from {differentModVersions[0].ModName} is not a valid PNG");
+                                        if (vanillaVersion != null && IsValidPNG(vanillaVersion.FilePath))
+                                        {
+                                            Console.WriteLine($"    Using vanilla version instead");
+                                            File.Copy(vanillaVersion.FilePath, targetPath, true);
+                                        }
+                                        else
+                                        {
+                                            // Still copy but warn
+                                            File.Copy(differentModVersions[0].FilePath, targetPath, true);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    File.Copy(differentModVersions[0].FilePath, targetPath, true);
+                                }
+                            }
                         }
-                    }
-                }
-
-                // AssetOrder handling + change detect
-                HandleAssetOrderFile(chapter, allFileVersions, vanillaFileDict);
-                try
-                {
-                    var mergedAO = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects", "AssetOrder.txt");
-                    if (File.Exists(mergedAO) && vanillaFileDict.TryGetValue("AssetOrder.txt", out var vanillaAO))
-                    {
-                        bool same = false;
-                        var fi1 = new FileInfo(mergedAO); var fi2 = new FileInfo(vanillaAO);
-                        if (fi1.Exists && fi2.Exists && fi1.Length == fi2.Length)
-                        {
-                            using var f1 = File.OpenRead(mergedAO);
-                            using var f2 = File.OpenRead(vanillaAO);
-                            same = SHA1.Create().ComputeHash(f1).SequenceEqual(SHA1.Create().ComputeHash(f2));
-                        }
-                        if (same) { try { File.Delete(mergedAO); } catch { } }
                         else
                         {
-                            assetOrderChanged = true; changedThisChapter++;
-                            string aoHash = HashCache.Sha1Base64(mergedAO);
-                            chapterModified.Add("AssetOrder.txt        " + aoHash);
-                            Main.modifiedAssets.Add("AssetOrder.txt        " + aoHash);
+                            File.Copy(differentModVersions[0].FilePath, targetPath, true);
+
+                            if (Path.GetExtension(fileName) == ".gml")
+                            {
+                                Console.WriteLine($"  Code: {fileName} <- {differentModVersions[0].ModName} ({sourceInfo.Length} bytes)");
+                            }
+                        }
+
+                        // Verify the copy worked
+                        var targetInfo = new FileInfo(targetPath);
+                        if (targetInfo.Length == 0)
+                        {
+                            Console.WriteLine($"    ERROR: File became empty after copy!");
+                        }
+
+                        using (var fs = File.OpenRead(targetPath))
+                        {
+                            string hash = Convert.ToBase64String(SHA1.Create().ComputeHash(fs));
+                            Main.modifiedAssets.Add(fileName + "        " + hash);
+                        }
+                    }
+                    else if (differentModVersions.Count > 1)
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+
+                        if (Path.GetExtension(fileName) == ".png")
+                        {
+                            // TEST: Better sprite selection
+                            var bestSprite = SelectBestSprite(differentModVersions, vanillaVersion);
+                            File.Copy(bestSprite.FilePath, targetPath, true);
+                            Console.WriteLine($"  Sprite: {fileName} <- {bestSprite.ModName} (best valid version)");
+                        }
+                        else if (Path.GetExtension(fileName) == ".ogg" ||
+                                 Path.GetExtension(fileName) == ".wav" ||
+                                 Path.GetExtension(fileName) == ".mp3")
+                        {
+                            // Audio files - use the last mod's version
+                            var lastMod = differentModVersions.Last();
+                            File.Copy(lastMod.FilePath, targetPath, true);
+                            Console.WriteLine($"  Audio: {fileName} <- {lastMod.ModName} (can't merge audio)");
+                        }
+                        else if (Path.GetExtension(fileName) == ".gml" ||
+                                 Path.GetExtension(fileName) == ".txt" ||
+                                 Path.GetExtension(fileName) == ".json" ||
+                                 Path.GetExtension(fileName) == ".ini")
+                        {
+                            // Text files - use simple concatenation merge for reliability
+                            Console.WriteLine($"  Merging: {fileName} ({differentModVersions.Count} mods)");
+
+                            bool mergeSuccess = false;
+
+                            // Try simple concatenation merge first
+                            if (vanillaVersion != null)
+                            {
+                                mergeSuccess = PerformSimpleMerge(
+                                    vanillaVersion.FilePath,
+                                    differentModVersions,
+                                    targetPath
+                                );
+                            }
+
+                            if (!mergeSuccess)
+                            {
+                                // If merge failed, at least use the first mod's version
+                                Console.WriteLine($"    Merge failed, using {differentModVersions[0].ModName}'s version");
+                                File.Copy(differentModVersions[0].FilePath, targetPath, true);
+                            }
+
+                            // Verify the result isn't empty
+                            if (File.Exists(targetPath))
+                            {
+                                var info = new FileInfo(targetPath);
+                                if (info.Length == 0)
+                                {
+                                    Console.WriteLine($"    WARNING: Merged file is empty! Using vanilla as fallback");
+                                    if (vanillaVersion != null)
+                                    {
+                                        File.Copy(vanillaVersion.FilePath, targetPath, true);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Unknown file type - use last mod's version
+                            var lastMod = differentModVersions.Last();
+                            File.Copy(lastMod.FilePath, targetPath, true);
+                        }
+
+                        if (File.Exists(targetPath))
+                        {
+                            using (var fs = File.OpenRead(targetPath))
+                            {
+                                string hash = Convert.ToBase64String(SHA1.Create().ComputeHash(fs));
+                                Main.modifiedAssets.Add(fileName + "        " + hash);
+                            }
                         }
                     }
                 }
-                catch { }
 
+                // Handle AssetOrder.txt separately
+                HandleAssetOrderFile(chapter, allFileVersions, vanillaFileDict);
                 Console.WriteLine("\nValidating sprites after merge...");
                 ValidateSprites(chapter);
-
-                // stamp for import gating
-                var stampDir = Path.Combine(@output, "Cache", "running");
-                Directory.CreateDirectory(stampDir);
-                File.WriteAllText(Path.Combine(stampDir, $"chapter_{chapter}_changes.txt"),
-                    $"{changedThisChapter}|{(anyCodeChanged?1:0)}|{(anySpriteChanged?1:0)}|{(assetOrderChanged?1:0)}");
-
-                // write per-chapter modified list
-                var modListPath = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "modifiedAssets.txt");
-                Directory.CreateDirectory(Path.GetDirectoryName(modListPath)!);
-                File.WriteAllLines(modListPath, chapterModified);
             }
 
             Main.combined = true;
         }
-
-
-
-
 
         /// <summary>
         /// New simple merge that preserves content
@@ -2163,195 +1803,68 @@ namespace GM3P
 
             for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
-                if (Main.modTool == "skip") { Console.WriteLine("Manual import mode..."); continue; }
+                if (Main.modTool == "skip")
+                {
+                    Console.WriteLine("Manual import mode...");
+                    continue;
+                }
 
-                Console.WriteLine($"Processing Chapter {chapter}...");
+                Console.WriteLine($"Processing Chapter {chapter + 1}...");
 
-                string workingDataWin = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "data.win");
+                string workingDataWin = @output + "/xDeltaCombiner/" + chapter + "/1/data.win";
 
-                // --- Discover mods that declare new objects (unchanged message content) ---
+                // Check which mods add new objects
                 var modsWithNewObjects = new Dictionary<int, List<string>>();
+
                 for (int modNumber = 2; modNumber < (modAmount + 2); modNumber++)
                 {
-                    string newObjectsFile = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), modNumber.ToString(), "Objects", "NewObjects.txt");
-                    if (!File.Exists(newObjectsFile)) continue;
-
-                    var lines = File.ReadAllLines(newObjectsFile)
-                                    .Select(l => l.Trim())
-                                    .Where(l => !string.IsNullOrWhiteSpace(l))
-                                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                                    .ToList();
-
-                    if (lines.Count > 0)
+                    string newObjectsFile = @output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/Objects/NewObjects.txt";
+                    if (File.Exists(newObjectsFile))
                     {
-                        modsWithNewObjects[modNumber] = lines;
-                        Console.WriteLine($"  Mod {modNumber - 1} adds {lines.Count} new objects");
+                        var lines = File.ReadAllLines(newObjectsFile).Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
+                        if (lines.Count > 0)
+                        {
+                            modsWithNewObjects[modNumber] = lines;
+                            Console.WriteLine($"  Mod {modNumber - 1} adds {lines.Count} new objects");
+                        }
                     }
                 }
 
-                // --- Choose base data.win ---
+                // Choose base data.win
                 if (modsWithNewObjects.Count == 0)
                 {
-                    Console.WriteLine("No new objects, using vanilla as base");
-                    FileLinker.LinkOrCopy(
-                        Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "0", "data.win"),
-                        workingDataWin);
+                    Console.WriteLine("  No new objects, using vanilla as base");
+                    File.Copy(@output + "/xDeltaCombiner/" + chapter + "/0/data.win", workingDataWin, true);
+                }
+                else if (modsWithNewObjects.Count == 1)
+                {
+                    var modWithObjects = modsWithNewObjects.First();
+                    Console.WriteLine($"  Using Mod {modWithObjects.Key - 1}'s data.win as base");
+                    File.Copy(@output + "/xDeltaCombiner/" + chapter + "/" + modWithObjects.Key + "/data.win", workingDataWin, true);
                 }
                 else
                 {
-                    // Validate which mod actually has GML for the declared objects
-                    var validated = new Dictionary<int, (int hits, int declared)>();
-                    foreach (var kv in modsWithNewObjects)
-                    {
-                        string codeFolder = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), kv.Key.ToString(), "Objects", "CodeEntries");
-                        int hits = 0;
-
-                        if (Directory.Exists(codeFolder))
-                        {
-                            foreach (var obj in kv.Value)
-                            {
-                                // any event file of that object counts as a hit
-                                string pattern = $"gml_Object_{obj}_*.gml";
-                                if (Directory.EnumerateFiles(codeFolder, pattern, SearchOption.TopDirectoryOnly).Any())
-                                    hits++;
-                            }
-                        }
-
-                        validated[kv.Key] = (hits, kv.Value.Count);
-                    }
-
-                    int baseModNumber = validated
-                        .OrderByDescending(p => p.Value.hits)     // most actual object files present
-                        .ThenByDescending(p => p.Value.declared)  // then most declared
-                        .ThenByDescending(p => p.Key)             // stable tie-break
-                        .First().Key;
-
-                    Console.WriteLine(modsWithNewObjects.Count == 1
-                        ? $"  Using Mod {baseModNumber - 1}'s data.win as base"
-                        : $"  Using Mod {baseModNumber - 1}'s data.win (has most validated new objects)");
-
-                    FileLinker.LinkOrCopy(
-                        Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), baseModNumber.ToString(), "data.win"),
-                        workingDataWin);
+                    // Multiple mods add objects - use the one with most objects
+                    var bestMod = modsWithNewObjects.OrderByDescending(kvp => kvp.Value.Count).First();
+                    Console.WriteLine($"  Using Mod {bestMod.Key - 1}'s data.win (has most objects)");
+                    File.Copy(@output + "/xDeltaCombiner/" + chapter + "/" + bestMod.Key + "/data.win", workingDataWin, true);
                 }
 
-                // --- Keep messages the same ---
+                // Import graphics
                 Console.WriteLine("Importing merged graphics...");
+                RunImportScript(workingDataWin, "ImportGraphicsAdvanced.csx");
+
+                // Import code
                 Console.WriteLine("Importing merged code...");
+                RunImportScript(workingDataWin, "ImportGML.csx");
+
+                // Import AssetOrder
                 Console.WriteLine("Importing AssetOrder...");
+                RunImportScript(workingDataWin, "ImportAssetOrder.csx", true);
 
-                // --- Read change flags (from CompareCombine stamp) ---
-                var stamp = Path.Combine(@output, "Cache", "running", $"chapter_{chapter}_changes.txt");
-                bool code = false, sprites = false, asset = false;
-                if (File.Exists(stamp))
-                {
-                    var p = File.ReadAllText(stamp).Split('|');
-                    code    = p.Length > 1 && p[1] == "1";
-                    sprites = p.Length > 2 && p[2] == "1";
-                    asset   = p.Length > 3 && p[3] == "1";
-                }
-
-                // --- Fallback to filesystem truth if the stamp missed something ---
-                string mergedRoot    = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects");
-                string mergedSprites = Path.Combine(mergedRoot, "Sprites");
-                string mergedCode    = Path.Combine(mergedRoot, "CodeEntries");
-                string mergedAO      = Path.Combine(mergedRoot, "AssetOrder.txt");
-
-                if (!sprites && Directory.Exists(mergedSprites) &&
-                    Directory.EnumerateFiles(mergedSprites, "*.png", SearchOption.AllDirectories).Any())
-                    sprites = true;
-
-                if (!code && Directory.Exists(mergedCode) &&
-                    Directory.EnumerateFiles(mergedCode, "*.gml", SearchOption.AllDirectories).Any())
-                    code = true;
-
-                if (!asset && File.Exists(mergedAO))
-                    asset = true;
-
-                // --- Build scripts list (AO gated by chapter sanity) ---
-                var scripts = new List<string>(3);
-                if (sprites) scripts.Add("ImportGraphics.csx");
-                if (code)    scripts.Add("ImportGML.csx");
-                if (asset)   scripts.Add("ImportAssetOrder.csx");
-
-                if (scripts.Count == 0)
-                {
-                    Console.WriteLine($"Import complete for chapter {chapter}");
-                    continue; // nothing to import
-                }
-
-                RunImportScriptsMulti(workingDataWin, scripts.ToArray());
-                Console.WriteLine($"Import complete for chapter {chapter}");
+                Console.WriteLine($"Import complete for chapter {chapter + 1}");
             }
         }
-
-        // New helper: run a single UTMT process with multiple --scripts (order preserved)
-        public static void RunImportScriptsMulti(string dataWin, string[] scriptNames, bool allowErrors = false)
-        {
-            using (var proc = new Process())
-            {
-                if (OperatingSystem.IsWindows())
-                {
-                    var sb = new StringBuilder();
-                    sb.Append($"load \"{dataWin}\" --verbose --output \"{dataWin}\"");
-                    foreach (var s in scriptNames)
-                        sb.Append($" --scripts \"{Main.pwd}/UTMTCLI/Scripts/{s}\"");
-                    proc.StartInfo.FileName = Main.modTool;
-                    proc.StartInfo.Arguments = sb.ToString();
-                }
-                else
-                {
-                    var sb = new StringBuilder();
-                    sb.Append(Main.modTool + $" load '{dataWin}' --verbose --output '{dataWin}'");
-                    foreach (var s in scriptNames)
-                        sb.Append($" --scripts '{Main.pwd}/UTMTCLI/Scripts/{s}'");
-                    proc.StartInfo.FileName = "/bin/bash";
-                    proc.StartInfo.Arguments = "-c \"" + sb.ToString() + "\"";
-                }
-
-                proc.StartInfo.CreateNoWindow = false;
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.RedirectStandardOutput = true;
-                proc.StartInfo.RedirectStandardError = true;
-                proc.Start();
-
-                string output = proc.StandardOutput.ReadToEnd();
-                string errorOutput = proc.StandardError.ReadToEnd();
-                Console.WriteLine(output);
-
-                if (!string.IsNullOrEmpty(errorOutput) && !allowErrors)
-                    Console.WriteLine($"Error: {errorOutput}");
-
-                proc.WaitForExit();
-            }
-        }
-
-        private static bool SanitizeAssetOrderForChapter(int chapter)
-        {
-            string baseAO   = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "0", "Objects", "AssetOrder.txt");
-            string mergedAO = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects", "AssetOrder.txt");
-            if (!File.Exists(mergedAO) || !File.Exists(baseAO)) return false;
-
-            var baseLines = File.ReadAllLines(baseAO)
-                .Where(l => !string.IsNullOrWhiteSpace(l))
-                .Select(l => l.Trim()).ToArray();
-            var allowed = new HashSet<string>(baseLines, StringComparer.OrdinalIgnoreCase);
-
-            var lines    = File.ReadAllLines(mergedAO);
-            var filtered = lines.Where(l => string.IsNullOrWhiteSpace(l) || allowed.Contains(l.Trim())).ToArray();
-            if (filtered.Length != lines.Length)
-                Console.WriteLine($"  NOTE: pruned {lines.Length - filtered.Length} AssetOrder entries not present in this chapter.");
-
-            // If filtered order equals vanilla, no need to run AO at all
-            bool sameAsBase = filtered.Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => l.Trim())
-                .SequenceEqual(baseLines, StringComparer.Ordinal);
-            if (sameAsBase) return false;
-
-            File.WriteAllLines(mergedAO, filtered);
-            return true;
-        }
-
-
         /// <summary>
         /// Run a script through UndertaleModTool
         /// </summary>
@@ -2401,102 +1914,61 @@ namespace GM3P
         public static void result(string modname)
         {
             loadCachedNumbers();
-
-            if (string.IsNullOrWhiteSpace(modname))
-                throw new ArgumentException("result(): modname is null/empty");
-
             for (int chapter = 0; chapter < chapterAmount; chapter++)
             {
-                if (combined)
+                if (modname != null || modname != "")
                 {
-
-                    var resChapterDir = Path.Combine(output, "result", modname, chapter.ToString());
-                    Directory.CreateDirectory(resChapterDir);
-
-
-                    using (var proc = new Process())
+                    if (combined)
                     {
-                        if (OperatingSystem.IsWindows())
-                        {
-                            proc.StartInfo.FileName  = Main.DeltaPatcher;
-                            proc.StartInfo.Arguments = $"-v -e -f -s \"{Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "0", "data.win")}\" " +
-                                                       $"\"{Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "1", "data.win")}\" " +
-                                                       $"\"{Path.Combine(output, "result", modname, $"{modname}-Chapter {chapter}.xdelta")}\"";
-                        }
-                        else if (OperatingSystem.IsLinux())
-                        {
-                            proc.StartInfo.FileName  = "/bin/bash";
-                            proc.StartInfo.Arguments = $"-c \"{Main.DeltaPatcher} -v -e -f -s '{Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "0", "data.win")}' " +
-                                                       $"'{Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "1", "data.win")}' " +
-                                                       $"'{Path.Combine(output, "result", modname, $"{modname}-Chapter {chapter}.xdelta")}'\"";
-                        }
-                        proc.StartInfo.UseShellExecute = false;
-                        proc.StartInfo.CreateNoWindow  = true;
-                        proc.Start();
-                        proc.WaitForExit();
-                    }
-
-                    // Copy the combined data.win for the chapter
-                    File.Copy(
-                        Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "1", "data.win"),
-                        Path.Combine(resChapterDir, "data.win"),
-                        overwrite: true
-                    );
-
-                    // >>> Per-chapter modifiedAssets.txt <<<
-                    var srcModListA = Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "1", "modifiedAssets.txt");
-                    var srcModListB = Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "modifiedAssets.txt");
-                    var dstModList  = Path.Combine(resChapterDir, "modifiedAssets.txt");
-                    if (File.Exists(srcModListA)) File.Copy(srcModListA, dstModList, true);
-                    else if (File.Exists(srcModListB)) File.Copy(srcModListB, dstModList, true);
-                }
-                else
-                {
-                    // One xdelta per mod number under the chapter
-                    for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
-                    {
-                        var resModDir = Path.Combine(output, "result", modname, chapter.ToString(), modNumber.ToString());
-                        Directory.CreateDirectory(resModDir);
-
-                        using (var proc = new Process())
+                        Directory.CreateDirectory(@output + "/result/" + modname + "/" + chapter);
+                        using (var bashProc = new Process())
                         {
                             if (OperatingSystem.IsWindows())
                             {
-                                proc.StartInfo.FileName  = Main.DeltaPatcher;
-                                proc.StartInfo.Arguments = $"-v -e -f -s \"{Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "0", "data.win")}\" " +
-                                                           $"\"{Path.Combine(output, "xDeltaCombiner", chapter.ToString(), modNumber.ToString(), "data.win")}\" " +
-                                                           $"\"{Path.Combine(output, "result", modname, chapter.ToString(), $"{modNumber}.xdelta")}\"";
+                                bashProc.StartInfo.FileName = Main.@DeltaPatcher;
+                                bashProc.StartInfo.Arguments = "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/0/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + modname + "-Chapter " + chapter + ".xdelta\"";
                             }
-                            else if (OperatingSystem.IsLinux())
+                            if (OperatingSystem.IsLinux())
                             {
-                                proc.StartInfo.FileName  = "/bin/bash";
-                                proc.StartInfo.Arguments = $"-c \"{Main.DeltaPatcher} -v -e -f -s '{Path.Combine(output, "xDeltaCombiner", chapter.ToString(), "0", "data.win")}' " +
-                                                           $"'{Path.Combine(output, "xDeltaCombiner", chapter.ToString(), modNumber.ToString(), "data.win")}' " +
-                                                           $"'{Path.Combine(output, "result", modname, chapter.ToString(), $"{modNumber}.xdelta")}'\"";
+                                bashProc.StartInfo.FileName = "/bin/bash";
+                                bashProc.StartInfo.Arguments = "-c \"" + @DeltaPatcher + "-v -e -f -s '" + Main.@output + "/xDeltaCombiner/" + chapter + "/0/data.win" + "' '" + Main.@output + "/xDeltaCombiner/" + chapter + "/1/data.win" + "' '" + Main.@output + "/result/" + modname + "/" + modname + "-Chapter " + chapter + ".xdelta'\"";
                             }
-                            proc.StartInfo.UseShellExecute = false;
-                            proc.StartInfo.CreateNoWindow  = true;
-                            proc.Start();
-                            proc.WaitForExit();
+                            bashProc.StartInfo.CreateNoWindow = false;
+                            bashProc.Start();
+                            bashProc.WaitForExit();
                         }
+                        File.Copy(@output + "/xDeltaCombiner/" + chapter + "/1/data.win", @output + "/result/" + modname + "/" + chapter + "/data.win");
 
-                        // Copy each mod’s data.win
-                        File.Copy(
-                            Path.Combine(output, "xDeltaCombiner", chapter.ToString(), modNumber.ToString(), "data.win"),
-                            Path.Combine(resModDir, "data.win"),
-                            overwrite: true
-                        );
-
-                        // Per-mod modifiedAssets.txt
-                        var srcModListA = Path.Combine(output, "xDeltaCombiner", chapter.ToString(), modNumber.ToString(), "modifiedAssets.txt");
-                        var dstModList  = Path.Combine(resModDir, "modifiedAssets.txt");
-                        if (File.Exists(srcModListA))
-                            File.Copy(srcModListA, dstModList, overwrite: true);
+                        if (File.Exists(@output + "/xDeltaCombiner/0/1/modifiedAssets.txt"))
+                            File.Copy(@output + "/xDeltaCombiner/0/1/modifiedAssets.txt", @output + "/result/" + modname + "/0/modifiedAssets.txt");
+                    }
+                    else
+                    {
+                        for (int modNumber = 2; modNumber < (Main.modAmount + 2); modNumber++)
+                        {
+                            Directory.CreateDirectory(@output + "/result/" + modname + "/" + chapter + "/" + modNumber);
+                            using (var bashProc = new Process())
+                            {
+                                if (OperatingSystem.IsWindows())
+                                {
+                                    bashProc.StartInfo.FileName = Main.@DeltaPatcher;
+                                    bashProc.StartInfo.Arguments = "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/0/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + chapter + "/" + modNumber + ".xdelta\"";
+                                }
+                                if (OperatingSystem.IsLinux())
+                                {
+                                    bashProc.StartInfo.FileName = "bin/bash";
+                                    bashProc.StartInfo.Arguments = @DeltaPatcher + "-v -e -f -s \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/vanilla/data.win" + "\" \"" + Main.@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win" + "\" \"" + Main.@output + "/result/" + modname + "/" + chapter + "/" + modNumber + ".xdelta\"";
+                                }
+                                bashProc.StartInfo.CreateNoWindow = false;
+                                bashProc.Start();
+                                bashProc.WaitForExit();
+                            }
+                            File.Copy(@output + "/xDeltaCombiner/" + chapter + "/" + modNumber + "/data.win", @output + "/result/" + modname + "/" + chapter + "/" + modNumber + "/data.win");
+                        }
                     }
                 }
             }
         }
-
         /// <summary>
         /// Deletes folders that are in the GM3P executable folder, by default it deletes /output/xDeltaCombiner and /Cache/running
         /// </summary>
@@ -2535,36 +2007,6 @@ namespace GM3P
                     break;
             }
         }
-
-        private static (int width, int height)? TryGetPngSize(string path)
-        {
-            try
-            {
-                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan);
-                if (fs.Length < 24) return null;
-
-                Span<byte> sig = stackalloc byte[8];
-                if (fs.Read(sig) != 8) return null;
-                if (!sig.SequenceEqual(PNG_SIGNATURE)) return null;
-
-                fs.Position = 16; // IHDR width/height
-                Span<byte> wh = stackalloc byte[8];
-                if (fs.Read(wh) != 8) return null;
-
-                int w = (wh[0] << 24) | (wh[1] << 16) | (wh[2] << 8) | wh[3];
-                int h = (wh[4] << 24) | (wh[5] << 16) | (wh[6] << 8) | wh[7];
-                return (w, h);
-            }
-            catch { return null; }
-        }
-
-        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
-
-        [DllImport("libc", SetLastError = true)]
-        private static extern int link(string existingFile, string newFile);
-
-
         /// <summary>
         /// Errors to print when running load()
         /// </summary>
