@@ -275,7 +275,7 @@ class Program
                 }
                 else
                 {
-                    // Try to load cached chapter amount
+                    // Try to load cached chapter amount.
                     GM3P.Main.loadCachedNumbers();
                 }
                     Console.WriteLine("Enter in the Mod Tool (e.g. UnderTaleModTool for GameMaker Games). If you want to use the included tool, just hit enter. If you want to manually dump and import enter \"skip\"");

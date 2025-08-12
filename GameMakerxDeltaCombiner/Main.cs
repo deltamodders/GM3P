@@ -2285,7 +2285,7 @@ namespace GM3P
             }
         }
 
-        // New helper: run a single UTMT process with multiple --scripts (order preserved)
+        // New helper: run a single UTMT process with multiple --scripts (order preserved).
         public static void RunImportScriptsMulti(string dataWin, string[] scriptNames, bool allowErrors = false)
         {
             using (var proc = new Process())
