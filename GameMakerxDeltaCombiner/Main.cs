@@ -24,8 +24,8 @@ namespace GM3P
     public class ModFileInfo
     {
         public int ModNumber { get; set; }
-        public string FilePath { get; set; }
-        public string ModName { get; set; }
+        public required string FilePath { get; set; }
+        public required string ModName { get; set; }
     }
 
 
@@ -179,6 +179,48 @@ namespace GM3P
         static string DumpStampPath(int chapter, int modNumber)
             => Path.Combine(DumpCacheDir(chapter, modNumber), "dump.sha1");
 
+
+        // Normalize relative keys under Objects/: slashes + lower-case
+        // let's see if this solves the 4+ mods issue.
+        static string NormKey(string rel)
+        {
+            if (string.IsNullOrEmpty(rel)) return string.Empty;
+            rel = rel.Replace('\\','/');
+            if (rel.StartsWith("./")) rel = rel.Substring(2);
+            return rel.ToLowerInvariant();
+        }
+
+        static bool IsEmptyGml(ModFileInfo m)
+            => m.FilePath.EndsWith(".gml", StringComparison.OrdinalIgnoreCase)
+               && new FileInfo(m.FilePath).Length == 0;
+
+        static bool FilesEqual(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return a == b;
+            var sa = File.ReadAllText(a).Replace("\r\n","\n");
+            var sb = File.ReadAllText(b).Replace("\r\n","\n");
+            return sa == sb;
+        }
+
+        // Pick winner by mod order, but prefer a non-empty file if available
+        static ModFileInfo PickByOrderPreferNonEmpty(IEnumerable<ModFileInfo> mods)
+        {
+            var ordered = mods.OrderBy(m => m.ModNumber).ToList();
+            var nonEmpty = ordered.Where(m => !IsEmptyGml(m)).ToList();
+            return (nonEmpty.Count > 0 ? nonEmpty : ordered).Last();
+        }
+
+        static (int w, int h) ProbePngSize(string path)
+        {
+            using (var img = System.Drawing.Image.FromFile(path))
+                return (img.Width, img.Height);
+        }
+        static bool MetaEquivalent(string a, string b)
+        {
+            var (wa, ha) = ProbePngSize(a);
+            var (wb, hb) = ProbePngSize(b);
+            return wa == wb && ha == hb; // simple, fast, good enough for tie-break
+        }
 
         // --- Cache toggles (env) ---
         static bool CacheEnabled()
@@ -941,7 +983,7 @@ namespace GM3P
                                                    .Select(f => new FileInfo(f)).Where(fi => fi.Length == 0).ToList();
                             if (empties.Count > 0)
                             {
-                                Console.WriteLine($"  WARNING: {empties.Count} empty GML files found in Mod {modNumber}:");
+                                Console.WriteLine($"  WARNING: {empties.Count} empty GML files found in Mod {modNumber - 1}:");
                                 foreach (var ef in empties.Take(5)) Console.WriteLine($"    - {Path.GetFileName(ef.FullName)}");
                             }
                         }
@@ -988,7 +1030,7 @@ namespace GM3P
                                                .Select(f => new FileInfo(f)).Where(fi => fi.Length == 0).ToList();
                         if (empties.Count > 0)
                         {
-                            Console.WriteLine($"  WARNING: {empties.Count} empty GML files found in Mod {modNumber}:");
+                            Console.WriteLine($"  WARNING: {empties.Count} empty GML files found in Mod {modNumber - 1}:");
                             foreach (var ef in empties.Take(5)) Console.WriteLine($"    - {Path.GetFileName(ef.FullName)}");
                         }
                     }
@@ -1143,7 +1185,7 @@ namespace GM3P
                 // add vanilla versions
                 foreach (var vf in vanillaFiles)
                 {
-                    string relKey = Path.GetRelativePath(vanillaObjectsPath, vf).Replace('\\','/');
+                    string relKey = NormKey(Path.GetRelativePath(vanillaObjectsPath, vf));
                     vanillaFileDict[relKey] = vf;
 
                     allKnown.Add(relKey);
@@ -1166,9 +1208,9 @@ namespace GM3P
 
                     foreach (var mf in modFiles)
                     {
-                        string relKey = Path.GetRelativePath(modObjectsPath, mf).Replace('\\','/');
+                        string relKey = NormKey(Path.GetRelativePath(modObjectsPath, mf));
                         allKnown.Add(relKey);
-
+                        
                         if (!allFileVersions.TryGetValue(relKey, out var list))
                         {
                             list = new List<ModFileInfo>();
@@ -1245,13 +1287,19 @@ namespace GM3P
                         string ext = Path.GetExtension(relKey).ToLowerInvariant();
                         if (ext == ".png")
                         {
-                            var best = SelectBestSprite(different, vanillaVersion);
+                            different = different.OrderBy(d => d.ModNumber).ToList();
+                            var best = SelectBestSprite(different.OrderBy(d => d.ModNumber).ToList(), vanillaVersion);
+                            var last = different.Last();
+                            // If SelectBestSprite chose an earlier mod but a later mod is metadata-equivalent,
+                            // enforce determinism: later mod wins.
+                            if (best == null || (best.ModNumber < last.ModNumber && MetaEquivalent(best.FilePath, last.FilePath)))
+                                best = last;
                             File.Copy(best.FilePath, targetPath, true);
                             anySpriteChanged = true; changedThisChapter++;
                         }
                         else if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
                         {
-                            var last = different.Last();
+                            var last = different.OrderBy(d => d.ModNumber).Last();
                             File.Copy(last.FilePath, targetPath, true);
                             changedThisChapter++;
                         }
@@ -1260,7 +1308,7 @@ namespace GM3P
                             bool ok = false;
                             if (vanillaVersion != null)
                                 ok = PerformSimpleMerge(vanillaVersion.FilePath, different, targetPath);
-                            if (!ok) File.Copy(different[0].FilePath, targetPath, true);
+                            if (!ok) File.Copy(different.OrderBy(d => d.ModNumber).Last().FilePath, targetPath, true);
 
                             string hash = HashCache.Sha1Base64(targetPath);
                             Main.modifiedAssets.Add(relKey + "        " + hash);
@@ -1331,6 +1379,7 @@ namespace GM3P
         {
             try
             {
+                mods = mods.OrderBy(m => m.ModNumber).ToList();
                 // Read base content
                 string baseContent = File.ReadAllText(baseFile);
 
@@ -1768,7 +1817,7 @@ namespace GM3P
                 }
             }
 
-            // Validate the final AssetOrder.txt
+            SanitizeAssetOrderForChapter(chapter);
             ValidateAssetOrder(assetOrderFile, chapter);
         }
 
@@ -2328,28 +2377,67 @@ namespace GM3P
 
         private static bool SanitizeAssetOrderForChapter(int chapter)
         {
-            string baseAO   = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "0", "Objects", "AssetOrder.txt");
-            string mergedAO = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects", "AssetOrder.txt");
-            if (!File.Exists(mergedAO) || !File.Exists(baseAO)) return false;
+            string baseAO    = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "0", "Objects", "AssetOrder.txt");
+            string mergedAO  = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), "1", "Objects", "AssetOrder.txt");
 
-            var baseLines = File.ReadAllLines(baseAO)
-                .Where(l => !string.IsNullOrWhiteSpace(l))
-                .Select(l => l.Trim()).ToArray();
-            var allowed = new HashSet<string>(baseLines, StringComparer.OrdinalIgnoreCase);
+            if (!File.Exists(mergedAO))
+                return false; // nothing to sanitize
 
-            var lines    = File.ReadAllLines(mergedAO);
-            var filtered = lines.Where(l => string.IsNullOrWhiteSpace(l) || allowed.Contains(l.Trim())).ToArray();
-            if (filtered.Length != lines.Length)
-                Console.WriteLine($"  NOTE: pruned {lines.Length - filtered.Length} AssetOrder entries not present in this chapter.");
+            // ---------- 1) vanilla lines (order baseline) ----------
+            var baseLines = File.Exists(baseAO)
+                ? File.ReadAllLines(baseAO).Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => l.Trim()).ToList()
+                : new List<string>();
 
-            // If filtered order equals vanilla, no need to run AO at all
-            bool sameAsBase = filtered.Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => l.Trim())
-                .SequenceEqual(baseLines, StringComparer.Ordinal);
+            // ---------- 2) build allowed set from AO files (vanilla + every mod AO) ----------
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var l in baseLines) allowed.Add(l);
+
+            // folders: 2..(modAmount+1) contain each mod's export; grab their AO if present
+            for (int modFolder = 2; modFolder < (Main.modAmount + 2); modFolder++)
+            {
+                string modAO = Path.Combine(@output, "xDeltaCombiner", chapter.ToString(), modFolder.ToString(), "Objects", "AssetOrder.txt");
+                if (!File.Exists(modAO)) continue;
+
+                foreach (var l in File.ReadAllLines(modAO))
+                {
+                    var s = l.Trim();
+                    if (s.Length > 0) allowed.Add(s);
+                }
+            }
+
+            // ---------- 3) filter merged AO to allowed entries; de-dupe while preserving order ----------
+            var mergedOrig = File.ReadAllLines(mergedAO).Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var filtered = new List<string>();
+            foreach (var s in mergedOrig)
+            {
+                if (!allowed.Contains(s)) continue;              // drop unknown
+                if (seen.Add(s)) filtered.Add(s);                // keep first occurrence only
+            }
+
+            // If a mod introduced AO entries that weren't in mergedAO (rare), append them in allow-list order
+            int appended = 0;
+            foreach (var s in allowed)
+            {
+                if (!seen.Contains(s))
+                {
+                    filtered.Add(s);
+                    appended++;
+                }
+            }
+
+            int pruned = mergedOrig.Count - filtered.Count + appended; // entries we removed from merged
+            Console.WriteLine($"  NOTE: kept {filtered.Count} of {mergedOrig.Count} AO lines; pruned {pruned}, appended {appended} (chapter {chapter}).");
+
+            // ---------- 4) if result equals vanilla, no need to import AO ----------
+            bool sameAsBase = baseLines.Count > 0 && filtered.SequenceEqual(baseLines, StringComparer.Ordinal);
             if (sameAsBase) return false;
 
             File.WriteAllLines(mergedAO, filtered);
             return true;
         }
+
+
 
 
         /// <summary>
