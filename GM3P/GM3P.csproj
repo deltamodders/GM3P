@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <ApplicationIcon>Logo\GM3P logo 1x1 256.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Codeuctivity.ImageSharpCompare" Version="4.1.350" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-preview.7.25380.108" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0-preview.7.25380.108" />
+      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.7.25380.108" />
+      <PackageReference Include="System.Diagnostics.EventLog" Version="10.0.0-preview.7.25380.108" />
+    </ItemGroup>
+
+</Project>
