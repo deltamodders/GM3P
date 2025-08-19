@@ -64,6 +64,9 @@ namespace GM3P.Cache
         {
             try
             {
+                if (!File.Exists(path))
+                    return ("", "");
+
                 var text = File.ReadAllText(path).Trim();
                 string pre = "", post = "";
 
@@ -82,8 +85,9 @@ namespace GM3P.Cache
 
                 return (pre, post);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Failed to read stamp at {path}: {ex.Message}");
                 return ("", "");
             }
         }
@@ -97,7 +101,7 @@ namespace GM3P.Cache
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to write stamp: {ex.Message}");
+                Console.WriteLine($"Failed to write stamp at {path}: {ex.Message}");
             }
         }
 
@@ -128,6 +132,8 @@ namespace GM3P.Cache
             if (used <= capBytes)
                 return;
 
+            Console.WriteLine($"Export cache size {used / 1024 / 1024}MB exceeds cap {config.ExportCacheCapMB}MB, pruning...");
+
             // Collect entries with last access time and size
             var entries = new List<(string path, DateTime lastAccess, long size)>();
 
@@ -144,22 +150,50 @@ namespace GM3P.Cache
                 }
             }
 
+            // Also check byhash cache
+            string byHashRoot = Path.Combine(config.OutputPath ?? "", "Cache", "export");
+            if (Directory.Exists(byHashRoot))
+            {
+                foreach (var chapterDir in Directory.EnumerateDirectories(byHashRoot))
+                {
+                    var byHashDir = Path.Combine(chapterDir, "byhash");
+                    if (!Directory.Exists(byHashDir)) continue;
+
+                    foreach (var shardDir in Directory.EnumerateDirectories(byHashDir))
+                    {
+                        foreach (var hashDir in Directory.EnumerateDirectories(shardDir))
+                        {
+                            string stamp = Path.Combine(hashDir, ".stamp");
+                            DateTime lastAccess = File.Exists(stamp) ?
+                                new FileInfo(stamp).LastAccessTimeUtc :
+                                Directory.GetLastWriteTimeUtc(hashDir);
+                            long size = GetDirectorySize(hashDir);
+                            entries.Add((hashDir, lastAccess, size));
+                        }
+                    }
+                }
+            }
+
             // Delete oldest first until under cap
+            int deletedCount = 0;
             foreach (var entry in entries.OrderBy(e => e.lastAccess))
             {
                 try
                 {
                     Directory.Delete(entry.path, recursive: true);
+                    deletedCount++;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Continue even if deletion fails
+                    Console.WriteLine($"Failed to delete cache directory {entry.path}: {ex.Message}");
                 }
 
                 used -= entry.size;
                 if (used <= capBytes)
                     break;
             }
+
+            Console.WriteLine($"Pruned {deletedCount} cached exports");
         }
 
         public void MirrorObjectsSelective(string srcObjects, string dstObjects, bool includeSprites)
@@ -168,6 +202,16 @@ namespace GM3P.Cache
                 return;
 
             Directory.CreateDirectory(dstObjects);
+
+            // If we're not including sprites but they're the only difference, skip entirely
+            bool hasNonSpriteChanges = Directory.EnumerateFiles(srcObjects, "*", SearchOption.AllDirectories)
+                .Any(f => !Path.GetRelativePath(srcObjects, f).StartsWith("Sprites", StringComparison.OrdinalIgnoreCase));
+
+            if (!includeSprites && !hasNonSpriteChanges)
+            {
+                Console.WriteLine("  Skipping mirror - only sprites changed and sprites disabled");
+                return;
+            }
 
             // Create directory structure
             foreach (var dir in Directory.EnumerateDirectories(srcObjects, "*", SearchOption.AllDirectories))
@@ -198,16 +242,23 @@ namespace GM3P.Cache
                 return 0;
 
             long total = 0;
-            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            try
             {
-                try
+                foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
                 {
-                    total += new FileInfo(file).Length;
+                    try
+                    {
+                        total += new FileInfo(file).Length;
+                    }
+                    catch
+                    {
+                        // Skip files we can't access
+                    }
                 }
-                catch
-                {
-                    // Skip files we can't access
-                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error calculating directory size for {path}: {ex.Message}");
             }
             return total;
         }
