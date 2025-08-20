@@ -1,4 +1,4 @@
-﻿// ModCombiner.cs
+﻿// ModCombiner.cs  — revised for NewObjects merge + import order robustness
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -65,6 +65,7 @@ namespace GM3P.Merging
             _gitService = gitService;
             _modTool = modTool;
         }
+
         private class ModChangeInfo
         {
             public int NewObjects { get; set; }
@@ -72,14 +73,16 @@ namespace GM3P.Merging
             public int ModifiedCode { get; set; }
             public bool HasAssetOrderChanges { get; set; }
 
-            public bool HasAnyChanges => NewObjects > 0 || ModifiedSprites > 0 ||
-                                          ModifiedCode > 0 || HasAssetOrderChanges;
+            public bool HasAnyChanges =>
+                NewObjects > 0 || ModifiedSprites > 0 || ModifiedCode > 0 || HasAssetOrderChanges;
 
+            // AssetOrder not scored on purpose (structure-only)
             public int TotalScore => NewObjects * 100 + ModifiedSprites * 10 + ModifiedCode * 5;
 
             public override string ToString()
             {
-                return $"{NewObjects} new objects, {ModifiedSprites} sprites, {ModifiedCode} code files";
+                return $"{NewObjects} new objects, {ModifiedSprites} sprites, {ModifiedCode} code files"
+                       + (HasAssetOrderChanges ? " (+AssetOrder)" : "");
             }
         }
 
@@ -87,41 +90,50 @@ namespace GM3P.Merging
         {
             var info = new ModChangeInfo();
 
-            // Check new objects
-            string newObjectsFile = _directoryManager.GetXDeltaCombinerPath(
+            // LEGACY signal: NewObjects.txt
+            string legacyNewObjectsFile = _directoryManager.GetXDeltaCombinerPath(
                 config, chapter.ToString(), modNumber.ToString(), "Objects", "NewObjects.txt");
 
-            if (File.Exists(newObjectsFile))
+            if (File.Exists(legacyNewObjectsFile))
             {
-                info.NewObjects = File.ReadAllLines(newObjectsFile)
-                    .Where(l => !string.IsNullOrWhiteSpace(l))
-                    .Count();
+                info.NewObjects += File.ReadAllLines(legacyNewObjectsFile)
+                    .Count(l => !string.IsNullOrWhiteSpace(l));
             }
 
-            // Check modified sprites
+            // NEW signal: explicit ObjectDefinitions
+            string newObjDefsDir = _directoryManager.GetXDeltaCombinerPath(
+                config, chapter.ToString(), modNumber.ToString(), "Objects", "NewObjects", "ObjectDefinitions");
+
+            if (Directory.Exists(newObjDefsDir))
+            {
+                info.NewObjects += Directory.GetFiles(newObjDefsDir, "*.txt", SearchOption.TopDirectoryOnly).Length;
+            }
+
+            // Modified sprites
             string spritesPath = _directoryManager.GetXDeltaCombinerPath(
                 config, chapter.ToString(), modNumber.ToString(), "Objects", "Sprites");
 
             if (Directory.Exists(spritesPath))
-            {
                 info.ModifiedSprites = Directory.GetFiles(spritesPath, "*.png", SearchOption.AllDirectories).Length;
-            }
 
-            // Check modified code
+            // Modified code (top-level CodeEntries only; NewObjects code handled separately during import)
             string codePath = _directoryManager.GetXDeltaCombinerPath(
                 config, chapter.ToString(), modNumber.ToString(), "Objects", "CodeEntries");
 
             if (Directory.Exists(codePath))
-            {
                 info.ModifiedCode = Directory.GetFiles(codePath, "*.gml", SearchOption.AllDirectories).Length;
-            }
+
+            // AssetOrder present?
+            string modAO = _directoryManager.GetXDeltaCombinerPath(
+                config, chapter.ToString(), modNumber.ToString(), "Objects", "AssetOrder.txt");
+            if (File.Exists(modAO))
+                info.HasAssetOrderChanges = true;
 
             return info;
         }
 
         private int SelectBestBase(Dictionary<int, ModChangeInfo> modsWithChanges, int chapter, GM3PConfig config)
         {
-            // Score each mod - prefer mods with new objects as base
             var scores = modsWithChanges.Select(kvp => new
             {
                 ModNumber = kvp.Key,
@@ -132,12 +144,11 @@ namespace GM3P.Merging
 
             Console.WriteLine("  Base selection scores:");
             foreach (var score in scores)
-            {
                 Console.WriteLine($"    Mod {score.ModNumber - 1}: score {score.Score}");
-            }
 
             return scores.First().ModNumber;
         }
+
         public async Task CompareCombine(GM3PConfig config)
         {
             for (int chapter = 0; chapter < config.ChapterAmount; chapter++)
@@ -163,7 +174,6 @@ namespace GM3P.Merging
                 // Clear stale merged files
                 string mergedObjectsPath = _directoryManager.GetXDeltaCombinerPath(
                     config, chapter.ToString(), "1", "Objects");
-
                 if (Directory.Exists(mergedObjectsPath))
                 {
                     try { Directory.Delete(mergedObjectsPath, true); } catch { }
@@ -173,12 +183,12 @@ namespace GM3P.Merging
                 var vanillaFiles = Directory.GetFiles(vanillaObjectsPath, "*", SearchOption.AllDirectories);
                 Console.WriteLine($"  Found {vanillaFiles.Length} vanilla files");
 
-                // Build file dictionaries
+                // Build dictionaries
                 var vanillaFileDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 var allFileVersions = new Dictionary<string, List<ModFileInfo>>(StringComparer.OrdinalIgnoreCase);
                 var allKnown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                // Add vanilla versions
+                // Add vanilla
                 foreach (var vf in vanillaFiles)
                 {
                     string relKey = _assetHelper.NormalizeKey(Path.GetRelativePath(vanillaObjectsPath, vf));
@@ -186,10 +196,7 @@ namespace GM3P.Merging
                     allKnown.Add(relKey);
 
                     if (!allFileVersions.TryGetValue(relKey, out var list))
-                    {
-                        list = new List<ModFileInfo>();
-                        allFileVersions[relKey] = list;
-                    }
+                        allFileVersions[relKey] = list = new List<ModFileInfo>();
                     list.Add(new ModFileInfo { ModNumber = 0, FilePath = vf, ModName = "Vanilla" });
                 }
 
@@ -198,7 +205,6 @@ namespace GM3P.Merging
                 {
                     string modObjectsPath = _directoryManager.GetXDeltaCombinerPath(
                         config, chapter.ToString(), modNumber.ToString(), "Objects");
-
                     if (!Directory.Exists(modObjectsPath)) continue;
 
                     var modFiles = Directory.GetFiles(modObjectsPath, "*", SearchOption.AllDirectories);
@@ -210,33 +216,31 @@ namespace GM3P.Merging
                         allKnown.Add(relKey);
 
                         if (!allFileVersions.TryGetValue(relKey, out var list))
-                        {
-                            list = new List<ModFileInfo>();
-                            allFileVersions[relKey] = list;
-                        }
+                            allFileVersions[relKey] = list = new List<ModFileInfo>();
                         list.Add(new ModFileInfo { ModNumber = modNumber, FilePath = mf, ModName = $"Mod {modNumber - 1}" });
                     }
                 }
 
                 Console.WriteLine($"Chapter {chapter}: Found {allKnown.Count} unique files across vanilla and {config.ModAmount} mod(s)");
 
-                // Process all files except AssetOrder.txt
+                // Process everything except AssetOrder.txt (handled later)
                 foreach (string relKey in allKnown)
                 {
-                    if (relKey.Equals("assetorder.txt", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (relKey.Equals("assetorder.txt", StringComparison.OrdinalIgnoreCase))
+                        continue;
 
                     var result = await ProcessFile(relKey, allFileVersions[relKey], vanillaFileDict,
-                                                  mergedObjectsPath, chapterModified);
+                                                   mergedObjectsPath, chapterModified);
 
                     changedThisChapter += result.ChangedCount;
-                    anyCodeChanged = anyCodeChanged || result.CodeChanged;
-                    anySpriteChanged = anySpriteChanged || result.SpriteChanged;
+                    anyCodeChanged |= result.CodeChanged;
+                    anySpriteChanged |= result.SpriteChanged;
                 }
 
-                // Handle AssetOrder.txt
+                // AssetOrder merge
                 _assetOrderMerger.HandleAssetOrderFile(chapter, allFileVersions, vanillaFileDict, config);
 
-                // Check if AssetOrder.txt changed
+                // Detect actual AO change
                 var mergedAO = _directoryManager.GetXDeltaCombinerPath(
                     config, chapter.ToString(), "1", "Objects", "AssetOrder.txt");
                 if (File.Exists(mergedAO))
@@ -261,6 +265,7 @@ namespace GM3P.Merging
                     config, chapter.ToString(), "1", "modifiedAssets.txt");
                 Directory.CreateDirectory(Path.GetDirectoryName(modListPath)!);
                 File.WriteAllLines(modListPath, chapterModified);
+
                 Console.WriteLine($"\nChapter {chapter} Summary:");
                 Console.WriteLine($"  Total files processed: {allKnown.Count}");
                 Console.WriteLine($"  Files changed: {changedThisChapter}");
@@ -269,9 +274,7 @@ namespace GM3P.Merging
                 Console.WriteLine($"  AssetOrder changes: {(assetOrderChanged ? "Yes" : "No")}");
 
                 if (changedThisChapter == 0)
-                {
                     Console.WriteLine("  WARNING: No changes detected! Check if mods were properly dumped.");
-                }
             }
         }
 
@@ -282,25 +285,22 @@ namespace GM3P.Merging
             var vanillaVersion = versions.FirstOrDefault(v => v.ModNumber == 0);
             var modVersions = versions.Where(v => v.ModNumber > 0).ToList();
 
-            // LOG what we're processing
             if (modVersions.Count > 0)
-            {
                 Console.WriteLine($"  File {Path.GetFileName(relKey)}: {modVersions.Count} mod version(s)");
-            }
 
             var different = ComputeDifferences(vanillaVersion, modVersions, relKey);
 
             if (different.Count == 0)
             {
-                // No changes - but check if this is a NEW file
+                // New file (no vanilla) → include all mod versions for merge policy
                 if (vanillaVersion == null && modVersions.Count > 0)
                 {
                     Console.WriteLine($"    NEW FILE from mods: {relKey}");
-                    different = modVersions; // Include all mod versions
+                    different = modVersions;
                 }
                 else
                 {
-                    return result; // No changes at all
+                    return result; // truly unchanged
                 }
             }
 
@@ -318,7 +318,7 @@ namespace GM3P.Merging
                 await MergeMultipleVersions(relKey, different, vanillaVersion, targetPath);
             }
 
-            // Track changes
+            // Track
             string hash = _hashCache.GetSha1Base64(targetPath);
             _modifiedAssets.Add($"{relKey}        {hash}");
             chapterModified.Add($"{relKey}        {hash}");
@@ -352,20 +352,18 @@ namespace GM3P.Merging
                 {
                     foreach (var mv in modVersions)
                     {
-                        // Try sprite comparison first
-                        bool isDifferent = false;
-                        try 
+                        bool isDifferent;
+                        try
                         {
                             isDifferent = _pngUtils.AreSpritesDifferent(mv.FilePath, vanillaVersion.FilePath);
                         }
                         catch
                         {
-                            // Fallback to hash comparison if PNG comparison fails
                             string vHash = _hashCache.GetSha1Base64(vanillaVersion.FilePath);
                             string mHash = _hashCache.GetSha1Base64(mv.FilePath);
                             isDifferent = !string.Equals(vHash, mHash, StringComparison.Ordinal);
                         }
-        
+
                         if (isDifferent)
                         {
                             different.Add(mv);
@@ -382,19 +380,15 @@ namespace GM3P.Merging
                         if (!string.Equals(vHash, mHash, StringComparison.Ordinal))
                         {
                             different.Add(mv);
-                            // Debug output to see what's being detected
                             if (ext.Equals(".gml", StringComparison.OrdinalIgnoreCase))
-                            {
                                 Console.WriteLine($"    Code different: {Path.GetFileName(mv.FilePath)} from {mv.ModName}");
-                            }
                         }
                     }
                 }
             }
             else if (vanillaVersion == null && modVersions.Count > 0)
             {
-                // New file from mods
-                different = modVersions;
+                different = modVersions; // brand-new file
                 Console.WriteLine($"    New file from mods: {Path.GetFileName(modVersions[0].FilePath)}");
             }
 
@@ -404,50 +398,52 @@ namespace GM3P.Merging
         private async Task MergeMultipleVersions(string relKey, List<ModFileInfo> different,
                                                 ModFileInfo? vanillaVersion, string targetPath)
         {
+            string lcKey = relKey.Replace('\\', '/').ToLowerInvariant();
             string ext = Path.GetExtension(relKey).ToLowerInvariant();
+
+            // SPECIAL-CASE: Objects/NewObjects/** -> last-mod-wins (deterministic; definitions shouldn't be git-merged)
+            if (lcKey.StartsWith("newobjects/") || lcKey.Contains("/newobjects/"))
+            {
+                var last = different.OrderBy(d => d.ModNumber).Last();
+                File.Copy(last.FilePath, targetPath, true);
+                Console.WriteLine($"    [NewObjects] Using last mod's version: {last.ModName}");
+                return;
+            }
 
             if (ext == ".png")
             {
-                // Select best sprite
                 var best = SelectBestSprite(different.OrderBy(d => d.ModNumber).ToList(), vanillaVersion);
                 File.Copy(best.FilePath, targetPath, true);
+                return;
             }
-            else if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
+
+            if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
             {
-                // Last mod wins for audio
                 var last = different.OrderBy(d => d.ModNumber).Last();
                 File.Copy(last.FilePath, targetPath, true);
+                return;
             }
-            else
+
+            bool ok = false;
+            if (vanillaVersion != null)
+                ok = _gitService.PerformGitMerge(vanillaVersion.FilePath, different, targetPath);
+
+            if (!ok)
             {
-                bool ok = false;
-                if (vanillaVersion != null)
-                {
-                    ok = _gitService.PerformGitMerge(vanillaVersion.FilePath, different, targetPath);
-                }
+                Console.WriteLine($"    WARNING: Git merge failed for {relKey}, using last mod");
+                File.Copy(different.OrderBy(d => d.ModNumber).Last().FilePath, targetPath, true);
 
-                if (!ok)
-                {
-                    Console.WriteLine($"    WARNING: Git merge failed for {relKey}, using last mod");
-                    File.Copy(different.OrderBy(d => d.ModNumber).Last().FilePath, targetPath, true);
-
-                    // Log which mods were skipped
-                    var skipped = different.Take(different.Count - 1);
-                    foreach (var skip in skipped)
-                    {
-                        Console.WriteLine($"      SKIPPED: {skip.ModName}'s changes to {Path.GetFileName(relKey)}");
-                    }
-                }
+                var skipped = different.Take(different.Count - 1);
+                foreach (var skip in skipped)
+                    Console.WriteLine($"      SKIPPED: {skip.ModName}'s changes to {Path.GetFileName(relKey)}");
             }
-
-            await Task.CompletedTask; // Keep async signature
         }
 
         private ModFileInfo SelectBestSprite(List<ModFileInfo> sprites, ModFileInfo? vanillaVersion)
         {
             Console.WriteLine($"    Selecting best sprite from {sprites.Count} version(s)");
 
-            // Prioritize valid PNGs from later mods
+            // Prefer valid PNGs from later mods
             for (int i = sprites.Count - 1; i >= 0; i--)
             {
                 if (_pngUtils.IsValidPNG(sprites[i].FilePath))
@@ -456,34 +452,26 @@ namespace GM3P.Merging
                     Console.WriteLine($"      Selected valid PNG from {sprites[i].ModName} ({info.Length} bytes)");
                     return sprites[i];
                 }
-                else
-                {
-                    Console.WriteLine($"      WARNING: Invalid PNG from {sprites[i].ModName}");
-                }
+                Console.WriteLine($"      WARNING: Invalid PNG from {sprites[i].ModName}");
             }
 
-            // Fall back to vanilla if available
             if (vanillaVersion != null && _pngUtils.IsValidPNG(vanillaVersion.FilePath))
             {
                 Console.WriteLine($"      All mod sprites invalid, using vanilla");
                 return vanillaVersion;
             }
 
-            // Last resort
             Console.WriteLine($"      WARNING: No valid sprites found, using {sprites[0].ModName} anyway");
             return sprites[0];
         }
 
         private bool FilesEqual(string file1, string file2)
         {
-            if (!File.Exists(file1) || !File.Exists(file2))
-                return false;
+            if (!File.Exists(file1) || !File.Exists(file2)) return false;
 
             var info1 = new FileInfo(file1);
             var info2 = new FileInfo(file2);
-
-            if (info1.Length != info2.Length)
-                return false;
+            if (info1.Length != info2.Length) return false;
 
             using var fs1 = File.OpenRead(file1);
             using var fs2 = File.OpenRead(file2);
@@ -496,14 +484,11 @@ namespace GM3P.Merging
                 int bytes1 = fs1.Read(buffer1, 0, buffer1.Length);
                 int bytes2 = fs2.Read(buffer2, 0, buffer2.Length);
 
-                if (bytes1 != bytes2)
-                    return false;
+                if (bytes1 != bytes2) return false;
+                if (bytes1 == 0) return true;
 
-                if (bytes1 == 0)
-                    return true;
-
-                if (!buffer1.Take(bytes1).SequenceEqual(buffer2.Take(bytes2)))
-                    return false;
+                for (int i = 0; i < bytes1; i++)
+                    if (buffer1[i] != buffer2[i]) return false;
             }
         }
 
@@ -547,7 +532,6 @@ namespace GM3P.Merging
                 Console.WriteLine($"  ✓ All {total} sprites validated successfully");
             }
         }
-
 
         private void SaveChangeStamp(int chapter, int changedThisChapter, bool anyCodeChanged,
                                     bool anySpriteChanged, bool assetOrderChanged, GM3PConfig config)
@@ -600,9 +584,8 @@ namespace GM3P.Merging
                 string workingDataWin = _directoryManager.GetXDeltaCombinerPath(
                     config, chapter.ToString(), "1", "data.win");
 
-                // Find ALL mods that have changes (not just new objects)
+                // Identify mods that actually changed anything
                 var modsWithChanges = new Dictionary<int, ModChangeInfo>();
-
                 for (int modNumber = 2; modNumber < (config.ModAmount + 2); modNumber++)
                 {
                     var changeInfo = AnalyzeModChanges(chapter, modNumber, config);
@@ -613,8 +596,7 @@ namespace GM3P.Merging
                     }
                 }
 
-                // Strategy: Use the mod with the MOST TOTAL CHANGES as base
-                // This minimizes the import work needed
+                // Choose base
                 if (modsWithChanges.Count == 0)
                 {
                     Console.WriteLine("No changes detected, using vanilla");
@@ -624,7 +606,6 @@ namespace GM3P.Merging
                 }
                 else if (modsWithChanges.Count == 1)
                 {
-                    // Only one mod has changes - use it directly
                     var singleMod = modsWithChanges.First();
                     Console.WriteLine($"  Only Mod {singleMod.Key - 1} has changes, using it directly");
                     _fileLinker.LinkOrCopy(
@@ -633,19 +614,14 @@ namespace GM3P.Merging
                 }
                 else
                 {
-                    // Multiple mods - use the one with most comprehensive changes
                     var bestBase = SelectBestBase(modsWithChanges, chapter, config);
                     Console.WriteLine($"  Using Mod {bestBase - 1} as base (most comprehensive)");
-
                     _fileLinker.LinkOrCopy(
                         _directoryManager.GetXDeltaCombinerPath(config, chapter.ToString(), bestBase.ToString(), "data.win"),
                         workingDataWin);
-
-                    // Mark which mod we used as base so we don't re-import its changes
                     _usedAsBase = bestBase;
                 }
 
-                // Now import the DIFFERENCES from other mods
                 await ImportDifferences(chapter, workingDataWin, modsWithChanges, config);
             }
         }
@@ -654,14 +630,20 @@ namespace GM3P.Merging
             Dictionary<int, ModChangeInfo> modsWithChanges, GM3PConfig config)
         {
             if (_usedAsBase > 0 && modsWithChanges.ContainsKey(_usedAsBase))
-            {
                 Console.WriteLine($"  Note: Mod {_usedAsBase - 1}'s changes already in base data.win");
-            }
+
             var scripts = new List<string>();
 
-            // Determine what needs importing from the MERGED Objects folder
             string mergedObjects = _directoryManager.GetXDeltaCombinerPath(
                 config, chapter.ToString(), "1", "Objects");
+
+            // Script presence probing (robust across forks)
+            string scriptsRoot = Path.Combine(config.WorkingDirectory, "UTMTCLI", "Scripts");
+            bool hasImportGraphics = File.Exists(Path.Combine(scriptsRoot, "ImportGraphics.csx"));
+            bool hasImportGraphicsAdv = File.Exists(Path.Combine(scriptsRoot, "ImportGraphicsAdvanced.csx"));
+            bool hasImportNewObjects = File.Exists(Path.Combine(scriptsRoot, "ImportNewObjects.csx"));
+            bool hasImportGml = File.Exists(Path.Combine(scriptsRoot, "ImportGML.csx"));
+            bool hasImportAssetOrder = File.Exists(Path.Combine(scriptsRoot, "ImportAssetOrder.csx"));
 
             bool hasSprites = Directory.Exists(Path.Combine(mergedObjects, "Sprites")) &&
                               Directory.GetFiles(Path.Combine(mergedObjects, "Sprites"), "*.png", SearchOption.AllDirectories).Any();
@@ -671,35 +653,72 @@ namespace GM3P.Merging
 
             bool hasAssetOrder = File.Exists(Path.Combine(mergedObjects, "AssetOrder.txt"));
 
+            string newObjDefsDir = Path.Combine(mergedObjects, "NewObjects", "ObjectDefinitions");
+            string newObjCodeDir = Path.Combine(mergedObjects, "NewObjects", "CodeEntries");
+            bool hasNewObjDefs = Directory.Exists(newObjDefsDir) &&
+                                 Directory.GetFiles(newObjDefsDir, "*.txt", SearchOption.TopDirectoryOnly).Any();
+            bool hasNewObjCode = Directory.Exists(newObjCodeDir) &&
+                                 Directory.GetFiles(newObjCodeDir, "*.gml", SearchOption.TopDirectoryOnly).Any();
+
+            // 1) Sprites first
             if (hasSprites)
             {
-                scripts.Add("ImportGraphics.csx");
+                if (hasImportGraphics) scripts.Add("ImportGraphics.csx");
+                else if (hasImportGraphicsAdv) scripts.Add("ImportGraphicsAdvanced.csx");
+                else Console.WriteLine("  WARNING: No ImportGraphics script found; skipping sprite import.");
+
                 var count = Directory.GetFiles(Path.Combine(mergedObjects, "Sprites"), "*.png", SearchOption.AllDirectories).Length;
                 Console.WriteLine($"  Importing {count} merged sprites");
             }
 
-            if (hasCode)
+            // 2) New objects (after sprites; they may reference sprites)
+            if (hasNewObjDefs)
             {
-                scripts.Add("ImportGML.csx");
-                var count = Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.gml", SearchOption.AllDirectories).Length;
-                Console.WriteLine($"  Importing {count} merged code files");
+                if (hasImportNewObjects)
+                {
+                    scripts.Add("ImportNewObjects.csx");
+                    int defCount = Directory.GetFiles(newObjDefsDir, "*.txt", SearchOption.TopDirectoryOnly).Length;
+                    Console.WriteLine($"  Importing new objects ({defCount})" + (hasNewObjCode ? " + their event code" : ""));
+                }
+                else
+                {
+                    Console.WriteLine("  WARNING: ImportNewObjects.csx not found; new object definitions present but will not be created.");
+                }
             }
 
+            // 3) Remaining code (top-level)
+            if (hasCode)
+            {
+                if (hasImportGml)
+                {
+                    scripts.Add("ImportGML.csx");
+                    var count = Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.gml", SearchOption.AllDirectories).Length;
+                    Console.WriteLine($"  Importing {count} merged code files");
+                }
+                else
+                {
+                    Console.WriteLine("  WARNING: ImportGML.csx not found; code will not be imported.");
+                }
+            }
+
+            // 4) Asset order last
             if (hasAssetOrder)
             {
-                scripts.Add("ImportAssetOrder.csx");
-                Console.WriteLine($"  Importing merged AssetOrder.txt");
+                if (hasImportAssetOrder)
+                {
+                    scripts.Add("ImportAssetOrder.csx");
+                    Console.WriteLine($"  Importing merged AssetOrder.txt");
+                }
+                else
+                {
+                    Console.WriteLine("  WARNING: ImportAssetOrder.csx not found; AssetOrder changes will not be applied.");
+                }
             }
 
             if (scripts.Count > 0)
-            {
                 await _modTool.RunImportScripts(workingDataWin, scripts.ToArray(), config);
-            }
         }
 
-        public List<string> GetModifiedAssets()
-        {
-            return _modifiedAssets;
-        }
+        public List<string> GetModifiedAssets() => _modifiedAssets;
     }
 }

@@ -71,15 +71,19 @@ namespace GM3P.GameMaker
                     if (File.Exists(modifiedOnlyScript))
                     {
                         // Use the optimized export
-                        scriptsToRun = " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportModifiedOnly.csx\"";
+                        scriptsToRun =
+                            " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportModifiedOnly.csx\"" +
+                            " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportNewObjects.csx\"";
+
                     }
                     else
                     {
-                        // Fall back to full export
-                        Console.WriteLine("      Note: ExportModifiedOnly.csx not found, using full export");
-                        scriptsToRun = " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx\"" +
-                                      " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllCode.csx\"" +
-                                      " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAssetOrder.csx\"";
+                        // Fallback (older environments): export everything + asset order
+                        scriptsToRun =
+                            " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx\"" +
+                            " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllCode.csx\"" +
+                            " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAssetOrder.csx\"" +
+                            " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportNewObjects.csx\"";
                     }
                 }
 
@@ -103,7 +107,7 @@ namespace GM3P.GameMaker
                 modToolProc.StartInfo.RedirectStandardError = true;
 
                 // Set working directory to help scripts find files
-                modToolProc.StartInfo.WorkingDirectory = Path.GetDirectoryName(dataWin);
+                modToolProc.StartInfo.WorkingDirectory = config.WorkingDirectory;
 
                 modToolProc.Start();
 
