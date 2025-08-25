@@ -149,6 +149,13 @@ namespace GM3P.Merging
             return scores.First().ModNumber;
         }
 
+        private static IEnumerable<string> EnumerateSlotFiles(string slotRoot)
+        {
+            return Directory.Exists(slotRoot)
+                ? Directory.EnumerateFiles(slotRoot, "*", SearchOption.AllDirectories)
+                : Enumerable.Empty<string>();
+        }
+
         public async Task CompareCombine(GM3PConfig config)
         {
             for (int chapter = 0; chapter < config.ChapterAmount; chapter++)
@@ -426,7 +433,7 @@ namespace GM3P.Merging
 
             bool ok = false;
             if (vanillaVersion != null)
-                ok = _gitService.PerformGitMerge(vanillaVersion.FilePath, different, targetPath);
+                ok = _gitService.PerformGitMerge(vanillaVersion.FilePath, different, targetPath, relKey);
 
             if (!ok)
             {
@@ -640,7 +647,6 @@ namespace GM3P.Merging
             // Script presence probing (robust across forks)
             string scriptsRoot = Path.Combine(config.WorkingDirectory, "UTMTCLI", "Scripts");
             bool hasImportGraphics = File.Exists(Path.Combine(scriptsRoot, "ImportGraphics.csx"));
-            bool hasImportGraphicsAdv = File.Exists(Path.Combine(scriptsRoot, "ImportGraphicsAdvanced.csx"));
             bool hasImportNewObjects = File.Exists(Path.Combine(scriptsRoot, "ImportNewObjects.csx"));
             bool hasImportGml = File.Exists(Path.Combine(scriptsRoot, "ImportGML.csx"));
             bool hasImportAssetOrder = File.Exists(Path.Combine(scriptsRoot, "ImportAssetOrder.csx"));
@@ -664,7 +670,6 @@ namespace GM3P.Merging
             if (hasSprites)
             {
                 if (hasImportGraphics) scripts.Add("ImportGraphics.csx");
-                else if (hasImportGraphicsAdv) scripts.Add("ImportGraphicsAdvanced.csx");
                 else Console.WriteLine("  WARNING: No ImportGraphics script found; skipping sprite import.");
 
                 var count = Directory.GetFiles(Path.Combine(mergedObjects, "Sprites"), "*.png", SearchOption.AllDirectories).Length;

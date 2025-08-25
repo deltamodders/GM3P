@@ -18,6 +18,9 @@
         public int ExportCacheCapMB { get; set; } = 2048;
         public int XDeltaConcurrency { get; set; } = 3;
 
+        // Debug mode for Roslyn scripts.
+        public bool DebugMode { get; set; } = false;
+
         public static GM3PConfig LoadFromEnvironment()
         {
             var config = new GM3PConfig();

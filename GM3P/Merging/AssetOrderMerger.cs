@@ -25,6 +25,24 @@ namespace GM3P.Merging
             _directoryManager = directoryManager;
         }
 
+        // NEW: strict filter for real asset lines (keeps importer happy)
+        private static bool IsRealAssetLine(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            s = s.Trim();
+
+            // Section markers from exporters (should never be treated as asset names)
+            if (s.StartsWith("@@")) return false;
+
+            // Comments / separators
+            if (s.StartsWith("#")) return false;
+
+            // Defensive: reject obvious separators or malformed entries
+            if (s.Contains(",") || s.Contains(":")) return false;
+
+            return true;
+        }
+
         public void HandleAssetOrderFile(int chapter, Dictionary<string, List<ModFileInfo>> allFileVersions,
             Dictionary<string, string> vanillaFileDict, GM3PConfig config)
         {
@@ -43,46 +61,43 @@ namespace GM3P.Merging
                 }
                 else
                 {
-                    Console.WriteLine("  WARNING: No AssetOrder.txt found in vanilla or mods!");
+                    Console.WriteLine("  WARNING: No AssetOrder.txt found at all; creating empty list");
+                    File.WriteAllText(assetOrderFile, string.Empty);
                 }
+
+                SanitizeAssetOrderForChapter(chapter, config);
+                ValidateAssetOrder(assetOrderFile, chapter);
                 return;
             }
 
-            var assetOrderVersions = allFileVersions["assetorder.txt"];
-            var vanillaAssetOrder = assetOrderVersions.FirstOrDefault(v => v.ModNumber == 0);
-            var modAssetOrders = assetOrderVersions.Where(v => v.ModNumber > 0).ToList();
-
+            var modAssetOrders = allFileVersions["assetorder.txt"];
             var differentModAssetOrders = new List<ModFileInfo>();
 
-            if (vanillaAssetOrder != null)
+            // Use the latest version for each unique mod
+            var groupedByMod = modAssetOrders.GroupBy(m => m.ModName, StringComparer.OrdinalIgnoreCase);
+
+            foreach (IGrouping<string, ModFileInfo> group in groupedByMod)
             {
-                var vanillaLines = File.ReadAllLines(vanillaAssetOrder.FilePath)
-                    .Where(l => !string.IsNullOrWhiteSpace(l))
-                    .ToList();
+                // Higher ModNumber wins; tie-break with file write time
+                var latest = group
+                    .OrderByDescending((ModFileInfo m) => m.ModNumber)
+                    .ThenByDescending((ModFileInfo m) => File.GetLastWriteTimeUtc(m.FilePath))
+                    .FirstOrDefault();
 
-                foreach (var mod in modAssetOrders)
+                if (latest != null)
+                    differentModAssetOrders.Add(latest);
+            }
+
+            // Identify vanilla AO, if present
+            ModFileInfo? vanillaAssetOrder = null;
+            if (vanillaFileDict.ContainsKey("assetorder.txt"))
+            {
+                vanillaAssetOrder = new ModFileInfo
                 {
-                    try
-                    {
-                        var modLines = File.ReadAllLines(mod.FilePath)
-                            .Where(l => !string.IsNullOrWhiteSpace(l))
-                            .ToList();
-
-                        bool isDifferent = vanillaLines.Count != modLines.Count ||
-                                         !vanillaLines.SequenceEqual(modLines);
-
-                        if (isDifferent)
-                        {
-                            differentModAssetOrders.Add(mod);
-                            Console.WriteLine($"  {mod.ModName} modifies AssetOrder.txt");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"  ERROR reading {mod.ModName}'s AssetOrder.txt: {ex.Message}");
-                        differentModAssetOrders.Add(mod);
-                    }
-                }
+                    FilePath = vanillaFileDict["assetorder.txt"],
+                    ModName = "Vanilla",
+                    ModNumber = 0
+                };
             }
             else
             {
@@ -98,19 +113,18 @@ namespace GM3P.Merging
             }
             else if (differentModAssetOrders.Count == 1)
             {
-                File.Copy(differentModAssetOrders[0].FilePath, assetOrderFile, true);
-                Console.WriteLine($"  ✓ Using {differentModAssetOrders[0].ModName}'s AssetOrder.txt");
+                // Single mod version – just use it
+                var mod = differentModAssetOrders.First();
+                File.Copy(mod.FilePath, assetOrderFile, true);
+                Console.WriteLine($"  ✓ Using AssetOrder.txt from {mod.ModName}");
             }
-            else if (differentModAssetOrders.Count > 1)
+            else
             {
-                Console.WriteLine($"Merging AssetOrder.txt from {differentModAssetOrders.Count} mods...");
-
                 try
                 {
-                    var mergedAssets = MergeAssetOrderIntelligently(
-                        vanillaAssetOrder?.FilePath,
-                        differentModAssetOrders
-                    );
+                    // Merge intelligently with vanilla context if available
+                    string? vanillaPath = vanillaAssetOrder?.FilePath;
+                    var mergedAssets = MergeAssetOrderIntelligently(vanillaPath, differentModAssetOrders);
 
                     File.WriteAllLines(assetOrderFile, mergedAssets);
                     Console.WriteLine($"  ✓ Merged AssetOrder.txt: {mergedAssets.Count} total assets");
@@ -130,30 +144,32 @@ namespace GM3P.Merging
         public List<string> MergeAssetOrderIntelligently(string? vanillaPath, List<ModFileInfo> modVersions)
         {
             var result = new List<string>();
-            var addedAssets = new HashSet<string>();
+            var addedAssets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // Start with vanilla order if available
             List<string>? vanillaOrder = null;
             if (!string.IsNullOrEmpty(vanillaPath) && File.Exists(vanillaPath))
             {
                 vanillaOrder = File.ReadAllLines(vanillaPath)
-                    .Where(l => !string.IsNullOrWhiteSpace(l))
+                    .Select(l => l.Trim())
+                    .Where(IsRealAssetLine)
                     .ToList();
 
                 foreach (var asset in vanillaOrder)
                 {
-                    result.Add(asset);
-                    addedAssets.Add(asset);
+                    if (addedAssets.Add(asset))
+                        result.Add(asset);
                 }
 
                 Console.WriteLine($"    Base: {vanillaOrder.Count} vanilla assets");
             }
 
-            // Process each mod's additions
+            // Merge each mod's AO
             foreach (var mod in modVersions)
             {
                 var modAssets = File.ReadAllLines(mod.FilePath)
-                    .Where(l => !string.IsNullOrWhiteSpace(l))
+                    .Select(l => l.Trim())
+                    .Where(IsRealAssetLine)
                     .ToList();
 
                 int newAssetsFromMod = 0;
@@ -223,12 +239,14 @@ namespace GM3P.Merging
                 if (nextAsset != null)
                 {
                     int nextIndex = currentOrder.IndexOf(nextAsset);
-                    if (nextIndex == prevIndex + 1)
-                    {
-                        return nextIndex;
-                    }
+                    if (nextIndex > prevIndex)
+                        return nextIndex; // place right before the next known asset
+                    return prevIndex + 1;
                 }
-                return prevIndex + 1;
+                else
+                {
+                    return prevIndex + 1;
+                }
             }
             else if (nextAsset != null)
             {
@@ -249,7 +267,7 @@ namespace GM3P.Merging
                 return false;
 
             var baseLines = File.Exists(baseAO)
-                ? File.ReadAllLines(baseAO).Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => l.Trim()).ToList()
+                ? File.ReadAllLines(baseAO).Select(l => l.Trim()).Where(IsRealAssetLine).ToList()
                 : new List<string>();
 
             var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -265,11 +283,12 @@ namespace GM3P.Merging
                 foreach (var l in File.ReadAllLines(modAO))
                 {
                     var s = l.Trim();
-                    if (s.Length > 0) allowed.Add(s);
+                    if (IsRealAssetLine(s)) allowed.Add(s);
                 }
             }
 
-            var mergedOrig = File.ReadAllLines(mergedAO).Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+            // Filter merged AO to allowed, real asset lines, preserving order and removing dups
+            var mergedOrig = File.ReadAllLines(mergedAO).Select(l => l.Trim()).Where(IsRealAssetLine).ToList();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var filtered = new List<string>();
 
@@ -279,7 +298,7 @@ namespace GM3P.Merging
                 if (seen.Add(s)) filtered.Add(s);
             }
 
-            // Append any missing entries
+            // Append any missing entries (real assets only)
             int appended = 0;
             foreach (var s in allowed)
             {
@@ -291,7 +310,7 @@ namespace GM3P.Merging
             }
 
             int pruned = mergedOrig.Count - filtered.Count + appended;
-            Console.WriteLine($"  NOTE: kept {filtered.Count} of {mergedOrig.Count} AO lines; pruned {pruned}, appended {appended} (chapter {chapter}).");
+            Console.WriteLine($"  NOTE: kept {filtered.Count} of {mergedOrig.Count} lines; pruned {pruned}, appended {appended} (chapter {chapter}).");
 
             bool sameAsBase = baseLines.Count > 0 && filtered.SequenceEqual(baseLines, StringComparer.Ordinal);
             if (sameAsBase) return false;
@@ -318,8 +337,8 @@ namespace GM3P.Merging
                 return;
             }
 
-            // Check for duplicates
-            var duplicates = lines.GroupBy(x => x)
+            // Basic duplicate check
+            var duplicates = lines.GroupBy(l => l, StringComparer.OrdinalIgnoreCase)
                 .Where(g => g.Count() > 1)
                 .Select(g => g.Key)
                 .ToList();

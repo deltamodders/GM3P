@@ -58,24 +58,26 @@ namespace GM3P.Core
         {
             try
             {
-                Console.WriteLine("Starting dump operation...");
+                Console.WriteLine("Starting dump operation.");
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
                 LoadCachedNumbers();
 
-                // Determine if we should use parallel based on configuration
                 bool useParallel = ShouldUseParallelDump();
 
                 if (useParallel)
                 {
-                    Console.WriteLine("Using optimized parallel dump strategy...");
+                    Console.WriteLine("Using optimized parallel dump strategy.");
                     await ExecuteOptimizedParallelDump();
                 }
                 else
                 {
-                    Console.WriteLine("Using sequential dump for safety...");
+                    Console.WriteLine("Using sequential dump for safety.");
                     await ExecuteSequentialDump();
                 }
+
+                // new guardrail: check for suspiciously empty mod dumps (exporter fallback already added in the script itself).
+                SanityCheckDumpOutputs();
 
                 sw.Stop();
                 Console.WriteLine($"Dump completed in {sw.Elapsed.TotalSeconds:F2} seconds");
@@ -223,7 +225,11 @@ namespace GM3P.Core
                 Console.WriteLine($"  Chapter {chapter}, Mod {modNumber}: exporting...");
 
                 // Pass the mod number explicitly to help with detection
-                await _modTool.RunExportScripts(dataWin, _config.Config, modNumber);
+                await _modTool.RunExportScripts(
+                    dataWin,
+                    modNumber == 0,          // isVanilla
+                    modNumber,
+                    _config.Config);
 
                 // Verify AssetOrder.txt location and move if needed
                 FixAssetOrderLocation(chapter, modNumber);
@@ -456,7 +462,6 @@ namespace GM3P.Core
             return batches;
         }
 
-        // ... rest of the methods remain the same ...
 
         public async Task<bool> ExecuteMassPatch(string[] patchPaths)
         {
@@ -484,7 +489,7 @@ namespace GM3P.Core
         {
             try
             {
-                Console.WriteLine("Starting compare and combine operation...");
+                Console.WriteLine("Starting compare and combine operation.");
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
                 LoadCachedNumbers();
@@ -508,7 +513,7 @@ namespace GM3P.Core
         {
             try
             {
-                Console.WriteLine("Starting import operation...");
+                Console.WriteLine("Starting import operation.");
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
                 LoadCachedNumbers();
@@ -519,8 +524,41 @@ namespace GM3P.Core
                     return true;
                 }
 
-                await _modCombiner.HandleNewObjects(_config.Config);
-                await _modCombiner.ImportWithNewObjects(_config.Config);
+                // Ensure NewObjects stubs and graphics are applied first (same order UTMT scripts expect),
+                // then run ImportGML with capture to fail fast on compile errors.
+                for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
+                {
+                    var chapterRoot = _directoryManager.GetXDeltaCombinerPath(
+                        _config.Config, chapter.ToString(), "1", "");
+                    var dataWin = Path.Combine(chapterRoot, "data.win");
+
+                    // Skip if this chapter has no combined work
+                    if (!File.Exists(dataWin))
+                        continue;
+
+                    // Let the ModCombiner prepare/create any NewObjects files first.
+                    await _modCombiner.HandleNewObjects(_config.Config);
+
+                    // Run graphics + new objects first (if present).
+                    var importList = BuildPresentImportList(chapterRoot, includeCode:false);
+                    if (importList.Count > 0)
+                        await _modTool.RunImportScripts(dataWin, importList.ToArray(), _config.Config);
+
+                    // Fail-fast probe: ImportGML with capture.
+                    var gmlResult = await _modTool.RunScriptAndCapture(dataWin, "ImportGML.csx", _config.Config);
+                    if (!gmlResult.Succeeded)
+                    {
+                        Console.WriteLine("===== ImportGML probe failed (compile/linking) =====");
+                        Console.WriteLine(gmlResult.StdOut);
+                        Console.WriteLine(gmlResult.StdErr);
+                        Console.WriteLine("Aborting import for safety.");
+                        return false;
+                    }
+
+                    // AssetOrder (optional)
+                    if (HasAssetOrder(chapterRoot))
+                        await _modTool.RunScript(dataWin, "ImportAssetOrder.csx", _config.Config);
+                }
 
                 sw.Stop();
                 Console.WriteLine($"Import completed in {sw.Elapsed.TotalSeconds:F2} seconds");
@@ -767,6 +805,111 @@ namespace GM3P.Core
                     Console.WriteLine($"Unknown clear target: {target}");
                     break;
             }
+        }
+
+        private static bool DirHasAny(string dir, string searchPattern, SearchOption opt = SearchOption.AllDirectories)
+            => Directory.Exists(dir) && Directory.EnumerateFiles(dir, searchPattern, opt).Any();
+
+        private static bool ObjectsTreeLooksEmpty(string slotRoot)
+        {
+            // Always inspect under Objects/
+            var objectsDir = Path.Combine(slotRoot, "Objects");
+            var codeDir    = Path.Combine(objectsDir, "CodeEntries");
+            var spritesDir = Path.Combine(objectsDir, "Sprites");
+            var newObjDir  = Path.Combine(objectsDir, "NewObjects");
+
+            int files =
+                (DirHasAny(codeDir, "*.gml")  ? Directory.EnumerateFiles(codeDir,   "*.gml",  SearchOption.AllDirectories).Count() : 0) +
+                (DirHasAny(spritesDir, "*.png")? Directory.EnumerateFiles(spritesDir,"*.png",  SearchOption.AllDirectories).Count() : 0) +
+                (DirHasAny(newObjDir, "*.*")   ? Directory.EnumerateFiles(newObjDir, "*.*",   SearchOption.AllDirectories).Count() : 0);
+
+            // Allow one file (e.g., a single stub) before calling it empty
+            return files <= 1;
+        }
+
+        void SanityCheckDumpOutputs()
+        {
+            for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
+            {
+                for (int modNumber = 2; modNumber < (_config.Config.ModAmount + 2); modNumber++)
+                {
+                    // Slot root: .../xDeltaCombiner/<chapter>/<slot>/
+                    var slotRoot = _directoryManager.GetXDeltaCombinerPath(
+                        _config.Config, chapter.ToString(), modNumber.ToString(), "");
+
+                    // Where we actually expect files:
+                    var objectsDir  = Path.Combine(slotRoot, "Objects");
+                    var spritesDir  = Path.Combine(objectsDir, "Sprites");
+                    var codeDir     = Path.Combine(objectsDir, "CodeEntries");
+                    var newObjsDir  = Path.Combine(objectsDir, "NewObjects");
+                    var assetOrder  = Path.Combine(objectsDir, "AssetOrder.txt");
+
+                    bool looksEmpty = ObjectsTreeLooksEmpty(slotRoot);
+                    if (looksEmpty)
+                    {
+                        Console.WriteLine(
+                            $"[Sanity] Chapter {chapter}, Mod {modNumber - 1}: " +
+                            $"Objects tree looks empty.\n" +
+                            $"         Checked: {codeDir}, {spritesDir}, {newObjsDir}");
+                    }
+
+                    // Only check for *file* AssetOrder.txt, by design.
+                    if (!HasAssetOrder(slotRoot))
+                    {
+                        Console.WriteLine(
+                            $"[Sanity] Chapter {chapter}, Mod {modNumber - 1}: AssetOrder.txt not present at {assetOrder}");
+                    }
+                }
+            }
+        }
+
+
+        private static bool HasAssetOrder(string slotRoot)
+        {
+            var file = Path.Combine(slotRoot, "Objects", "AssetOrder.txt");
+            return File.Exists(file);
+        }
+
+        private static int CountFilesIfExists(string dir, string pattern = "*")
+        {
+            return Directory.Exists(dir)
+                ? Directory.EnumerateFiles(dir, pattern, SearchOption.AllDirectories).Count()
+                : 0;
+        }
+
+        private static bool LooksEmpty(string slotRoot)
+        {
+            bool objectsEmpty = !Directory.Exists(Path.Combine(slotRoot, "Objects")) ||
+                                !Directory.EnumerateFiles(Path.Combine(slotRoot, "Objects"), "*", SearchOption.AllDirectories).Any();
+
+            bool spritesEmpty = !Directory.Exists(Path.Combine(slotRoot, "Sprites")) ||
+                                !Directory.EnumerateFiles(Path.Combine(slotRoot, "Sprites"), "*", SearchOption.AllDirectories).Any();
+
+            return objectsEmpty && spritesEmpty;
+        }
+
+        private static List<string> BuildPresentImportList(string chapterRoot, bool includeCode)
+        {
+            var list = new List<string>();
+
+            // ImportGraphics expects sprites/atlases exported by our scripts
+            if (Directory.Exists(Path.Combine(chapterRoot, "Sprites")) ||
+                Directory.Exists(Path.Combine(chapterRoot, "TexturesGrouped")) ||
+                Directory.Exists(Path.Combine(chapterRoot, "Graphics")))
+            {
+                list.Add("ImportGraphics.csx");
+            }
+
+            // New objects (object definitions / asset order deltas)
+            if (Directory.Exists(Path.Combine(chapterRoot, "NewObjects")))
+            {
+                list.Add("ImportNewObjects.csx");
+            }
+
+            if (includeCode)
+                list.Add("ImportGML.csx");
+
+            return list;
         }
     }
 }
