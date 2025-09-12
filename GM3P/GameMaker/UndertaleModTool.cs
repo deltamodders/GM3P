@@ -11,7 +11,7 @@ namespace GM3P.GameMaker
 {
     public record ScriptResult(int ExitCode, string StdOut, string StdErr)
     {
-        public bool Succeeded => ExitCode == 0 && string.IsNullOrWhiteSpace(StdErr);
+        public bool Succeeded => ExitCode == 0; // allow non-fatal warnings on stderr
     }
 
     public interface IUndertaleModTool
@@ -154,6 +154,7 @@ namespace GM3P.GameMaker
         {
             return await RunImportScriptsInternal(dataWin, scriptNames, config, capture: true);
         }
+
 
         public async Task RunScript(string dataWin, string scriptName, GM3PConfig config)
         {
