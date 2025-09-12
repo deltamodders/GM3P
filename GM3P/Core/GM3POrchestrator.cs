@@ -19,6 +19,7 @@ namespace GM3P.Core
 
     public class GM3POrchestrator : IGM3POrchestrator
     {
+        #region Fields
         private readonly IConfigurationService _config;
         private readonly IDirectoryManager _directoryManager;
         private readonly IFileLinker _fileLinker;
@@ -29,7 +30,9 @@ namespace GM3P.Core
         private readonly IUndertaleModTool _modTool;
         private readonly SemaphoreSlim _dumpSemaphore;
         private readonly object _dumpLock = new object();
+        #endregion
 
+        #region Constructor
         public GM3POrchestrator(
             IConfigurationService config,
             IDirectoryManager directoryManager,
@@ -52,6 +55,31 @@ namespace GM3P.Core
             // IMPORTANT: Set to 1 to prevent file conflicts
             // Multiple UTMT instances can't write to the same output directories
             _dumpSemaphore = new SemaphoreSlim(1);
+        }
+        #endregion
+
+        #region Public Interface Methods
+
+        public async Task<bool> ExecuteMassPatch(string[] patchPaths)
+        {
+            try
+            {
+                Console.WriteLine("Starting mass patch operation...");
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+
+                _directoryManager.CreateCombinerDirectories(_config.Config);
+                await CopyVanillaFiles();
+                await _patchService.ApplyPatches(patchPaths, _config.Config);
+
+                sw.Stop();
+                Console.WriteLine($"Mass patch completed in {sw.Elapsed.TotalSeconds:F2} seconds");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Mass patch failed: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<bool> ExecuteDump()
@@ -90,6 +118,298 @@ namespace GM3P.Core
                 return false;
             }
         }
+
+        public async Task<bool> ExecuteCompareCombine()
+        {
+            try
+            {
+                Console.WriteLine("Starting compare and combine operation.");
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+
+                LoadCachedNumbers();
+                CreateModifiedList();
+                await _modCombiner.CompareCombine(_config.Config);
+                SaveModifiedAssets();
+                _config.UpdateConfiguration(c => c.Combined = true);
+
+                sw.Stop();
+                Console.WriteLine($"Compare and combine completed in {sw.Elapsed.TotalSeconds:F2} seconds");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Compare and combine failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ExecuteImport()
+        {
+            try
+            {
+                Console.WriteLine("Starting unified import operation.");
+                LoadCachedNumbers();
+
+                if (!ShouldImport())
+                {
+                    Console.WriteLine("No changes detected, skipping import");
+                    return true;
+                }
+
+                for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
+                {
+                    await ProcessChapterUnified(chapter);
+                }
+
+                Console.WriteLine("Unified import completed successfully");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Import failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ExecuteResult(string modName)
+        {
+            try
+            {
+                Console.WriteLine($"Creating result for {modName}...");
+                LoadCachedNumbers();
+                _directoryManager.CreateResultDirectories(_config.Config, modName);
+
+                for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
+                {
+                    await CreateChapterResult(chapter, modName);
+                }
+
+                Console.WriteLine($"Result created successfully for {modName}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Result creation failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        public void Clear(string target = "runningCache")
+        {
+            var outputPath = _config.Config.OutputPath;
+            if (string.IsNullOrEmpty(outputPath))
+                return;
+
+            switch (target.ToLower())
+            {
+                case "runningcache":
+                    _directoryManager.ClearDirectory(Path.Combine(outputPath, "xDeltaCombiner"));
+                    _directoryManager.ClearDirectory(Path.Combine(outputPath, "Cache", "running"));
+                    break;
+
+                case "cache":
+                    _directoryManager.ClearDirectory(Path.Combine(outputPath, "Cache"));
+                    _hashCache.Clear();
+                    break;
+
+                case "output":
+                    _directoryManager.ClearDirectory(outputPath);
+                    break;
+
+                case "modpacks":
+                    _directoryManager.ClearDirectory(Path.Combine(outputPath, "result"));
+                    break;
+
+                default:
+                    Console.WriteLine($"Unknown clear target: {target}");
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region Unified Import Implementation
+
+        private async Task ProcessChapterUnified(int chapter)
+        {
+            Console.WriteLine($"Processing Chapter {chapter} with unified approach...");
+
+            // Step 1: Analyze mods and select best base (from ImportWithNewObjects)
+            var modsWithChanges = AnalyzeAllMods(chapter);
+            string workingDataWin = await SelectAndPrepareBase(chapter, modsWithChanges);
+
+            if (workingDataWin == null)
+            {
+                Console.WriteLine($"  No working data.win for chapter {chapter}, skipping");
+                return;
+            }
+
+            // Step 2: Import in optimal order
+            await ImportUnifiedSequence(chapter, workingDataWin, modsWithChanges);
+        }
+
+        private Dictionary<int, ModChangeInfo> AnalyzeAllMods(int chapter)
+        {
+            var modsWithChanges = new Dictionary<int, ModChangeInfo>();
+
+            for (int modNumber = 2; modNumber < (_config.Config.ModAmount + 2); modNumber++)
+            {
+                var changeInfo = AnalyzeModChanges(chapter, modNumber, _config.Config);
+                if (changeInfo.HasAnyChanges)
+                {
+                    modsWithChanges[modNumber] = changeInfo;
+                    Console.WriteLine($"  Mod {modNumber - 1}: {changeInfo}");
+                }
+            }
+
+            return modsWithChanges;
+        }
+
+        private async Task<string> SelectAndPrepareBase(int chapter, Dictionary<int, ModChangeInfo> modsWithChanges)
+        {
+            string workingDataWin = _directoryManager.GetXDeltaCombinerPath(
+                _config.Config, chapter.ToString(), "1", "data.win");
+
+            if (modsWithChanges.Count == 0)
+            {
+                Console.WriteLine("  No changes detected, using vanilla");
+                _fileLinker.LinkOrCopy(
+                    _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), "0", "data.win"),
+                    workingDataWin);
+            }
+            else if (modsWithChanges.Count == 1)
+            {
+                var singleMod = modsWithChanges.First();
+                Console.WriteLine($"  Only Mod {singleMod.Key - 1} has changes, using it as base");
+                _fileLinker.LinkOrCopy(
+                    _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), singleMod.Key.ToString(), "data.win"),
+                    workingDataWin);
+            }
+            else
+            {
+                // Use the smart base selection from ImportWithNewObjects
+                var bestBase = SelectBestBase(modsWithChanges, chapter, _config.Config);
+                Console.WriteLine($"  Using Mod {bestBase - 1} as base (most comprehensive changes)");
+                _fileLinker.LinkOrCopy(
+                    _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), bestBase.ToString(), "data.win"),
+                    workingDataWin);
+            }
+
+            return workingDataWin;
+        }
+
+        private async Task ImportUnifiedSequence(int chapter, string workingDataWin, Dictionary<int, ModChangeInfo> modsWithChanges)
+        {
+            string mergedObjects = _directoryManager.GetXDeltaCombinerPath(
+                _config.Config, chapter.ToString(), "1", "Objects");
+
+            // Import sequence: sprites first, then code, then asset order
+            // This avoids conflicts and dependency issues
+
+            // 1. Import sprites (using ImportWithNewObjects approach - it works perfectly)
+            if (HasSprites(mergedObjects))
+            {
+                Console.WriteLine("  Importing sprites...");
+                try
+                {
+                    await _modTool.RunScript(workingDataWin, "ImportGraphics.csx", _config.Config);
+                    var spriteCount = Directory.GetFiles(Path.Combine(mergedObjects, "Sprites"), "*.png", SearchOption.AllDirectories).Length;
+                    Console.WriteLine($"    Successfully imported {spriteCount} sprites");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"    Sprite import failed: {ex.Message}");
+                }
+            }
+
+            // 2. Import all code (using ExecuteImport approach - it works with our fixes)
+            if (HasCode(mergedObjects))
+            {
+                Console.WriteLine("  Importing code...");
+                try
+                {
+                    var gmlResult = await _modTool.RunScriptAndCapture(workingDataWin, "ImportGML.csx", _config.Config);
+                    if (gmlResult.Succeeded)
+                    {
+                        var codeCount = Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.gml", SearchOption.AllDirectories).Length;
+                        Console.WriteLine($"    Successfully imported {codeCount} code files");
+                    }
+                    else
+                    {
+                        Console.WriteLine("    Code import failed:");
+                        Console.WriteLine(gmlResult.StdErr);
+                        // Continue anyway - partial import is better than total failure
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"    Code import error: {ex.Message}");
+                }
+            }
+
+            // 3. Apply asset order last (after all assets exist)
+            if (HasAssetOrder(mergedObjects))
+            {
+                Console.WriteLine("  Applying asset order...");
+                try
+                {
+                    await _modTool.RunScript(workingDataWin, "ImportAssetOrder.csx", _config.Config);
+                    Console.WriteLine("    Asset order applied successfully");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"    Asset order failed: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine($"  Chapter {chapter} import completed");
+        }
+
+        private int SelectBestBase(Dictionary<int, ModChangeInfo> modsWithChanges, int chapter, GM3PConfig config)
+        {
+            var scores = modsWithChanges.Select(kvp => new
+            {
+                ModNumber = kvp.Key,
+                Score = kvp.Value.TotalScore
+            })
+            .OrderByDescending(x => x.Score)
+            .ToList();
+
+            Console.WriteLine("  Base selection scores:");
+            foreach (var score in scores)
+                Console.WriteLine($"    Mod {score.ModNumber - 1}: score {score.Score}");
+
+            return scores.First().ModNumber;
+        }
+
+        private ModChangeInfo AnalyzeModChanges(int chapter, int modNumber, GM3PConfig config)
+        {
+            var info = new ModChangeInfo();
+
+            // Count modified sprites
+            string spritesPath = _directoryManager.GetXDeltaCombinerPath(
+                config, chapter.ToString(), modNumber.ToString(), "Objects", "Sprites");
+            if (Directory.Exists(spritesPath))
+                info.ModifiedSprites = Directory.GetFiles(spritesPath, "*.png", SearchOption.AllDirectories).Length;
+
+            // Count modified code
+            string codePath = _directoryManager.GetXDeltaCombinerPath(
+                config, chapter.ToString(), modNumber.ToString(), "Objects", "CodeEntries");
+            if (Directory.Exists(codePath))
+                info.ModifiedCode = Directory.GetFiles(codePath, "*.gml", SearchOption.AllDirectories).Length;
+
+            // Check for AssetOrder changes
+            string modAO = _directoryManager.GetXDeltaCombinerPath(
+                config, chapter.ToString(), modNumber.ToString(), "Objects", "AssetOrder.txt");
+            if (File.Exists(modAO))
+                info.HasAssetOrderChanges = true;
+
+            return info;
+        }
+
+        #endregion
+
+        #region Dump Implementation
 
         private bool ShouldUseParallelDump()
         {
@@ -398,252 +718,45 @@ namespace GM3P.Core
             _exportCache.WriteStamp(stampPath, hash, postSig);
         }
 
-        // Add batch processing for better performance
-        public async Task<bool> ExecuteDumpBatched()
-        {
-            try
-            {
-                Console.WriteLine("Starting batched dump operation...");
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
-                LoadCachedNumbers();
-
-                // Group mods that can be processed together
-                var batches = CreateDumpBatches();
-
-                foreach (var batch in batches)
-                {
-                    Console.WriteLine($"Processing batch with {batch.Count} items...");
-
-                    // Process each item in the batch sequentially
-                    foreach (var item in batch)
-                    {
-                        await DumpMod(item.Chapter, item.ModNumber);
-                    }
-                }
-
-                sw.Stop();
-                Console.WriteLine($"Batched dump completed in {sw.Elapsed.TotalSeconds:F2} seconds");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Batched dump failed: {ex.Message}");
-                return false;
-            }
-        }
-
-        private List<List<(int Chapter, int ModNumber)>> CreateDumpBatches()
-        {
-            var batches = new List<List<(int Chapter, int ModNumber)>>();
-            var currentBatch = new List<(int Chapter, int ModNumber)>();
-
-            // Create batches that don't conflict
-            for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
-            {
-                for (int modNumber = 0; modNumber < (_config.Config.ModAmount + 2); modNumber++)
-                {
-                    if (modNumber == 1) continue;
-
-                    currentBatch.Add((chapter, modNumber));
-
-                    // Create a new batch every N items to manage memory
-                    if (currentBatch.Count >= 5)
-                    {
-                        batches.Add(new List<(int, int)>(currentBatch));
-                        currentBatch.Clear();
-                    }
-                }
-            }
-
-            if (currentBatch.Count > 0)
-                batches.Add(currentBatch);
-
-            return batches;
-        }
-
-
-        public async Task<bool> ExecuteMassPatch(string[] patchPaths)
-        {
-            try
-            {
-                Console.WriteLine("Starting mass patch operation...");
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
-                _directoryManager.CreateCombinerDirectories(_config.Config);
-                await CopyVanillaFiles();
-                await _patchService.ApplyPatches(patchPaths, _config.Config);
-
-                sw.Stop();
-                Console.WriteLine($"Mass patch completed in {sw.Elapsed.TotalSeconds:F2} seconds");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Mass patch failed: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<bool> ExecuteCompareCombine()
-        {
-            try
-            {
-                Console.WriteLine("Starting compare and combine operation.");
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
-                LoadCachedNumbers();
-                CreateModifiedList();
-                await _modCombiner.CompareCombine(_config.Config);
-                SaveModifiedAssets();
-                _config.UpdateConfiguration(c => c.Combined = true);
-
-                sw.Stop();
-                Console.WriteLine($"Compare and combine completed in {sw.Elapsed.TotalSeconds:F2} seconds");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Compare and combine failed: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<bool> ExecuteImport()
-        {
-            try
-            {
-                Console.WriteLine("Starting import operation.");
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
-                LoadCachedNumbers();
-
-                if (!ShouldImport())
-                {
-                    Console.WriteLine("No changes detected, skipping import");
-                    return true;
-                }
-
-                // Ensure NewObjects stubs and graphics are applied first (same order UTMT scripts expect),
-                // then run ImportGML with capture to fail fast on compile errors.
-                for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
-                {
-                    var chapterRoot = _directoryManager.GetXDeltaCombinerPath(
-                        _config.Config, chapter.ToString(), "1", "");
-                    var dataWin = Path.Combine(chapterRoot, "data.win");
-
-                    // Skip if this chapter has no combined work
-                    if (!File.Exists(dataWin))
-                        continue;
-
-                    // Let the ModCombiner prepare/create any NewObjects files first.
-                    await _modCombiner.HandleNewObjects(_config.Config);
-
-                    // Run graphics + new objects first (if present).
-                    var importList = BuildPresentImportList(chapterRoot, includeCode:false);
-                    if (importList.Count > 0)
-                        await _modTool.RunImportScripts(dataWin, importList.ToArray(), _config.Config);
-
-                    // Fail-fast probe: ImportGML with capture.
-                    var gmlResult = await _modTool.RunScriptAndCapture(dataWin, "ImportGML.csx", _config.Config);
-                    if (!gmlResult.Succeeded)
-                    {
-                        Console.WriteLine("===== ImportGML probe failed (compile/linking) =====");
-                        Console.WriteLine(gmlResult.StdOut);
-                        Console.WriteLine(gmlResult.StdErr);
-                        Console.WriteLine("Aborting import for safety.");
-                        return false;
-                    }
-
-                    // AssetOrder (optional)
-                    if (HasAssetOrder(chapterRoot))
-                        await _modTool.RunScript(dataWin, "ImportAssetOrder.csx", _config.Config);
-                }
-
-                sw.Stop();
-                Console.WriteLine($"Import completed in {sw.Elapsed.TotalSeconds:F2} seconds");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Import failed: {ex.Message}");
-                return false;
-            }
-        }
-
-        private bool ShouldImport()
+        private void SanityCheckDumpOutputs()
         {
             for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
             {
-                var stampFile = Path.Combine(
-                    _directoryManager.GetCachePath(_config.Config, "running"),
-                    $"chapter_{chapter}_changes.txt");
-
-                if (File.Exists(stampFile))
+                for (int modNumber = 2; modNumber < (_config.Config.ModAmount + 2); modNumber++)
                 {
-                    var parts = File.ReadAllText(stampFile).Split('|');
-                    if (parts.Length > 0 && int.TryParse(parts[0], out int changes) && changes > 0)
+                    // Slot root: .../xDeltaCombiner/<chapter>/<slot>/
+                    var slotRoot = _directoryManager.GetXDeltaCombinerPath(
+                        _config.Config, chapter.ToString(), modNumber.ToString(), "");
+
+                    // Where we actually expect files:
+                    var objectsDir = Path.Combine(slotRoot, "Objects");
+                    var spritesDir = Path.Combine(objectsDir, "Sprites");
+                    var codeDir = Path.Combine(objectsDir, "CodeEntries");
+                    var newObjsDir = Path.Combine(objectsDir, "NewObjects");
+                    var assetOrder = Path.Combine(objectsDir, "AssetOrder.txt");
+
+                    bool looksEmpty = ObjectsTreeLooksEmpty(slotRoot);
+                    if (looksEmpty)
                     {
-                        return true;
+                        Console.WriteLine(
+                            $"[Sanity] Chapter {chapter}, Mod {modNumber - 1}: " +
+                            $"Objects tree looks empty.\n" +
+                            $"         Checked: {codeDir}, {spritesDir}, {newObjsDir}");
+                    }
+
+                    // Only check for *file* AssetOrder.txt, by design.
+                    if (!HasAssetOrder(slotRoot))
+                    {
+                        Console.WriteLine(
+                            $"[Sanity] Chapter {chapter}, Mod {modNumber - 1}: AssetOrder.txt not present at {assetOrder}");
                     }
                 }
             }
-            return false;
         }
 
-        public async Task<bool> ExecuteResult(string modName)
-        {
-            try
-            {
-                Console.WriteLine($"Creating result for {modName}...");
-                LoadCachedNumbers();
-                _directoryManager.CreateResultDirectories(_config.Config, modName);
+        #endregion
 
-                for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
-                {
-                    await CreateChapterResult(chapter, modName);
-                }
-
-                Console.WriteLine($"Result created successfully for {modName}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Result creation failed: {ex.Message}");
-                return false;
-            }
-        }
-
-        private async Task CopyVanillaFiles()
-        {
-            var vanillaFiles = _directoryManager.FindDataWinFiles(_config.Config.VanillaPath!);
-            _config.UpdateConfiguration(c => c.ChapterAmount = vanillaFiles.Count);
-            SaveCachedNumbers();
-
-            var tasks = new List<Task>();
-            for (int chapter = 0; chapter < vanillaFiles.Count; chapter++)
-            {
-                for (int modNumber = 0; modNumber < (_config.Config.ModAmount + 2); modNumber++)
-                {
-                    int capturedChapter = chapter;
-                    int capturedMod = modNumber;
-                    string sourceFile = vanillaFiles[chapter];
-
-                    tasks.Add(Task.Run(() =>
-                    {
-                        var targetPath = _directoryManager.GetXDeltaCombinerPath(
-                            _config.Config,
-                            capturedChapter.ToString(),
-                            capturedMod.ToString(),
-                            "data.win");
-
-                        _fileLinker.LinkOrCopy(sourceFile, targetPath);
-                    }));
-                }
-            }
-
-            await Task.WhenAll(tasks);
-        }
+        #region Result Generation
 
         private async Task CreateChapterResult(int chapter, string modName)
         {
@@ -687,6 +800,41 @@ namespace GM3P.Core
             _fileLinker.LinkOrCopy(
                 _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), modNumber.ToString(), "data.win"),
                 Path.Combine(modResultPath, "data.win"));
+        }
+
+        #endregion
+
+        #region Support Methods
+
+        private async Task CopyVanillaFiles()
+        {
+            var vanillaFiles = _directoryManager.FindDataWinFiles(_config.Config.VanillaPath!);
+            _config.UpdateConfiguration(c => c.ChapterAmount = vanillaFiles.Count);
+            SaveCachedNumbers();
+
+            var tasks = new List<Task>();
+            for (int chapter = 0; chapter < vanillaFiles.Count; chapter++)
+            {
+                for (int modNumber = 0; modNumber < (_config.Config.ModAmount + 2); modNumber++)
+                {
+                    int capturedChapter = chapter;
+                    int capturedMod = modNumber;
+                    string sourceFile = vanillaFiles[chapter];
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        var targetPath = _directoryManager.GetXDeltaCombinerPath(
+                            _config.Config,
+                            capturedChapter.ToString(),
+                            capturedMod.ToString(),
+                            "data.win");
+
+                        _fileLinker.LinkOrCopy(sourceFile, targetPath);
+                    }));
+                }
+            }
+
+            await Task.WhenAll(tasks);
         }
 
         private void LoadCachedNumbers()
@@ -775,36 +923,48 @@ namespace GM3P.Core
             }
         }
 
-        public void Clear(string target = "runningCache")
+        private bool ShouldImport()
         {
-            var outputPath = _config.Config.OutputPath;
-            if (string.IsNullOrEmpty(outputPath))
-                return;
-
-            switch (target.ToLower())
+            for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
             {
-                case "runningcache":
-                    _directoryManager.ClearDirectory(Path.Combine(outputPath, "xDeltaCombiner"));
-                    _directoryManager.ClearDirectory(Path.Combine(outputPath, "Cache", "running"));
-                    break;
+                var stampFile = Path.Combine(
+                    _directoryManager.GetCachePath(_config.Config, "running"),
+                    $"chapter_{chapter}_changes.txt");
 
-                case "cache":
-                    _directoryManager.ClearDirectory(Path.Combine(outputPath, "Cache"));
-                    _hashCache.Clear();
-                    break;
-
-                case "output":
-                    _directoryManager.ClearDirectory(outputPath);
-                    break;
-
-                case "modpacks":
-                    _directoryManager.ClearDirectory(Path.Combine(outputPath, "result"));
-                    break;
-
-                default:
-                    Console.WriteLine($"Unknown clear target: {target}");
-                    break;
+                if (File.Exists(stampFile))
+                {
+                    var parts = File.ReadAllText(stampFile).Split('|');
+                    if (parts.Length > 0 && int.TryParse(parts[0], out int changes) && changes > 0)
+                    {
+                        return true;
+                    }
+                }
             }
+            return false;
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private bool HasSprites(string mergedObjectsPath)
+        {
+            var spritesPath = Path.Combine(mergedObjectsPath, "Sprites");
+            return Directory.Exists(spritesPath) &&
+                   Directory.GetFiles(spritesPath, "*.png", SearchOption.AllDirectories).Any();
+        }
+
+        private bool HasCode(string mergedObjectsPath)
+        {
+            var codePath = Path.Combine(mergedObjectsPath, "CodeEntries");
+            return Directory.Exists(codePath) &&
+                   Directory.GetFiles(codePath, "*.gml", SearchOption.AllDirectories).Any();
+        }
+
+        private static bool HasAssetOrder(string mergedObjectsPath)
+        {
+            var file = Path.Combine(mergedObjectsPath, "AssetOrder.txt");
+            return File.Exists(file);
         }
 
         private static bool DirHasAny(string dir, string searchPattern, SearchOption opt = SearchOption.AllDirectories)
@@ -814,102 +974,40 @@ namespace GM3P.Core
         {
             // Always inspect under Objects/
             var objectsDir = Path.Combine(slotRoot, "Objects");
-            var codeDir    = Path.Combine(objectsDir, "CodeEntries");
+            var codeDir = Path.Combine(objectsDir, "CodeEntries");
             var spritesDir = Path.Combine(objectsDir, "Sprites");
-            var newObjDir  = Path.Combine(objectsDir, "NewObjects");
+            var newObjDir = Path.Combine(objectsDir, "NewObjects");
 
             int files =
-                (DirHasAny(codeDir, "*.gml")  ? Directory.EnumerateFiles(codeDir,   "*.gml",  SearchOption.AllDirectories).Count() : 0) +
-                (DirHasAny(spritesDir, "*.png")? Directory.EnumerateFiles(spritesDir,"*.png",  SearchOption.AllDirectories).Count() : 0) +
-                (DirHasAny(newObjDir, "*.*")   ? Directory.EnumerateFiles(newObjDir, "*.*",   SearchOption.AllDirectories).Count() : 0);
+                (DirHasAny(codeDir, "*.gml") ? Directory.EnumerateFiles(codeDir, "*.gml", SearchOption.AllDirectories).Count() : 0) +
+                (DirHasAny(spritesDir, "*.png") ? Directory.EnumerateFiles(spritesDir, "*.png", SearchOption.AllDirectories).Count() : 0) +
+                (DirHasAny(newObjDir, "*.*") ? Directory.EnumerateFiles(newObjDir, "*.*", SearchOption.AllDirectories).Count() : 0);
 
             // Allow one file (e.g., a single stub) before calling it empty
             return files <= 1;
         }
 
-        void SanityCheckDumpOutputs()
+        #endregion
+
+        #region Nested Classes
+
+        // ModChangeInfo class - place this inside the GM3POrchestrator class
+        private class ModChangeInfo
         {
-            for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
+            public int ModifiedSprites { get; set; }
+            public int ModifiedCode { get; set; }
+            public bool HasAssetOrderChanges { get; set; }
+
+            public bool HasAnyChanges => ModifiedSprites > 0 || ModifiedCode > 0 || HasAssetOrderChanges;
+            public int TotalScore => ModifiedSprites * 10 + ModifiedCode * 5;
+
+            public override string ToString()
             {
-                for (int modNumber = 2; modNumber < (_config.Config.ModAmount + 2); modNumber++)
-                {
-                    // Slot root: .../xDeltaCombiner/<chapter>/<slot>/
-                    var slotRoot = _directoryManager.GetXDeltaCombinerPath(
-                        _config.Config, chapter.ToString(), modNumber.ToString(), "");
-
-                    // Where we actually expect files:
-                    var objectsDir  = Path.Combine(slotRoot, "Objects");
-                    var spritesDir  = Path.Combine(objectsDir, "Sprites");
-                    var codeDir     = Path.Combine(objectsDir, "CodeEntries");
-                    var newObjsDir  = Path.Combine(objectsDir, "NewObjects");
-                    var assetOrder  = Path.Combine(objectsDir, "AssetOrder.txt");
-
-                    bool looksEmpty = ObjectsTreeLooksEmpty(slotRoot);
-                    if (looksEmpty)
-                    {
-                        Console.WriteLine(
-                            $"[Sanity] Chapter {chapter}, Mod {modNumber - 1}: " +
-                            $"Objects tree looks empty.\n" +
-                            $"         Checked: {codeDir}, {spritesDir}, {newObjsDir}");
-                    }
-
-                    // Only check for *file* AssetOrder.txt, by design.
-                    if (!HasAssetOrder(slotRoot))
-                    {
-                        Console.WriteLine(
-                            $"[Sanity] Chapter {chapter}, Mod {modNumber - 1}: AssetOrder.txt not present at {assetOrder}");
-                    }
-                }
+                return $"{ModifiedSprites} sprites, {ModifiedCode} code files" +
+                       (HasAssetOrderChanges ? " (+AssetOrder)" : "");
             }
         }
 
-
-        private static bool HasAssetOrder(string slotRoot)
-        {
-            var file = Path.Combine(slotRoot, "Objects", "AssetOrder.txt");
-            return File.Exists(file);
-        }
-
-        private static int CountFilesIfExists(string dir, string pattern = "*")
-        {
-            return Directory.Exists(dir)
-                ? Directory.EnumerateFiles(dir, pattern, SearchOption.AllDirectories).Count()
-                : 0;
-        }
-
-        private static bool LooksEmpty(string slotRoot)
-        {
-            bool objectsEmpty = !Directory.Exists(Path.Combine(slotRoot, "Objects")) ||
-                                !Directory.EnumerateFiles(Path.Combine(slotRoot, "Objects"), "*", SearchOption.AllDirectories).Any();
-
-            bool spritesEmpty = !Directory.Exists(Path.Combine(slotRoot, "Sprites")) ||
-                                !Directory.EnumerateFiles(Path.Combine(slotRoot, "Sprites"), "*", SearchOption.AllDirectories).Any();
-
-            return objectsEmpty && spritesEmpty;
-        }
-
-        private static List<string> BuildPresentImportList(string chapterRoot, bool includeCode)
-        {
-            var list = new List<string>();
-
-            // ImportGraphics expects sprites/atlases exported by our scripts
-            if (Directory.Exists(Path.Combine(chapterRoot, "Sprites")) ||
-                Directory.Exists(Path.Combine(chapterRoot, "TexturesGrouped")) ||
-                Directory.Exists(Path.Combine(chapterRoot, "Graphics")))
-            {
-                list.Add("ImportGraphics.csx");
-            }
-
-            // New objects (object definitions / asset order deltas)
-            if (Directory.Exists(Path.Combine(chapterRoot, "NewObjects")))
-            {
-                list.Add("ImportNewObjects.csx");
-            }
-
-            if (includeCode)
-                list.Add("ImportGML.csx");
-
-            return list;
-        }
+        #endregion
     }
 }
