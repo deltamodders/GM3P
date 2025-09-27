@@ -676,34 +676,11 @@ namespace GM3P.Merging
                 Console.WriteLine($"  Importing {count} merged sprites");
             }
 
-            // 2) New objects (after sprites; they may reference sprites)
-            if (hasNewObjDefs)
+            if (hasCode || hasNewObjCode)
             {
-                if (hasImportNewObjects)
-                {
-                    scripts.Add("ImportNewObjects.csx");
-                    int defCount = Directory.GetFiles(newObjDefsDir, "*.txt", SearchOption.TopDirectoryOnly).Length;
-                    Console.WriteLine($"  Importing new objects ({defCount})" + (hasNewObjCode ? " + their event code" : ""));
-                }
-                else
-                {
-                    Console.WriteLine("  WARNING: ImportNewObjects.csx not found; new object definitions present but will not be created.");
-                }
-            }
-
-            // 3) Remaining code (top-level)
-            if (hasCode)
-            {
-                if (hasImportGml)
-                {
-                    scripts.Add("ImportGML.csx");
-                    var count = Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.gml", SearchOption.AllDirectories).Length;
-                    Console.WriteLine($"  Importing {count} merged code files");
-                }
-                else
-                {
-                    Console.WriteLine("  WARNING: ImportGML.csx not found; code will not be imported.");
-                }
+                // ImportGML now works properly with case fixes
+                await _modTool.RunScript(workingDataWin, "ImportGML.csx", config);
+                Console.WriteLine($"  Imported code using fixed ImportGML");
             }
 
             // 4) Asset order last
