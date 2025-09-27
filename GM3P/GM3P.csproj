@@ -5,6 +5,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <Version>0.6.0.15</Version>
         <ApplicationIcon>Logo\GM3P logo 1x1 256.ico</ApplicationIcon>
     </PropertyGroup>
 
