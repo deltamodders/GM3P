@@ -15,13 +15,13 @@ namespace GM3P
 {
     class Program
     {
-        private const double Version = 0.5;
+        private const double Version = 0.6;
         private static IGM3POrchestrator? _orchestrator;
         private static IConfigurationService? _config;
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine($"GM3P v{Version}.1");
+            Console.WriteLine($"GM3P v{Version}.0-alpha3");
 
             // Setup services manually (no DI container)
             SetupServices();
