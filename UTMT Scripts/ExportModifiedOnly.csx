@@ -83,6 +83,22 @@ string gm3pRoot = null;
         if (Directory.Exists(Path.Combine(probe.FullName, "output"))) { gm3pRoot = probe.FullName; break; }
         probe = probe.Parent;
     }
+        // If UTMT was called but not as a child of GM3P 
+        if (gm3pRoot == null)
+        {
+            // Resolve GM3P root → output/xDeltaCombiner/<chapter>/1/Objects (no prompts)
+            string TryRoot(string root)
+            {
+                if (string.IsNullOrWhiteSpace(root)) return null;
+                string folder    = Path.Combine(root);
+                return Directory.Exists(folder) ? folder : null;
+            }
+
+            var got = TryRoot(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location))))));
+            if (got!=null){ gm3pRoot = got;}
+
+        }
+    
     if (gm3pRoot == null) throw new ScriptException("GM3P root not found (no /output ancestor).");
 }
 
@@ -90,7 +106,7 @@ string gm3pRoot = null;
 string chapterNo = ReadAllTextSafe(Path.Combine(gm3pRoot, "output", "Cache", "running", "chapterNumber.txt"));
 string modNo     = ReadAllTextSafe(Path.Combine(gm3pRoot, "output", "Cache", "running", "modNumbersCache.txt"));
 if (string.IsNullOrWhiteSpace(chapterNo) || string.IsNullOrWhiteSpace(modNo))
-    throw new ScriptException("chapterNumber/modNumbersCache missing in /output/Cache/running/.");
+    throw new ScriptException("chapterNumber/modNumbersCache missing in /output/Cache/running/." + Convert.ToString(Path.Combine(gm3pRoot, "output", "Cache", "running", "modNumbersCache.txt")));
 
 // ── output layout (everything under Objects/)
 string modRoot         = Path.Combine(gm3pRoot, "output", "xDeltaCombiner", chapterNo, modNo);
