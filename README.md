@@ -1,10 +1,8 @@
-# GameMaker Mass Mod Patcher
+# GameMaker Mass Mod Patcher (GM3P)
 
-GameMaker Mass Mod Patcher (abbreviated to GM3P) is a tool used to merge multiple XDelta mods for GameMaker games and thus be able to play multiple mods at once.<br /><br />
-Used in the backend of [Deltamod](https://gamebanana.com/tools/20575) for mod merging.
+**G**ame**M**aker **M**ass **M**od **P**atcher (abbreviated to **GM3P**) is a tool used to merge multiple xdelta mods for GameMaker games and thus be able to play multiple mods at once.<br />
 
-## License
-Licensed under GNU GPL 3.0
+_This tool is currently used in the backend of [Deltamod](https://gamebanana.com/tools/20575) for mod merging._
 
 ## How to build
 1. Make sure you have .NET 8.0 or later and Git installed<br />
@@ -16,5 +14,10 @@ Licensed under GNU GPL 3.0
 7. Happy patching
 
 ## Credits
-[Zorkats](https://gamebanana.com/members/3914910) - Main Programmer<br />
-[techy804](https://gamebanana.com/members/4548254) - Creator <br />
+| | Name | Role |
+|-|------|-------|
+| <img src="./GitHubAssets/zorkats.jpeg" alt="Zorkats" width="60" height="60"> | **[Zorkats](https://gamebanana.com/members/3914910)** | Main programmer |
+| <img src="./GitHubAssets/techy.png" alt="Techy" width="60" height="60"> | **[techy804](https://gamebanana.com/members/4548254)** | Creator of GM3P |
+
+## License
+Licensed under GNU GPL 3.0
