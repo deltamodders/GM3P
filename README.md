@@ -16,8 +16,8 @@ _This tool is currently used in the backend of [Deltamod](https://gamebanana.com
 ## Credits
 | | Name | Role |
 |-|------|-------|
-| ![Zorkats](./GitHubAssets/zorkats.jpeg) | Zorkats | Main programmer |
-| ![Techy](./GitHubAssets/techy.png) | techy804 | Creator of GM3P |
+| <img src="./GitHubAssets/zorkats.jpeg" alt="Zorkats" width="60" height="60"> | **[Zorkats](https://gamebanana.com/members/3914910)** | Main programmer |
+| <img src="./GitHubAssets/techy.png" alt="Techy" width="60" height="60"> | **[techy804](https://gamebanana.com/members/4548254)** | Creator of GM3P |
 
 ## License
 Licensed under GNU GPL 3.0
