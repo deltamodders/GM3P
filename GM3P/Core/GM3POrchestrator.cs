@@ -322,7 +322,32 @@ namespace GM3P.Core
                 }
             }
 
-            // 2. Import all code (using ExecuteImport approach - it works with our fixes)
+            // 2. Import Rooms
+            if (HasCode(mergedObjects))
+            {
+                Console.WriteLine("  Importing rooms...");
+                try
+                {
+                    var jsonResult = await _modTool.RunScriptAndCapture(workingDataWin, "ImportRoomsBulk.csx", _config.Config);
+                    if (jsonResult.Succeeded)
+                    {
+                        var codeCount = Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.json", SearchOption.AllDirectories).Length;
+                        Console.WriteLine($"    Successfully imported {codeCount} room files");
+                    }
+                    else
+                    {
+                        Console.WriteLine("    Room import failed:");
+                        Console.WriteLine(jsonResult.StdErr);
+                        // Continue anyway - partial import is better than total failure
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"    Room import error: {ex.Message}");
+                }
+            }
+
+            // 3. Import all code (using ExecuteImport approach - it works with our fixes)
             if (HasCode(mergedObjects))
             {
                 Console.WriteLine("  Importing code...");
@@ -347,7 +372,7 @@ namespace GM3P.Core
                 }
             }
 
-            // 3. Apply asset order last (after all assets exist)
+            // 4. Apply asset order last (after all assets exist)
             if (HasAssetOrder(mergedObjects))
             {
                 Console.WriteLine("  Applying asset order...");
@@ -612,6 +637,20 @@ namespace GM3P.Core
             }
 
             // Clear code entries
+            var roomPath = Path.Combine(objectsPath, "Rooms");
+            if (Directory.Exists(roomPath))
+            {
+                try
+                {
+                    foreach (var file in Directory.GetFiles(roomPath, "*.json", SearchOption.AllDirectories))
+                    {
+                        try { File.Delete(file); } catch { }
+                    }
+                }
+                catch { }
+            }
+
+            // Clear code entries
             var codePath = Path.Combine(objectsPath, "CodeEntries");
             if (Directory.Exists(codePath))
             {
@@ -731,6 +770,7 @@ namespace GM3P.Core
                     // Where we actually expect files:
                     var objectsDir = Path.Combine(slotRoot, "Objects");
                     var spritesDir = Path.Combine(objectsDir, "Sprites");
+                    var roomDir = Path.Combine(objectsDir, "Rooms");
                     var codeDir = Path.Combine(objectsDir, "CodeEntries");
                     var newObjsDir = Path.Combine(objectsDir, "NewObjects");
                     var assetOrder = Path.Combine(objectsDir, "AssetOrder.txt");
@@ -741,7 +781,7 @@ namespace GM3P.Core
                         Console.WriteLine(
                             $"[Sanity] Chapter {chapter}, Mod {modNumber - 1}: " +
                             $"Objects tree looks empty.\n" +
-                            $"         Checked: {codeDir}, {spritesDir}, {newObjsDir}");
+                            $"         Checked: {codeDir}, {roomDir}, {spritesDir}, {newObjsDir}");
                     }
 
                     // Only check for *file* AssetOrder.txt, by design.
@@ -954,6 +994,13 @@ namespace GM3P.Core
                    Directory.GetFiles(spritesPath, "*.png", SearchOption.AllDirectories).Any();
         }
 
+        private bool HasRooms(string mergedObjectsPath)
+        {
+            var spritesPath = Path.Combine(mergedObjectsPath, "Rooms");
+            return Directory.Exists(spritesPath) &&
+                   Directory.GetFiles(spritesPath, "*.json", SearchOption.AllDirectories).Any();
+        }
+
         private bool HasCode(string mergedObjectsPath)
         {
             var codePath = Path.Combine(mergedObjectsPath, "CodeEntries");
@@ -995,11 +1042,12 @@ namespace GM3P.Core
         private class ModChangeInfo
         {
             public int ModifiedSprites { get; set; }
+            public int ModifiedRooms { get; set; }
             public int ModifiedCode { get; set; }
             public bool HasAssetOrderChanges { get; set; }
 
-            public bool HasAnyChanges => ModifiedSprites > 0 || ModifiedCode > 0 || HasAssetOrderChanges;
-            public int TotalScore => ModifiedSprites * 10 + ModifiedCode * 5;
+            public bool HasAnyChanges => ModifiedSprites > 0 || ModifiedRooms > 0 || ModifiedCode > 0 || HasAssetOrderChanges;
+            public int TotalScore => (ModifiedRooms * 15) + (ModifiedSprites * 10) + (ModifiedCode * 5);
 
             public override string ToString()
             {

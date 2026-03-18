@@ -81,6 +81,7 @@ namespace GM3P.GameMaker
                     scriptsToRun =
                         " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx\"" +
                         " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllCode.csx\"" +
+                        " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllRoomsWithCC.csx\"" +
                         " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAssetOrder.csx\"";
 
                     // Sprite-sample cache refresh (global cache under output/Cache/vanilla/<sha1>)
@@ -101,6 +102,7 @@ namespace GM3P.GameMaker
                         scriptsToRun =
                             " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx\"" +
                             " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllCode.csx\"" +
+                            " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAllRoomsWithCC.csx\"" +
                             " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportAssetOrder.csx\"" +
                             " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportNewObjects.csx\"";
                     }

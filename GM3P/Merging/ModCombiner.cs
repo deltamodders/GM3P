@@ -17,6 +17,7 @@ namespace GM3P.Merging
     {
         public int ChangedCount { get; set; }
         public bool CodeChanged { get; set; }
+        public bool RoomChanged { get; set; }
         public bool SpriteChanged { get; set; }
     }
 
@@ -70,6 +71,7 @@ namespace GM3P.Merging
         {
             public int NewObjects { get; set; }
             public int ModifiedSprites { get; set; }
+            public int ModifiedRooms { get; set; }
             public int ModifiedCode { get; set; }
             public bool HasAssetOrderChanges { get; set; }
 
@@ -115,6 +117,13 @@ namespace GM3P.Merging
 
             if (Directory.Exists(spritesPath))
                 info.ModifiedSprites = Directory.GetFiles(spritesPath, "*.png", SearchOption.AllDirectories).Length;
+
+            // Modified code (top-level CodeEntries only; NewObjects code handled separately during import)
+            string roomPath = _directoryManager.GetXDeltaCombinerPath(
+                config, chapter.ToString(), modNumber.ToString(), "Objects", "Rooms");
+
+            if (Directory.Exists(roomPath))
+                info.ModifiedCode = Directory.GetFiles(roomPath, "*.json", SearchOption.AllDirectories).Length;
 
             // Modified code (top-level CodeEntries only; NewObjects code handled separately during import)
             string codePath = _directoryManager.GetXDeltaCombinerPath(
@@ -164,6 +173,7 @@ namespace GM3P.Merging
 
                 int changedThisChapter = 0;
                 bool anyCodeChanged = false;
+                bool anyRoomChanged = false;
                 bool anySpriteChanged = false;
                 bool assetOrderChanged = false;
 
@@ -241,6 +251,7 @@ namespace GM3P.Merging
 
                     changedThisChapter += result.ChangedCount;
                     anyCodeChanged |= result.CodeChanged;
+                    anyRoomChanged |= result.RoomChanged;
                     anySpriteChanged |= result.SpriteChanged;
                 }
 
@@ -277,6 +288,7 @@ namespace GM3P.Merging
                 Console.WriteLine($"  Total files processed: {allKnown.Count}");
                 Console.WriteLine($"  Files changed: {changedThisChapter}");
                 Console.WriteLine($"  Code changes: {(anyCodeChanged ? "Yes" : "No")}");
+                Console.WriteLine($"  Room changes: {(anyRoomChanged ? "Yes" : "No")}");
                 Console.WriteLine($"  Sprite changes: {(anySpriteChanged ? "Yes" : "No")}");
                 Console.WriteLine($"  AssetOrder changes: {(assetOrderChanged ? "Yes" : "No")}");
 
@@ -339,6 +351,12 @@ namespace GM3P.Merging
                 result.SpriteChanged = true;
             }
 
+            if (relKey.Contains("rooms/", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                result.RoomChanged = true;
+            }
+
             if (relKey.Contains("/codeentries/", StringComparison.OrdinalIgnoreCase) ||
                 ext.Equals(".gml", StringComparison.OrdinalIgnoreCase))
             {
@@ -389,6 +407,8 @@ namespace GM3P.Merging
                             different.Add(mv);
                             if (ext.Equals(".gml", StringComparison.OrdinalIgnoreCase))
                                 Console.WriteLine($"    Code different: {Path.GetFileName(mv.FilePath)} from {mv.ModName}");
+                            if (ext.Equals(".json", StringComparison.OrdinalIgnoreCase))
+                                Console.WriteLine($"    Room different: {Path.GetFileName(mv.FilePath)} from {mv.ModName}");
                         }
                     }
                 }
@@ -648,11 +668,15 @@ namespace GM3P.Merging
             string scriptsRoot = Path.Combine(config.WorkingDirectory, "UTMTCLI", "Scripts");
             bool hasImportGraphics = File.Exists(Path.Combine(scriptsRoot, "ImportGraphics.csx"));
             bool hasImportNewObjects = File.Exists(Path.Combine(scriptsRoot, "ImportNewObjects.csx"));
+            bool hasImportRooms = File.Exists(Path.Combine(scriptsRoot, "ImportRoomsBulk.csx"));
             bool hasImportGml = File.Exists(Path.Combine(scriptsRoot, "ImportGML.csx"));
             bool hasImportAssetOrder = File.Exists(Path.Combine(scriptsRoot, "ImportAssetOrder.csx"));
 
             bool hasSprites = Directory.Exists(Path.Combine(mergedObjects, "Sprites")) &&
                               Directory.GetFiles(Path.Combine(mergedObjects, "Sprites"), "*.png", SearchOption.AllDirectories).Any();
+
+            bool hasRooms = Directory.Exists(Path.Combine(mergedObjects, "Rooms")) &&
+                           Directory.GetFiles(Path.Combine(mergedObjects, "Rooms"), "*.json", SearchOption.AllDirectories).Any();
 
             bool hasCode = Directory.Exists(Path.Combine(mergedObjects, "CodeEntries")) &&
                            Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.gml", SearchOption.AllDirectories).Any();
@@ -674,6 +698,15 @@ namespace GM3P.Merging
 
                 var count = Directory.GetFiles(Path.Combine(mergedObjects, "Sprites"), "*.png", SearchOption.AllDirectories).Length;
                 Console.WriteLine($"  Importing {count} merged sprites");
+            }
+
+            if (hasRooms)
+            {
+                if (hasImportRooms) scripts.Add("ImportRoomsBulk.csx");
+                else Console.WriteLine("  WARNING: No ImportRoomsBulk script found; skipping sprite import.");
+
+                var count = Directory.GetFiles(Path.Combine(mergedObjects, "Rooms"), "*.json", SearchOption.AllDirectories).Length;
+                Console.WriteLine($"  Importing {count} merged rooms");
             }
 
             if (hasCode || hasNewObjCode)
