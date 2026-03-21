@@ -19,7 +19,9 @@ using Underanalyzer.Decompiler;
 EnsureDataLoaded();
 
 ScriptMessage("Select the Room output directory");
-string outputPath = PromptChooseDirectory();
+string chapterNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/Cache/running/chapterNumber.txt"));
+string modNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/Cache/running/modNumbersCache.txt"));
+string outputPath = @Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location))))) + "/output/xDeltaCombiner/"+chapterNo+"/"+modNo+"/Objects/Rooms";
 if (outputPath == null) throw new ScriptException("The room exporter's output path was not set.");
 
 Directory.CreateDirectory(Path.Combine(outputPath, "Rooms"));
