@@ -42,6 +42,3 @@ And last, but not least, `help`, which gives more detailed information on each o
 
 ## License
 Licensed under GNU GPL 3.0
-
-## AI Notice
-GM3P has never, and will never, knowingly use AI to make or maintain this tool.
