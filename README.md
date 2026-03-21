@@ -26,12 +26,17 @@ The CLI version was made for advanced users who want more control over the proce
 
 `massPatch` - The titular command. Makes multiple copies of the game, then patches each copy with a unique mod. The `compare` and `result` commands require this command to be called first. Otherwise, they will fail.
 Example: `GM3P.exe massPatch "./myGameMaker Game" GM 2 "./myMod1.xDelta","./MyMod2.csx"`
+
 `compare` - Compares and Combines modified objects
 Example: `GM3P.exe compare 2 true false`
+
 `result` - Creates modpack
 Example: `GM3P.exe result "My Modpack" true 2`
+
 `clear` - clears temporary files; I recommend using it either before or after every session
+
 `console` - Launches the console version of the tool
+
 And last, but not least, `help`, which gives more detailed information on each of these commands.
 
 ## Credits
