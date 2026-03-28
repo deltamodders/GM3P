@@ -92,7 +92,7 @@ namespace GM3P.GameMaker
                 {
                     // Prefer fast path if present
                     var modifiedOnly = Path.Combine(config.WorkingDirectory, "UTMTCLI", "Scripts", "ExportModifiedOnly.csx");
-                    if (File.Exists(modifiedOnly))
+                    if (File.Exists(modifiedOnly) && config.EnableFastCombiner)
                     {
                         scriptsToRun =
                             " --scripts \"" + config.WorkingDirectory + "/UTMTCLI/Scripts/ExportModifiedOnly.csx\"";

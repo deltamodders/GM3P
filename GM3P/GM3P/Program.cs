@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using GM3P.Cache;
 using GM3P.Core;
+using GM3P.Data;
 using GM3P.FileSystem;
 using GM3P.GameMaker;
 using GM3P.Logging;
@@ -126,7 +127,36 @@ namespace GM3P
                     break;
             }
         }
-
+        static async Task HandleConfig(string[] args)
+        { 
+            if (args.Length < 3)
+            {
+                Console.WriteLine("Usage: GM3P.exe config [update] c.[setting] [Value]");
+                Console.WriteLine("or");
+                Console.WriteLine("Usage: GM3P.exe config [save/load] [Path]");
+                return;
+            }
+            var subcommand = args[1].ToLower();
+            switch (subcommand) {
+                case "update":
+                    if (args.Length < 4)
+                    {
+                        Console.WriteLine("Usage: GM3P.exe config update c.[setting] [Value]");
+                        return;
+                    }
+                    var setting = args[2];
+                    var value = args[3];
+                    _config.UpdateConfiguration(c =>
+                    {
+                        args[3] = args[4];
+                    });
+                    break;
+                default:
+                    Console.WriteLine($"Unknown config subcommand: {subcommand}");
+                    Console.WriteLine("Use 'GM3P.exe help config' for usage");
+                    break;
+            }
+        }
         static async Task HandleMassPatch(string[] args)
         {
             if (args.Length < 5)

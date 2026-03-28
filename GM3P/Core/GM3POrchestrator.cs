@@ -9,6 +9,7 @@ namespace GM3P.Core
 {
     public interface IGM3POrchestrator
     {
+        Task<bool> ExecuteConfig(string[] setting);
         Task<bool> ExecuteMassPatch(string[] patchPaths);
         Task<bool> ExecuteCompareCombine();
         Task<bool> ExecuteResult(string modName);
@@ -59,6 +60,24 @@ namespace GM3P.Core
         #endregion
 
         #region Public Interface Methods
+
+        public async Task<bool> ExecuteConfig(string[] setting) 
+        { 
+        
+            try
+            {
+                Console.WriteLine($"Executing config setting: {string.Join(", ", setting)}");
+
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Execution failed: {ex.Message}");
+                return false;
+            }
+
+        }
 
         public async Task<bool> ExecuteMassPatch(string[] patchPaths)
         {
