@@ -447,7 +447,7 @@ namespace GM3P
                     Console.WriteLine("  GM3P.exe config update c.[setting] [Value] save? [configPath?]");
                     Console.WriteLine("\nSettings:");
                     Console.WriteLine("  c.vanillapath          - Path to vanilla game or data.win");
-                    Console.WriteLine("  c.outputpath           - Base output directory. Default: ./");
+                    Console.WriteLine("  c.outputpath           - Base output directory. Default: ./output");
                     Console.WriteLine("  c.deltapatcherpath     - Path to xDelta executable. Default: ./xdelta3-3.1.0-x86_64.exe");
                     Console.WriteLine("  c.modtoolpath          - Path to mod tool executable (e.g. UTMT). Default: ./UTMTCLI/UndertaleModCli.exe");
                     Console.WriteLine("  c.gameengine           - Game engine type (e.g. GM for GameMaker). Currently unused");
