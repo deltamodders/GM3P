@@ -22,7 +22,7 @@ namespace GM3P
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine($"GM3P v{Version}.0-beta1");
+            Console.WriteLine($"GM3P v{Version}.0-beta2");
 
             // Setup services manually (no DI container)
             SetupServices();
@@ -97,6 +97,9 @@ namespace GM3P
 
             switch (command)
             {
+                case "config":
+                    await HandleConfig(args);
+                    break;
                 case "masspatch":
                     await HandleMassPatch(args);
                     break;
@@ -110,6 +113,12 @@ namespace GM3P
                     break;
 
                 case "console":
+                    if (args.Length > 1)
+                    {
+                        var loadPath = args.Length > 1 ? args[1] : null;
+                        _config.LoadConfiguration(loadPath);
+                        Console.WriteLine($"Configuration loaded from {(loadPath ?? "default path")}");
+                    }
                     await RunConsoleApp();
                     break;
 
@@ -137,34 +146,81 @@ namespace GM3P
                 return;
             }
             var subcommand = args[1].ToLower();
+            var savePath = args.Length > 4 ? args[5] : null;
             switch (subcommand) {
                 case "update":
                     if (args.Length < 4)
                     {
-                        Console.WriteLine("Usage: GM3P.exe config update c.[setting] [Value]");
+                        Console.WriteLine("Usage: GM3P.exe config update c.[setting] [Value] save? [configPath?]");
                         return;
                     }
+                    
                     var setting = args[2];
                     var value = args[3];
-                    _config.UpdateConfiguration(c =>
+                    switch (setting)
                     {
-                        args[3] = args[4];
-                    });
+                        case "c.vanillapath":
+                            _config.UpdateConfiguration(c => c.VanillaPath = value);
+                            break;
+                        case "c.outputpath":
+                            _config.UpdateConfiguration(c => c.OutputPath = value);
+                            break;
+                        case "c.deltapatcherpath":
+                            _config.UpdateConfiguration(c => c.DeltaPatcherPath = value);
+                            break;
+                        case "c.modtoolpath":
+                            _config.UpdateConfiguration(c => c.ModToolPath = value);
+                            break;
+                        case "c.gameengine":
+                            _config.UpdateConfiguration(c => c.GameEngine = value);
+                            break;
+                        case "c.modamount":
+                            _config.UpdateConfiguration(c => c.ModAmount = int.Parse(value));
+                            break;
+                        case "c.enablefastcombiner":
+                            _config.UpdateConfiguration(c => c.EnableFastCombiner = bool.Parse(value));
+                            break;
+                        case "c.cacheenabled": 
+                            _config.UpdateConfiguration(c => c.CacheEnabled = bool.Parse(value));
+                            break;
+                        case "c.cachespritesenabled": 
+                            _config.UpdateConfiguration(c => c.CacheSpritesEnabled = bool.Parse(value));
+                            break;
+                        case "c.exportcachecapmb":
+                            _config.UpdateConfiguration(c => c.ExportCacheCapMB = int.Parse(value));
+                            break;
+                        case "c.xdeltaconcurrency":
+                            _config.UpdateConfiguration(c => c.XDeltaConcurrency = int.Parse(value));
+                            break;
+                        default:
+                            Console.WriteLine($"Unknown setting: {setting}");
+                            Console.WriteLine("Use 'GM3P.exe help config' for usage");
+                            break;
+                    }
                     break;
+
                 default:
                     Console.WriteLine($"Unknown config subcommand: {subcommand}");
                     Console.WriteLine("Use 'GM3P.exe help config' for usage");
                     break;
+            }
+            if (args.Length > 4)
+            {
+
+                _config.SaveConfiguration(savePath);
+                Console.WriteLine($"Configuration saved to {(savePath ?? "default path")}");
+                return;
             }
         }
         static async Task HandleMassPatch(string[] args)
         {
             if (args.Length < 5)
             {
-                Console.WriteLine("Usage: GM3P.exe massPatch [VanillaPath] [GameEngine] [ModAmount] [PatchPaths] [OutputPath?]");
+                Console.WriteLine("Usage: GM3P.exe massPatch [VanillaPath] [GameEngine] [ModAmount] [PatchPaths] [ConfigPath?]");
                 return;
             }
 
+            var loadPath = args.Length > 5 ? args[5] : null;
             _config!.UpdateConfiguration(c =>
             {
                 c.VanillaPath = args[1].Replace("\"", "");
@@ -172,7 +228,8 @@ namespace GM3P
                 c.ModAmount = int.Parse(args[3]);
 
                 if (args.Length > 5)
-                    c.OutputPath = args[5];
+                    _config.LoadConfiguration(loadPath);
+                    Console.WriteLine($"Configuration loaded from {(loadPath ?? "default path")}");
             });
 
             var patchPaths = args[4].Split("::").ToArray();
@@ -183,16 +240,18 @@ namespace GM3P
         {
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: GM3P.exe compare [ModAmount] [Dump?] [Import?] [OutputPath?]");
+                Console.WriteLine("Usage: GM3P.exe compare [ModAmount] [Dump?] [Import?] [ConfigPath?]");
                 return;
             }
 
+            var loadPath = args.Length > 4 ? args[4] : null;
             _config!.UpdateConfiguration(c =>
             {
                 c.ModAmount = int.Parse(args[1]);
 
                 if (args.Length > 4)
-                    c.OutputPath = args[4];
+                    _config.LoadConfiguration(loadPath);
+                    Console.WriteLine($"Configuration loaded from {(loadPath ?? "default path")}");
             });
 
             bool shouldDump = args.Length <= 2 || args[2].ToLower() == "true";
@@ -211,12 +270,13 @@ namespace GM3P
         {
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: GM3P.exe result [ModName] [Combined?] [ModAmount?] [OutputPath?]");
+                Console.WriteLine("Usage: GM3P.exe result [ModName] [Combined?] [ModAmount?] [ConfigPath?]");
                 return;
             }
 
             string modName = args[1];
 
+            var loadPath = args.Length > 4 ? args[4] : null;
             if (args.Length > 2)
             {
                 _config!.UpdateConfiguration(c =>
@@ -227,7 +287,8 @@ namespace GM3P
                         c.ModAmount = int.Parse(args[3]);
 
                     if (args.Length > 4)
-                        c.OutputPath = args[4];
+                        _config.LoadConfiguration(loadPath);
+                        Console.WriteLine($"Configuration loaded from {(loadPath ?? "default path")}");
                 });
             }
 
@@ -370,6 +431,7 @@ namespace GM3P
                 Console.WriteLine("  result     - Create final modpack");
                 Console.WriteLine("  console    - Launch interactive console");
                 Console.WriteLine("  clear      - Clear temporary files");
+                Console.WriteLine("  config     - Update configuration");
                 Console.WriteLine("\nUse 'GM3P.exe help [command]' for detailed help");
             }
         }
@@ -378,17 +440,35 @@ namespace GM3P
         {
             switch (command.ToLower())
             {
+                case "config":
+                    Console.WriteLine("\nConfig Command:");
+                    Console.WriteLine("  Save and update configuration settings");
+                    Console.WriteLine("\nUsage:");
+                    Console.WriteLine("  GM3P.exe config update c.[setting] [Value] save? [configPath?]");
+                    Console.WriteLine("\nSettings:");
+                    Console.WriteLine("  c.vanillapath          - Path to vanilla game or data.win");
+                    Console.WriteLine("  c.outputpath           - Base output directory. Default: ./");
+                    Console.WriteLine("  c.deltapatcherpath     - Path to xDelta executable. Default: ./xdelta3-3.1.0-x86_64.exe");
+                    Console.WriteLine("  c.modtoolpath          - Path to mod tool executable (e.g. UTMT). Default: ./UTMTCLI/UndertaleModCli.exe");
+                    Console.WriteLine("  c.gameengine           - Game engine type (e.g. GM for GameMaker). Currently unused");
+                    Console.WriteLine("  c.modamount            - Number of mods to patch/compare");
+                    Console.WriteLine("  c.enablefastcombiner   - Whether to enable fast combiner (true/false), must be false for room combining. Default: true");
+                    Console.WriteLine("  c.cacheenabled         - Whether to enable export cache (true/false). Default: true");
+                    Console.WriteLine("  c.cachespritesenabled - Whether to cache sprites in export cache (true/false). Default: true");
+                    Console.WriteLine("  c.exportcachecapmb    - Export cache size cap in MB. Default: 2048");
+                    Console.WriteLine("  c.xdeltaconcurrency   - Number of concurrent xDelta processes. Default: 3");
+                    break;
                 case "masspatch":
                     Console.WriteLine("\nMassPatch Command:");
                     Console.WriteLine("  Patches multiple data.win files with mods");
                     Console.WriteLine("\nUsage:");
-                    Console.WriteLine("  GM3P.exe massPatch [VanillaPath] [GameEngine] [ModAmount] [PatchPaths] [OutputPath?]");
+                    Console.WriteLine("  GM3P.exe massPatch [VanillaPath] [GameEngine] [ModAmount] [PatchPaths] [ConfigPath?]");
                     Console.WriteLine("\nArguments:");
                     Console.WriteLine("  VanillaPath - Path to vanilla game or data.win");
                     Console.WriteLine("  GameEngine  - Game engine type (GM for GameMaker)");
                     Console.WriteLine("  ModAmount   - Number of mods to patch");
                     Console.WriteLine("  PatchPaths  - Mod file paths (:: for chapters, , for mods)");
-                    Console.WriteLine("  OutputPath  - Optional output directory");
+                    Console.WriteLine("  ConfigPath  - Optional config JSON");
                     break;
 
                 case "compare":
@@ -407,12 +487,12 @@ namespace GM3P
                     Console.WriteLine("\nResult Command:");
                     Console.WriteLine("  Creates final modpack files");
                     Console.WriteLine("\nUsage:");
-                    Console.WriteLine("  GM3P.exe result [ModName] [Combined?] [ModAmount?] [OutputPath?]");
+                    Console.WriteLine("  GM3P.exe result [ModName] [Combined?] [ModAmount?] [ConfigPath?]");
                     Console.WriteLine("\nArguments:");
                     Console.WriteLine("  ModName    - Name for the modpack");
                     Console.WriteLine("  Combined   - Whether mods were combined (true/false)");
                     Console.WriteLine("  ModAmount  - Number of mods");
-                    Console.WriteLine("  OutputPath - Optional output directory");
+                    Console.WriteLine("  ConfigPath - Optional config JSON");
                     break;
 
                 case "clear":
