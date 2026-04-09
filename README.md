@@ -24,6 +24,8 @@ By default, GM3P will launch the "Console" app, which is an on-rails way to go t
 
 The CLI version was made for advanced users who want more control over the process and for toolmakers who want to use GM3P in their own tools. There are 6 commands in the CLI version:
 
+`config` - Changes settings and saves them in a JSON format Example: `GM3P.exe config update c.enablefastcombiner false save ./config.json`
+
 `massPatch` - The titular command. Makes multiple copies of the game, then patches each copy with a unique mod. The `compare` and `result` commands require this command to be called first. Otherwise, they will fail.
 Example: `GM3P.exe massPatch "./myGameMaker Game" GM 2 "./myMod1.xDelta","./MyMod2.csx"`
 
