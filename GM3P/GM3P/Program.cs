@@ -22,7 +22,7 @@ namespace GM3P
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine($"GM3P v{Version}.0-beta2");
+            Console.WriteLine($"GM3P v{Version}.0");
 
             // Setup services manually (no DI container)
             SetupServices();
@@ -140,9 +140,7 @@ namespace GM3P
         { 
             if (args.Length < 3)
             {
-                Console.WriteLine("Usage: GM3P.exe config [update] c.[setting] [Value]");
-                Console.WriteLine("or");
-                Console.WriteLine("Usage: GM3P.exe config [save/load] [Path]");
+                Console.WriteLine("Usage: GM3P.exe config [update] c.[setting] [Value] save? [configPath?]");
                 return;
             }
             var subcommand = args[1].ToLower();
@@ -176,6 +174,9 @@ namespace GM3P
                             break;
                         case "c.modamount":
                             _config.UpdateConfiguration(c => c.ModAmount = int.Parse(value));
+                            break;
+                        case "c.chapteramount":
+                            _config.UpdateConfiguration(c => c.ChapterAmount = int.Parse(value));
                             break;
                         case "c.enablefastcombiner":
                             _config.UpdateConfiguration(c => c.EnableFastCombiner = bool.Parse(value));
@@ -452,6 +453,7 @@ namespace GM3P
                     Console.WriteLine("  c.modtoolpath          - Path to mod tool executable (e.g. UTMT). Default: ./UTMTCLI/UndertaleModCli.exe");
                     Console.WriteLine("  c.gameengine           - Game engine type (e.g. GM for GameMaker). Currently unused");
                     Console.WriteLine("  c.modamount            - Number of mods to patch/compare");
+                    Console.WriteLine("  c.chapteramount        - Number of chapters to patch. Default: 1)");
                     Console.WriteLine("  c.enablefastcombiner   - Whether to enable fast combiner (true/false), must be false for room combining. Default: true");
                     Console.WriteLine("  c.cacheenabled         - Whether to enable export cache (true/false). Default: true");
                     Console.WriteLine("  c.cachespritesenabled - Whether to cache sprites in export cache (true/false). Default: true");
