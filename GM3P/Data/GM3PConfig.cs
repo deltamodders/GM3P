@@ -15,6 +15,7 @@
         public bool EnableFastCombiner { get; set; } = false;
         public int CombinerTool { get; set; } = 0;
         public bool verboseLogging { get; set; } = false;
+        public bool win { get; set; } = true;
 
         // Cache settings
         public bool CacheEnabled { get; set; } = false;

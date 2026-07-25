@@ -101,7 +101,7 @@ namespace GM3P
         {
 
             var opArgParse = 0;
-            string[] singleOptions = { "-help", "v" };
+            string[] singleOptions = { "-help", "v", "-lose" };
             int opArgCount = 0;
             int reqArgCount = 0;
             for (int i = 0; i < args.Length; i++)
@@ -163,7 +163,7 @@ namespace GM3P
                     break;
 
                 case "result":
-                    await HandleResult(args);
+                    await HandleResult(reqArgs, opArgs);
                     break;
 
                 case "console":
@@ -357,36 +357,47 @@ namespace GM3P
                 await _orchestrator!.ExecuteImport();
         }
 
-        static async Task HandleResult(string[] args)
+        static async Task HandleResult(string[] reqargs, string[] opargs)
         {
-            await seperateOptionArgs(args);
-            if (args.Length < 2)
+            if (reqargs.Length < 2)
             {
                 Console.WriteLine("Usage: GM3P.exe result [ModName] [Combined?] [ModAmount?] [ConfigPath?]");
                 return;
             }
 
-            string modName = args[1];
+            string modName = reqargs[1];
 
-            var loadPath = args.Length > 4 ? args[4] : null;
-            if (args.Length > 2)
+            var loadPath = reqargs.Length > 4 ? reqargs[4] : null;
+            if (reqargs.Length > 2)
             {
                 _config!.UpdateConfiguration(c =>
                 {
-                    if (args.Length > 4)
+                    if (reqargs.Length > 4)
                     {
                         _config?.LoadConfiguration(loadPath);
                         Console.WriteLine($"Configuration loaded from {(loadPath ?? "default path")}");
                     }
-                    c.Combined = bool.Parse(args[2]);
+                    c.Combined = bool.Parse(reqargs[2]);
 
-                    if (args.Length > 3)
-                        c.ModAmount = int.Parse(args[3]);
+                    if (reqargs.Length > 3)
+                        c.ModAmount = int.Parse(reqargs[3]);
 
                     
                 });
             }
-
+            bool win = true;
+            for (int i = 0; i < opargs.Length; i++)
+            {
+                if (opargs[i].StartsWith("--modName "))
+                {
+                    modName = opargs[i].Replace("--modName ", "");
+                }
+                if (opargs[i].StartsWith("--lose"))
+                {
+                    win = false;
+                }
+            }
+            _config!.UpdateConfiguration(c => c.win = win);
             await _orchestrator!.ExecuteResult(modName);
         }
 
@@ -449,7 +460,8 @@ namespace GM3P
             {
                 var args = Regex.Split(iknowwhatwearegonnadotodayferb, "(?:^| )(\"(?:[^\"]+|\"\")*\"|[^ ]*)");
                 args = args.Where(arg => !string.IsNullOrWhiteSpace(arg)).ToArray();
-                Console.WriteLine("args: \n");
+                args = args.Select(arg => arg.Trim('"')).ToArray();
+                Console.WriteLine("\nargs: \n");
                 for (int i = 0; i < args.Length; i++)
                 {
                     Console.WriteLine(args[i]);

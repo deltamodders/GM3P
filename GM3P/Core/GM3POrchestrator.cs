@@ -943,11 +943,11 @@ namespace GM3P.Core
                     _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), "1", "data.win"),
                     Path.Combine(resultPath, $"{modName}-Chapter{chapter}"),
                     _config.Config);
-
-                _fileLinker.LinkOrCopy(
-                    _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), "1", "data.win"),
-                    Path.Combine(chapterResultPath, "data.win"));
-
+                if (_config.Config.win){
+                    _fileLinker.LinkOrCopy(
+                        _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), "1", "data.win"),
+                        Path.Combine(chapterResultPath, "data.win"));
+                }
                 CopyModifiedAssetsList(chapter, chapterResultPath);
             }
             else
@@ -968,10 +968,12 @@ namespace GM3P.Core
                 _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), modNumber.ToString(), "data.win"),
                 Path.Combine(resultPath, chapter.ToString(), $"{modNumber}"),
                 _config.Config);
-
-            _fileLinker.LinkOrCopy(
-                _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), modNumber.ToString(), "data.win"),
-                Path.Combine(modResultPath, "data.win"));
+            if (_config.Config.win)
+            {
+                _fileLinker.LinkOrCopy(
+                    _directoryManager.GetXDeltaCombinerPath(_config.Config, chapter.ToString(), modNumber.ToString(), "data.win"),
+                    Path.Combine(modResultPath, "data.win"));
+            }
         }
 
         #endregion
