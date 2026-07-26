@@ -12,11 +12,14 @@
         public int ChapterAmount { get; set; } = 1;
         public bool Combined { get; set; }
         public bool EnableFastCombiner { get; set; } = true;
+        public int CombinerTool { get; set; } = 0; // 0 = GM3P 0, 1 = GM3P 0 w/G3MTool scripts, 2 = G3MTool, 3 = GMLoader
+        public bool VerboseLogging { get; set; } = false;
+        public bool win { get; set; } = true;
 
         // Cache settings
-        public bool CacheEnabled { get; set; } = true;
+        public bool CacheEnabled { get; set; } = false;
         public bool CacheSpritesEnabled { get; set; } = true;
-        public int ExportCacheCapMB { get; set; } = 2048;
+        public int ExportCacheCapMB { get; set; } = 1024;
         public int XDeltaConcurrency { get; set; } = 3;
 
         // Debug mode for Roslyn scripts.

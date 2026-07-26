@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using GM3P.Data;
 using GM3P.FileSystem;
+using GM3P.GameMaker;
 
 namespace GM3P.Patching
 {
@@ -13,6 +14,7 @@ namespace GM3P.Patching
 
     public class PatchService : IPatchService
     {
+        private readonly IUndertaleModTool _modTool;
         private readonly IDirectoryManager _directoryManager;
         private readonly SemaphoreSlim _concurrencySemaphore;
         private readonly object _modNumbersCacheLock = new object();
@@ -35,8 +37,7 @@ namespace GM3P.Patching
                     continue;
 
                 string[] parts = chapterMods.Split(',');
-                var actualPatches = parts.Skip(2).Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();
-
+                var actualPatches = parts.Skip(0).Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();
                 for (int i = 0; i < actualPatches.Length && i < config.ModAmount; i++)
                 {
                     int modNumber = i + 2;
@@ -67,7 +68,7 @@ namespace GM3P.Patching
                     "data.win");
 
                 string extension = Path.GetExtension(patchFile).ToLower();
-
+                Console.WriteLine(extension);
                 switch (extension)
                 {
                     case ".csx":
@@ -83,7 +84,8 @@ namespace GM3P.Patching
                         await ApplyXDeltaPatch(dataPath, patchFile, config);
                         break;
                     case ".g3mpatch":
-                        await ApplyG3MPatch(patchFile, config);
+                    case ".zip":
+                        await ApplyG3MPatch(patchFile, chapter.ToString(), modNumber.ToString(), config);
                         break;
 
                     default:
@@ -99,33 +101,64 @@ namespace GM3P.Patching
             }
         }
 
-        private async Task ApplyG3MPatch(string patchFile, GM3PConfig config)
+        private async Task ApplyG3MPatch(string patchFile, string chapter, string modNumber, GM3PConfig config)
         {
-            var chapterFile = _directoryManager.GetCachePath(config, "chapterNumber.txt");
-            string chapter = File.ReadAllLines(chapterFile).FirstOrDefault();
-            var cacheFile = _directoryManager.GetCachePath(config, "modNumbersCache.txt");
-            string modNumber = File.ReadAllLines(cacheFile).FirstOrDefault();
             string tempDir = _directoryManager.GetXDeltaCombinerPath(config,
-                    chapter.ToString(),
-                    modNumber.ToString(),
+                    chapter,
+                    modNumber,
                     "Objects");
             Directory.CreateDirectory(tempDir);
             try
             {
+                lock (_modNumbersCacheLock)
+                {
+                    File.WriteAllText(
+                        _directoryManager.GetCachePath(config, "running", "modNumbersCache.txt"),
+                        modNumber.ToString());
+
+                    File.WriteAllText(
+                        _directoryManager.GetCachePath(config, "running", "chapterNumber.txt"),
+                        chapter.ToString());
+                }
                 // Extract the .g3mpatch file
-                System.IO.Compression.ZipFile.ExtractToDirectory(patchFile, tempDir);
+                System.IO.Compression.ZipFile.ExtractToDirectory(patchFile, tempDir, true);
                 // Copy the asset_order.txt to the output directory
                 string assetOrderPath = Path.Combine(tempDir, "Helpers", "asset_order.txt");
                 if (File.Exists(assetOrderPath))
                 {
                     
                     string outputDir = _directoryManager.GetXDeltaCombinerPath(config,
-                    chapter.ToString(),
-                    modNumber.ToString(),
+                    chapter,
+                    modNumber,
                     "Objects",
                     "AssetOrder.txt");
-                    File.Copy(assetOrderPath, Path.Combine(outputDir, "asset_order.txt"), overwrite: true);
+                    File.Copy(assetOrderPath, outputDir, overwrite: true);
                 }
+                //Copy the code to the output directory
+                string[] codeFiles = Directory.GetFiles(tempDir, "*.gml", SearchOption.AllDirectories);
+                foreach (var codeFile in codeFiles)
+                {
+                    Console.WriteLine(codeFile);
+                    try { 
+                    string codeFileName = Path.GetFileName(codeFile);
+                        string relativePath = Path.GetRelativePath(tempDir, codeFile);
+                    string outputCodePath = _directoryManager.GetXDeltaCombinerPath(config,
+                        chapter,
+                        modNumber,
+                        "Objects",
+                        "CodeEntries",
+                        codeFileName);
+                    File.Copy(codeFile, outputCodePath, overwrite: true); }
+                     catch { }
+                }
+                //Finally, import the assets using the mod tool
+                try
+                {
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportGraphics.csx"), config);
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportGML.csx"), config);
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportAssetOrder.csx"), config);
+                } catch (Exception ex)
+                { Console.WriteLine($"Failed to import: {ex.Message}"); }
             }
             catch (Exception ex)
             {

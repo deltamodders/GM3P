@@ -22,7 +22,7 @@ namespace GM3P
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine($"GM3P v{Version}.2");
+            Console.WriteLine($"GM3P v{Version}.3");
 
             // Setup services manually (no DI container)
             SetupServices();
@@ -189,6 +189,15 @@ namespace GM3P
                         case "c.enablefastcombiner":
                             _config?.UpdateConfiguration(c => c.EnableFastCombiner = bool.Parse(value));
                             break;
+                        case "c.combinertool":
+                            _config?.UpdateConfiguration(c => c.CombinerTool = int.Parse(value));
+                            break;
+                        case "c.verboselogging":
+                            _config?.UpdateConfiguration(c => c.VerboseLogging = bool.Parse(value));
+                            break;
+                        case "c.win":
+                            _config?.UpdateConfiguration(c => c.win = bool.Parse(value));
+                            break;
                         case "c.cacheenabled": 
                             _config?.UpdateConfiguration(c => c.CacheEnabled = bool.Parse(value));
                             break;
@@ -200,6 +209,9 @@ namespace GM3P
                             break;
                         case "c.xdeltaconcurrency":
                             _config?.UpdateConfiguration(c => c.XDeltaConcurrency = int.Parse(value));
+                            break;
+                        case "c.debugmode":
+                            _config?.UpdateConfiguration(c => c.DebugMode = bool.Parse(value));
                             break;
                         default:
                             Console.WriteLine($"Unknown setting: {setting}");
@@ -471,12 +483,16 @@ namespace GM3P
                     Console.WriteLine("  c.gameengine           - Game engine type (e.g. GM for GameMaker). Currently unused");
                     Console.WriteLine("  c.modamount            - Number of mods to patch/compare");
                     Console.WriteLine("  c.chapteramount        - Number of chapters to patch. Default: 1)");
-                    Console.WriteLine("  c.combined            - Whether mods were combined (true/false). Default: false");
+                    Console.WriteLine("  c.combined             - Whether mods were combined (true/false). Default: false");
                     Console.WriteLine("  c.enablefastcombiner   - Whether to enable fast combiner (true/false), must be false for room combining. Default: true");
+                    Console.WriteLine("  c.combinerTool         - Combiner tool to use (0 = GM3P 0, 1 = GM3P 0 w/G3MTool scripts, 2 = G3MTool, 3 = GMLoader). Default: 0 (Unused in the 0 branch)");
+                    Console.WriteLine("  c.verboselogging       - Whether to enable verbose logging (true/false). Default: false (Unused in the 0 branch)");
+                    Console.WriteLine("  c.win                  - Whether the result command will spit out a data.win (true/false). Default: true (Unused in the 0 branch)");
                     Console.WriteLine("  c.cacheenabled         - Whether to enable export cache (true/false). Default: true");
-                    Console.WriteLine("  c.cachespritesenabled - Whether to cache sprites in export cache (true/false). Default: true");
-                    Console.WriteLine("  c.exportcachecapmb    - Export cache size cap in MB. Default: 2048");
-                    Console.WriteLine("  c.xdeltaconcurrency   - Number of concurrent xDelta processes. Default: 3");
+                    Console.WriteLine("  c.cachespritesenabled  - Whether to cache sprites in export cache (true/false). Default: true");
+                    Console.WriteLine("  c.exportcachecapmb     - Export cache size cap in MB. Default: 2048");
+                    Console.WriteLine("  c.xdeltaconcurrency    - Number of concurrent xDelta processes. Default: 3");
+                    Console.WriteLine("  c.debugmode            - Whether to enable debug mode for Roslyn scripts (true/false). Default: false");
                     break;
                 case "masspatch":
                     Console.WriteLine("\nMassPatch Command:");
