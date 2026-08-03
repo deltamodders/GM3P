@@ -1,6 +1,5 @@
 # NOTICE
-GM3P has been canceled. Its development will no longer continue.<br />
-Usage of the program is, of course, still possible. However, I recommend using [G3MTool](https://github.com/y114git/G3MTool) instead.
+I recommend using [G3MTool](https://github.com/y114git/G3MTool) instead.
 
 # GameMaker Mass Mod Patcher (GM3P)
 
