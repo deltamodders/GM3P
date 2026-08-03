@@ -35,6 +35,7 @@ namespace GM3P.Core
         private readonly IUndertaleModTool _modTool;
         private readonly IModManager _modManager;
         private readonly IInstall _install;
+        private readonly IDeltaModPackageService _deltaModPackageService;
         private readonly SemaphoreSlim _dumpSemaphore;
         private readonly object _dumpLock = new object();
         #endregion
@@ -50,7 +51,8 @@ namespace GM3P.Core
             IModCombiner modCombiner,
             IUndertaleModTool modTool,
             IModManager modManager,
-            IInstall install)
+            IInstall install,
+            IDeltaModPackageService deltaModPackageService)
         {
             _config = config;
             _directoryManager = directoryManager;
@@ -62,10 +64,12 @@ namespace GM3P.Core
             _modTool = modTool;
             _modManager = modManager;
             _install = install;
+            _deltaModPackageService = deltaModPackageService;
 
             // IMPORTANT: Set to 1 to prevent file conflicts
             // Multiple UTMT instances can't write to the same output directories
             _dumpSemaphore = new SemaphoreSlim(1);
+            _deltaModPackageService = deltaModPackageService;
         }
 
 

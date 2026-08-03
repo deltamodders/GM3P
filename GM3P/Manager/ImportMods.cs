@@ -22,13 +22,14 @@ namespace GM3P.Manager
         public async Task InstallMods(string patchFile, string game, GM3PConfig config)
         {
             // Implementation for importing mods goes here
+
         }
         public async Task InstallInstance(string modName, string gamePath, string game, string version, GM3PConfig config)
         {
             // Implementation for importing vanilla files goes here
             try
             {
-                _directoryManager.CopyDirectory(gamePath, Path.Combine(config.OutputPath,"DeltamodLite","instances",modName,game,version,game) , true);
+                await _directoryManager.CopyDirectory(gamePath, Path.Combine(config.OutputPath,"DeltamodLite","instances",modName,game,version,game) , true);
             }
             catch (Exception ex) {
                 Console.WriteLine($"Error copying vanilla files for mod {modName}: {ex.Message}");
