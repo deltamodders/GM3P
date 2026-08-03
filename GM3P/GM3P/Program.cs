@@ -321,7 +321,7 @@ namespace GM3P
                 }
                 if (opargs[i].StartsWith("--relative "))
                 {
-                    releativePath = opargs[i].Replace("--releative ", "");
+                    releativePath = opargs[i].Replace("--relative ", "");
                     foreach (var path in patchPaths)
                     {
                         path.Replace("./", releativePath + "/");
@@ -670,7 +670,7 @@ namespace GM3P
                     Console.WriteLine("\nMassPatch Command:");
                     Console.WriteLine("  Patches multiple data.win files with mods");
                     Console.WriteLine("\nUsage:");
-                    Console.WriteLine("  GM3P.exe massPatch [VanillaPath] [ModAmount] [PatchPaths] --config? <ConfigPath> --releative? <releativePath>");
+                    Console.WriteLine("  GM3P.exe massPatch [VanillaPath] [ModAmount] [PatchPaths] --config? <ConfigPath> --relative? <releativePath>");
                     Console.WriteLine("\nArguments:");
                     Console.WriteLine("  VanillaPath - Path to vanilla game or data.win");
                     Console.WriteLine("  ModAmount   - Number of mods to patch");
