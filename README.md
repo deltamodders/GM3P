@@ -13,7 +13,7 @@ _This tool was used in the backend of [Deltamod](https://gamebanana.com/tools/20
 3. Open the .sln up of [UTMT-For-GM3P](https://github.com/deltamodders/UTMT-For-GM3P) and build the project "UnderTaleModCli"<br />
 4. Copy and paste the UTMT build into the GM3P build under a folder named "UTMTCLI" <br />
 5. Copy and paste the contents of the "UTMT Scripts" folder under a folder named "Scripts" under "UTMTCLI" <br />
-6. Download [xDelta3 v3.0.11 64-bit](https://github.com/jmacd/xdelta-gpl/releases/download/v3.0.11/xdelta3-3.0.11-x86_64.exe.zip) and paste it under the GM3P build.
+6. Download [xDelta3](https://github.com/jmacd/xdelta-gpl/releases/download/v3.0.11/xdelta3-3.0.11-x86_64.exe.zip) and paste it under the GM3P build.
 7. Happy patching
 
 ## Usage
@@ -43,6 +43,11 @@ Example: `GM3P.exe result "My Modpack" true 2`
 `console` - Launches the console version of the tool
 
 And last, but not least, `help`, which gives more detailed information on each of these commands.
+
+### Supported GameMaker data files and patches
+
+For data files we only support `.win` at the moment.
+For patches we support `.csx`(as long as it is compatible with UTMT 0.8._x_), `.xdelta`, `.zip` (as raw GameMaker objects), `.g3mpatch` (treated as raw GameMaker objects in 0._x_), and `.win`
 
 ## Credits
 | | Name | Role |
