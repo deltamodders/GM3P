@@ -16,6 +16,7 @@
         public int CombinerTool { get; set; } = 0;
         public bool verboseLogging { get; set; } = false;
         public bool win { get; set; } = true;
+        public bool theirsMerging { get; set; } = false;
 
         // Cache settings
         public bool CacheEnabled { get; set; } = false;

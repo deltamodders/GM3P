@@ -247,7 +247,7 @@ namespace GM3P.Merging
                         continue;
 
                     var result = await ProcessFile(relKey, allFileVersions[relKey], vanillaFileDict,
-                                                   mergedObjectsPath, chapterModified);
+                                                   mergedObjectsPath, chapterModified, config);
 
                     changedThisChapter += result.ChangedCount;
                     anyCodeChanged |= result.CodeChanged;
@@ -298,7 +298,7 @@ namespace GM3P.Merging
         }
 
         private async Task<ProcessFileResult> ProcessFile(string relKey, List<ModFileInfo> versions,
-            Dictionary<string, string> vanillaFileDict, string mergedObjectsPath, List<string> chapterModified)
+            Dictionary<string, string> vanillaFileDict, string mergedObjectsPath, List<string> chapterModified, GM3PConfig config)
         {
             var result = new ProcessFileResult();
             var vanillaVersion = versions.FirstOrDefault(v => v.ModNumber == 0);
@@ -334,7 +334,7 @@ namespace GM3P.Merging
             else
             {
                 Console.WriteLine($"    Merging {different.Count} versions");
-                await MergeMultipleVersions(relKey, different, vanillaVersion, targetPath);
+                await MergeMultipleVersions(relKey, different, vanillaVersion, targetPath, config);
             }
 
             // Track
@@ -423,7 +423,7 @@ namespace GM3P.Merging
         }
 
         private async Task MergeMultipleVersions(string relKey, List<ModFileInfo> different,
-                                                ModFileInfo? vanillaVersion, string targetPath)
+                                                ModFileInfo? vanillaVersion, string targetPath, GM3PConfig config)
         {
             string lcKey = relKey.Replace('\\', '/').ToLowerInvariant();
             string ext = Path.GetExtension(relKey).ToLowerInvariant();
@@ -453,7 +453,7 @@ namespace GM3P.Merging
 
             bool ok = false;
             if (vanillaVersion != null)
-                ok = _gitService.PerformGitMerge(vanillaVersion.FilePath, different, targetPath, relKey);
+                ok = _gitService.PerformGitMerge(vanillaVersion.FilePath, different, targetPath, relKey, config);
 
             if (!ok)
             {
