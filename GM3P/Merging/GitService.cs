@@ -129,7 +129,7 @@ namespace GM3P.Merging
                     string list = string.Join(" ", branches);
                     Console.WriteLine($"    Merging branches: {list}");
                     // -X theirs ensures last-merge wins; still resolve any markers just in case
-                    if (config.theirsMerging)
+                    if (config.mergeMethod == "theirs")
                     {
                         RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit -m \"merged\"", allowNonZeroExit: true);
                     }
@@ -250,13 +250,13 @@ namespace GM3P.Merging
 
                     if (string.IsNullOrWhiteSpace(local))  return remote;
                     if (string.IsNullOrWhiteSpace(remote)) return local;
-                    if (config.theirsMerging)
+                    if (config.mergeMethod == "theirs")
                     {
                         return remote; // last-mod wins
                     }
                     else
                     {
-                        return remote + "\n" + local; // return both
+                        return local + "\n" + remote; // return both
                     }
                 });
             }
