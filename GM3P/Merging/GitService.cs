@@ -11,7 +11,7 @@ namespace GM3P.Merging
     public interface IGitService
     {
         string? FindGit();
-        bool PerformGitMerge(string baseFile, List<ModFileInfo> mods, string outputFile, string relativePath);
+        bool PerformGitMerge(string baseFile, List<ModFileInfo> mods, string outputFile, string relativePath, GM3PConfig config);
         string? RunGitCommand(string gitPath, string workingDir, string arguments, bool allowNonZeroExit = false);
     }
 
@@ -81,7 +81,7 @@ namespace GM3P.Merging
             }
         }
 
-        public bool PerformGitMerge(string baseFile, List<ModFileInfo> mods, string outputFile, string relativePath)
+        public bool PerformGitMerge(string baseFile, List<ModFileInfo> mods, string outputFile, string relativePath, GM3PConfig config)
         {
             try
             {
@@ -129,7 +129,14 @@ namespace GM3P.Merging
                     string list = string.Join(" ", branches);
                     Console.WriteLine($"    Merging branches: {list}");
                     // -X theirs ensures last-merge wins; still resolve any markers just in case
-                    RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit -m \"merged\"", allowNonZeroExit: true);
+                    if (config.mergeMethod == "theirs")
+                    {
+                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit -m \"merged\"", allowNonZeroExit: true);
+                    }
+                    else
+                    {
+                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit --no-commit -m \"merged\"", allowNonZeroExit: true);
+                    }
 
                     if (File.Exists(workFile))
                     {
@@ -137,7 +144,7 @@ namespace GM3P.Merging
                         if (content.Contains("<<<<<<<"))
                         {
                             Console.WriteLine("    Auto-resolving conflict markers");
-                            content = AutoResolveConflicts(content, relativePath);
+                            content = AutoResolveConflicts(content, relativePath, config);
                         }
 
                         if (string.IsNullOrWhiteSpace(content))
@@ -226,7 +233,7 @@ namespace GM3P.Merging
         }
 
         // Prefer incoming (“theirs”) for .gml; prefer “theirs” for other text as well (overlay-friendly).
-        private string AutoResolveConflicts(string mergedText, string relativePath)
+        private string AutoResolveConflicts(string mergedText, string relativePath, GM3PConfig config)
         {
             if (string.IsNullOrEmpty(mergedText)) return mergedText;
 
@@ -242,12 +249,20 @@ namespace GM3P.Merging
                 {
                     string local  = m.Groups["local"].Value;
                     string remote = m.Groups["remote"].Value;
-
-                    if (isGml) return string.IsNullOrWhiteSpace(remote) ? local : remote;
-
+                    string both = local + "\n" + remote;
+                    //if (isGml) return string.IsNullOrWhiteSpace(remote) ? local : remote;
+                    Console.WriteLine(both);//Debug: show both sides of the conflict
                     if (string.IsNullOrWhiteSpace(local))  return remote;
                     if (string.IsNullOrWhiteSpace(remote)) return local;
-                    return remote; // last-mod wins
+                    if (config.mergeMethod == "theirs")
+                    {
+                        return remote; // last-mod wins
+                    }
+                    else
+                    {
+                        File.WriteAllText(Path.Combine(config.OutputPath,"xDeltaCombiner","merge.txt"), local + "\n" + remote); //Debug: show both sides of the conflict
+                        return both; // return both
+                    }
                 });
             }
 

@@ -106,6 +106,26 @@ namespace GM3P.Merging
             string newObjDefsDir = _directoryManager.GetXDeltaCombinerPath(
                 config, chapter.ToString(), modNumber.ToString(), "Objects", "NewObjects", "ObjectDefinitions");
 
+            // If the directory exists, rename the UTMT project code directory to codeentries for consistency
+            string UTMTProjectCodeDir = _directoryManager.GetXDeltaCombinerPath(
+                config, chapter.ToString(), modNumber.ToString(), "Objects", "code");
+
+            if (Directory.Exists(UTMTProjectCodeDir))
+            { 
+                string CodeEntriesDir = _directoryManager.GetXDeltaCombinerPath(config, chapter.ToString(), modNumber.ToString(), "Objects", "NewObjects", "CodeEntries");
+            Directory.CreateDirectory(CodeEntriesDir);
+            foreach (var file in Directory.GetFiles(UTMTProjectCodeDir, "*.gml", SearchOption.TopDirectoryOnly))
+            {
+                string destFile = Path.Combine(CodeEntriesDir, Path.GetFileName(file));
+                File.Move(file, destFile);
+            }
+            // Optionally delete the old code directory if empty
+            if (!Directory.EnumerateFileSystemEntries(UTMTProjectCodeDir).Any())
+            {
+                Directory.Delete(UTMTProjectCodeDir);
+            }
+            }
+
             if (Directory.Exists(newObjDefsDir))
             {
                 info.NewObjects += Directory.GetFiles(newObjDefsDir, "*.txt", SearchOption.TopDirectoryOnly).Length;
@@ -240,14 +260,26 @@ namespace GM3P.Merging
 
                 Console.WriteLine($"Chapter {chapter}: Found {allKnown.Count} unique files across vanilla and {config.ModAmount} mod(s)");
 
-                // Process everything except AssetOrder.txt (handled later)
+                // Process everything except AssetOrder.txt (handled later) and certain ignored files
                 foreach (string relKey in allKnown)
                 {
-                    if (relKey.Equals("assetorder.txt", StringComparison.OrdinalIgnoreCase))
+                    string ext = Path.GetExtension(relKey);
+                    string[] ingoreKey = ["assetorder.txt,Asset_Order.txt","object_events.json","variables_functions.json","meta.json","meta.toml","modding.xml","g3mpatch.json","project.json"];
+                    if (ext == ".yaml" || ext == ".asm" || ext == ".csx" || ext == ".xdelta")
+                        ingoreKey.Append(relKey);
+                    bool skip = false;
+                    foreach (string ingore in ingoreKey)
+                    {
+                        if (relKey.Equals(ingore, StringComparison.OrdinalIgnoreCase))
+                            skip = true;
+                            continue;
+                    }
+                    if (skip)
                         continue;
 
+
                     var result = await ProcessFile(relKey, allFileVersions[relKey], vanillaFileDict,
-                                                   mergedObjectsPath, chapterModified);
+                                                   mergedObjectsPath, chapterModified, config);
 
                     changedThisChapter += result.ChangedCount;
                     anyCodeChanged |= result.CodeChanged;
@@ -298,7 +330,7 @@ namespace GM3P.Merging
         }
 
         private async Task<ProcessFileResult> ProcessFile(string relKey, List<ModFileInfo> versions,
-            Dictionary<string, string> vanillaFileDict, string mergedObjectsPath, List<string> chapterModified)
+            Dictionary<string, string> vanillaFileDict, string mergedObjectsPath, List<string> chapterModified, GM3PConfig config)
         {
             var result = new ProcessFileResult();
             var vanillaVersion = versions.FirstOrDefault(v => v.ModNumber == 0);
@@ -334,7 +366,7 @@ namespace GM3P.Merging
             else
             {
                 Console.WriteLine($"    Merging {different.Count} versions");
-                await MergeMultipleVersions(relKey, different, vanillaVersion, targetPath);
+                await MergeMultipleVersions(relKey, different, vanillaVersion, targetPath, config);
             }
 
             // Track
@@ -423,7 +455,7 @@ namespace GM3P.Merging
         }
 
         private async Task MergeMultipleVersions(string relKey, List<ModFileInfo> different,
-                                                ModFileInfo? vanillaVersion, string targetPath)
+                                                ModFileInfo? vanillaVersion, string targetPath, GM3PConfig config)
         {
             string lcKey = relKey.Replace('\\', '/').ToLowerInvariant();
             string ext = Path.GetExtension(relKey).ToLowerInvariant();
@@ -453,7 +485,7 @@ namespace GM3P.Merging
 
             bool ok = false;
             if (vanillaVersion != null)
-                ok = _gitService.PerformGitMerge(vanillaVersion.FilePath, different, targetPath, relKey);
+                ok = _gitService.PerformGitMerge(vanillaVersion.FilePath, different, targetPath, relKey, config);
 
             if (!ok)
             {
@@ -712,8 +744,13 @@ namespace GM3P.Merging
             if (hasCode || hasNewObjCode)
             {
                 // ImportGML now works properly with case fixes
-                await _modTool.RunScript(workingDataWin, "ImportGML.csx", config);
-                Console.WriteLine($"  Imported code using fixed ImportGML");
+                //await _modTool.RunScript(workingDataWin, "ImportGML.csx", config);
+                if (hasImportGml) scripts.Add("ImportGML.csx");
+                else Console.WriteLine("  WARNING: No ImportGML script found; skipping code import.");
+
+                var count = Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.gml", SearchOption.AllDirectories).Length;
+                Console.WriteLine($"   Importing {count} merged code files");
+                //Console.WriteLine($"  Imported code using fixed ImportGML");
             }
 
             // 4) Asset order last

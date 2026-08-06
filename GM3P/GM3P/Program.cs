@@ -22,7 +22,7 @@ namespace GM3P
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine($"GM3P v{Version}.3");
+            Console.WriteLine($"GM3P v{Version}.4");
 
             // Setup services manually (no DI container)
             SetupServices();
@@ -197,6 +197,15 @@ namespace GM3P
                             break;
                         case "c.win":
                             _config?.UpdateConfiguration(c => c.win = bool.Parse(value));
+                            break;
+                        case "c.mergemethod":
+                            _config?.UpdateConfiguration(c => c.mergeMethod = value);
+                            break;
+                        case "c.utmtversion":
+                            _config?.UpdateConfiguration(c => c.UTMTversion = int.Parse(value));
+                            break;
+                        case "c.treatg3mpatchesaszips":
+                            _config?.UpdateConfiguration(c => c.treatG3MPatchesAsZips = bool.Parse(value));
                             break;
                         case "c.cacheenabled": 
                             _config?.UpdateConfiguration(c => c.CacheEnabled = bool.Parse(value));
@@ -488,6 +497,9 @@ namespace GM3P
                     Console.WriteLine("  c.combinerTool         - Combiner tool to use (0 = GM3P 0, 1 = GM3P 0 w/G3MTool scripts, 2 = G3MTool, 3 = GMLoader). Default: 0 (Unused in the 0 branch)");
                     Console.WriteLine("  c.verboselogging       - Whether to enable verbose logging (true/false). Default: false (Unused in the 0 branch)");
                     Console.WriteLine("  c.win                  - Whether the result command will spit out a data.win (true/false). Default: true (Unused in the 0 branch)");
+                    Console.WriteLine("  c.mergemethod          - The merge method to use (both, theirs). Default: both");
+                    Console.WriteLine("  c.utmtversion          - The version of UTMT to use (8, 9). Default: 8 (Unused in the 0 branch)");
+                    Console.WriteLine("  c.treatg3mpatchesaszips- Whether to treat G3M patches as zip files (true/false). Default: true (Unused in the 0 branch)");
                     Console.WriteLine("  c.cacheenabled         - Whether to enable export cache (true/false). Default: true");
                     Console.WriteLine("  c.cachespritesenabled  - Whether to cache sprites in export cache (true/false). Default: true");
                     Console.WriteLine("  c.exportcachecapmb     - Export cache size cap in MB. Default: 2048");

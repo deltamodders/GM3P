@@ -15,10 +15,14 @@
         public int CombinerTool { get; set; } = 0; // 0 = GM3P 0, 1 = GM3P 0 w/G3MTool scripts, 2 = G3MTool, 3 = GMLoader
         public bool VerboseLogging { get; set; } = false;
         public bool win { get; set; } = true;
+        public string mergeMethod { get; set; } = "both";
+        public int UTMTversion { get; set; } = 8;
+        public bool treatG3MPatchesAsZips { get; set; } = true;
+
 
         // Cache settings
         public bool CacheEnabled { get; set; } = false;
-        public bool CacheSpritesEnabled { get; set; } = true;
+        public bool CacheSpritesEnabled { get; set; } = false;
         public int ExportCacheCapMB { get; set; } = 1024;
         public int XDeltaConcurrency { get; set; } = 3;
 
