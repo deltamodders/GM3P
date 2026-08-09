@@ -85,6 +85,11 @@ namespace GM3P.Patching
                     case ".g3mpatch":
                         await ApplyG3MPatch(dataPath, patchFile, config);
                         break;
+                    case ".zip":
+                    case ".rar":
+                    case ".7z":
+                        await ApplyResourceZip(patchFile, chapter.ToString(), modNumber.ToString(), config);
+                        break;
                     default:
                         Console.WriteLine($"Unknown patch format: {extension}");
                         break;
@@ -97,7 +102,74 @@ namespace GM3P.Patching
                 _concurrencySemaphore.Release();
             }
         }
+        private async Task ApplyResourceZip(string patchFile, string chapter, string modNumber, GM3PConfig config)
+        {
+            string tempDir = _directoryManager.GetXDeltaCombinerPath(config,
+                    chapter,
+                    modNumber,
+                    "Objects");
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                lock (_modNumbersCacheLock)
+                {
+                    File.WriteAllText(
+                        _directoryManager.GetCachePath(config, "running", "modNumbersCache.txt"),
+                        modNumber.ToString());
 
+                    File.WriteAllText(
+                        _directoryManager.GetCachePath(config, "running", "chapterNumber.txt"),
+                        chapter.ToString());
+                }
+                // Extract the .g3mpatch file
+                System.IO.Compression.ZipFile.ExtractToDirectory(patchFile, tempDir, true);
+                // Copy the asset_order.txt to the output directory
+                string assetOrderPath = Path.Combine(tempDir, "Helpers", "asset_order.txt");
+                if (File.Exists(assetOrderPath))
+                {
+
+                    string outputDir = _directoryManager.GetXDeltaCombinerPath(config,
+                    chapter,
+                    modNumber,
+                    "Objects",
+                    "AssetOrder.txt");
+                    File.Copy(assetOrderPath, outputDir, overwrite: true);
+                }
+                //Copy the code to the output directory
+                string[] codeFiles = Directory.GetFiles(tempDir, "*.gml", SearchOption.AllDirectories);
+                foreach (var codeFile in codeFiles)
+                {
+                    Console.WriteLine(codeFile);
+                    try
+                    {
+                        string codeFileName = Path.GetFileName(codeFile);
+                        string relativePath = Path.GetRelativePath(tempDir, codeFile);
+                        string outputCodePath = _directoryManager.GetXDeltaCombinerPath(config,
+                            chapter,
+                            modNumber,
+                            "Objects",
+                            "CodeEntries",
+                            codeFileName);
+                        File.Copy(codeFile, outputCodePath, overwrite: true);
+                    }
+                    catch { }
+                }
+                //Finally, import the assets using the mod tool
+                try
+                {
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportGraphics.csx"), config);
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportGML.csx"), config);
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportAssetOrder.csx"), config);
+                }
+                catch (Exception ex)
+                { Console.WriteLine($"Failed to import: {ex.Message}"); }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to apply .g3mpatch: {ex.Message}");
+            }
+
+        }
         private async Task ApplyScriptPatch(string dataPath, string scriptPath, GM3PConfig config)
         {
             string tmpPath = Path.ChangeExtension(dataPath, ".tmp.win");
@@ -137,6 +209,11 @@ namespace GM3P.Patching
         }
         private async Task ApplyG3MPatch(string dataPath, string patchPath, GM3PConfig config)
         {
+            if (config.TreatG3MPatchAsZip)
+            {
+                await ApplyResourceZip(patchPath, "0", "0", config);
+                return;
+            }
             string tmpPath = Path.ChangeExtension(dataPath, ".tmp.win");
             using (var process = new Process())
             {

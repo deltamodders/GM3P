@@ -73,7 +73,15 @@ namespace GM3P.FileSystem
         {
             if (Directory.Exists(path))
             {
-                Directory.Delete(path, recursive);
+                string[] filePaths = Directory.GetFiles(path);
+                foreach (string filePath in filePaths)
+                {
+                    try
+                    {
+                        File.Delete(filePath);
+                    }
+                    catch { }
+                }
             }
         }
 

@@ -133,6 +133,18 @@ namespace GM3P.Merging
                     {
                         RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit -m \"merged\"", allowNonZeroExit: true);
                     }
+                    else if (config.mergeMethod == "ours")
+                    {
+                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X ours --no-edit -m \"merged\"", allowNonZeroExit: true);
+                    }
+                    else if (config.mergeMethod == "simple")
+                    { 
+                        return PerformSimpleMerge(baseFile, mods, outputFile);
+                    }
+                    else
+                    {
+                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit --no-commit -m \"merged\"", allowNonZeroExit: true);
+                    }
 
                     if (File.Exists(workFile))
                     {
@@ -253,6 +265,10 @@ namespace GM3P.Merging
                     if (config.mergeMethod == "theirs")
                     {
                         return remote; // last-mod wins
+                    }
+                    else if (config.mergeMethod == "ours")
+                    {
+                        return local; // first-mod wins
                     }
                     else
                     {

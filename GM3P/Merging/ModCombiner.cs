@@ -106,6 +106,26 @@ namespace GM3P.Merging
             string newObjDefsDir = _directoryManager.GetXDeltaCombinerPath(
                 config, chapter.ToString(), modNumber.ToString(), "Objects", "NewObjects", "ObjectDefinitions");
 
+            // If the directory exists, rename the UTMT project code directory to codeentries for consistency
+            string UTMTProjectCodeDir = _directoryManager.GetXDeltaCombinerPath(
+                config, chapter.ToString(), modNumber.ToString(), "Objects", "code");
+
+            if (Directory.Exists(UTMTProjectCodeDir))
+            {
+                string CodeEntriesDir = _directoryManager.GetXDeltaCombinerPath(config, chapter.ToString(), modNumber.ToString(), "Objects", "NewObjects", "CodeEntries");
+                Directory.CreateDirectory(CodeEntriesDir);
+                foreach (var file in Directory.GetFiles(UTMTProjectCodeDir, "*.gml", SearchOption.TopDirectoryOnly))
+                {
+                    string destFile = Path.Combine(CodeEntriesDir, Path.GetFileName(file));
+                    File.Move(file, destFile);
+                }
+                // Optionally delete the old code directory if empty
+                if (!Directory.EnumerateFileSystemEntries(UTMTProjectCodeDir).Any())
+                {
+                    Directory.Delete(UTMTProjectCodeDir);
+                }
+            }
+
             if (Directory.Exists(newObjDefsDir))
             {
                 info.NewObjects += Directory.GetFiles(newObjDefsDir, "*.txt", SearchOption.TopDirectoryOnly).Length;
@@ -243,7 +263,18 @@ namespace GM3P.Merging
                 // Process everything except AssetOrder.txt (handled later)
                 foreach (string relKey in allKnown)
                 {
-                    if (relKey.Equals("assetorder.txt", StringComparison.OrdinalIgnoreCase))
+                    string ext = Path.GetExtension(relKey);
+                    string[] ingoreKey = ["assetorder.txt", "Asset_Order.txt", "object_events.json", "variables_functions.json", "meta.json", "meta.toml", "modding.xml", "g3mpatch.json", "project.json"];
+                    if (ext == ".yaml" || ext == ".asm" || ext == ".csx" || ext == ".xdelta")
+                        ingoreKey.Append(relKey);
+                    bool skip = false;
+                    foreach (string ingore in ingoreKey)
+                    {
+                        if (relKey.Equals(ingore, StringComparison.OrdinalIgnoreCase))
+                            skip = true;
+                        continue;
+                    }
+                    if (skip)
                         continue;
 
                     var result = await ProcessFile(relKey, allFileVersions[relKey], vanillaFileDict,
@@ -711,9 +742,13 @@ namespace GM3P.Merging
 
             if (hasCode || hasNewObjCode)
             {
-                // ImportGML now works properly with case fixes
-                await _modTool.RunScript(workingDataWin, "ImportGML.csx", config);
-                Console.WriteLine($"  Imported code using fixed ImportGML");
+                //await _modTool.RunScript(workingDataWin, "ImportGML.csx", config);
+                if (hasImportGml) scripts.Add("ImportGML.csx");
+                else Console.WriteLine("  WARNING: No ImportGML script found; skipping code import.");
+
+                var count = Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.gml", SearchOption.AllDirectories).Length;
+                Console.WriteLine($"   Importing {count} merged code files");
+                //Console.WriteLine($"  Imported code using fixed ImportGML");
             }
 
             // 4) Asset order last
