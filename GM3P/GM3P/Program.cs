@@ -21,6 +21,7 @@ namespace GM3P
         private const double Version = 1.0;
         private static IGM3POrchestrator? _orchestrator;
         private static IConfigurationService? _config;
+        private static IDeltaModPackageService? _deltaModPackageService;
 
         static async Task Main(string[] args)
         {
@@ -74,12 +75,12 @@ namespace GM3P
             var modManager = new ModManager();
             var install = new Install(directoryManager);
             var deltaModPackageService = new DeltaModPackageService();
-
             _orchestrator = new GM3POrchestrator(
                 config, directoryManager, fileLinker, hashCache,
                 exportCache, patchService, modCombiner, modTool, modManager, install, deltaModPackageService);
 
             _config = config;
+            _deltaModPackageService = deltaModPackageService;
         }
 
         static string SetupLogging(string? outputPath)
@@ -122,7 +123,7 @@ namespace GM3P
                             opArgCount++;
                         }
                     }
-                    
+
                 }
                 else if (!args[i].StartsWith("-"))
                 {
@@ -181,6 +182,14 @@ namespace GM3P
                     HandleClear(args);
                     break;
 
+                case "version":
+                    Console.WriteLine($"GM3P v{Version}.0-beta2");
+                    break;
+
+                case "metadata":
+                    await HandleMetadata(args);
+                    break;
+
                 case "play":
                     await HandlePlay(reqArgs, opArgs);
                     break;
@@ -209,7 +218,8 @@ namespace GM3P
             }
             var subcommand = args[1].ToLower();
             var savePath = args.Length > 4 ? args[5] : null;
-            switch (subcommand) {
+            switch (subcommand)
+            {
                 case "update":
                     if (args.Length < 4)
                     {
@@ -256,13 +266,22 @@ namespace GM3P
                         case "c.combinertool":
                             _config?.UpdateConfiguration(c => c.CombinerTool = int.Parse(value));
                             break;
+                        case "c.mergeMethod":
+                            _config?.UpdateConfiguration(c => c.mergeMethod = value);
+                            break;
+                        case "c.utmtversion":
+                            _config?.UpdateConfiguration(c => c.UTMTversion = int.Parse(value));
+                            break;
+                        case "c.treatg3mpatchaszip":
+                            _config?.UpdateConfiguration(c => c.TreatG3MPatchAsZip = bool.Parse(value));
+                            break;
                         case "c.verboselogging":
                             _config?.UpdateConfiguration(c => c.verboseLogging = bool.Parse(value));
                             break;
-                        case "c.cacheenabled": 
+                        case "c.cacheenabled":
                             _config?.UpdateConfiguration(c => c.CacheEnabled = bool.Parse(value));
                             break;
-                        case "c.cachespritesenabled": 
+                        case "c.cachespritesenabled":
                             _config?.UpdateConfiguration(c => c.CacheSpritesEnabled = bool.Parse(value));
                             break;
                         case "c.exportcachecapmb":
@@ -304,7 +323,7 @@ namespace GM3P
             _config!.UpdateConfiguration(c =>
             {
                 c.VanillaPath = regargs[1].Replace("\"", "");
-                c.ModAmount = int.Parse(regargs[2]);   
+                c.ModAmount = int.Parse(regargs[2]);
             });
             string? releativePath = null;
             bool packageornot = false;
@@ -315,25 +334,29 @@ namespace GM3P
                 {
                     _config!.UpdateConfiguration(c =>
                     {
-                        _config?.LoadConfiguration(opargs[i].Replace("--config ",""));
+                        _config?.LoadConfiguration(opargs[i].Replace("--config ", ""));
                         Console.WriteLine($"Configuration loaded from {(opargs[i].Replace("--config ", "") ?? "default path")}");
                     });
                 }
-                if (opargs[i].StartsWith("--relative "))
+                if (opargs[i].StartsWith("--relative"))
                 {
-                    releativePath = opargs[i].Replace("--relative ", "");
-                    foreach (var path in patchPaths)
-                    {
-                        path.Replace("./", releativePath + "/");
-                    }
+                    releativePath = opargs[i].Replace("--relative", "").Trim().Replace("\"", "");
+                    Console.WriteLine($"Relative path set to {releativePath}");
+                    patchPaths = regargs[3].Replace("\"", "").Replace(".\\", releativePath + "\\").Replace("./", releativePath + "/").Split("::").ToArray();
+                    //regargs[3].Replace("::.\\", releativePath + "\\");
+                    //regargs[3].Replace("::./", releativePath + "/");
+                    Console.WriteLine(patchPaths[0]);
+
                 }
                 if (opargs[i].StartsWith("--package"))
                 {
                     packageornot = true;
                 }
             }
-            
-            
+
+
+
+
             for (int i = 0; i < patchPaths.Length; i++)
             {
                 Console.WriteLine(patchPaths[i]);
@@ -352,7 +375,7 @@ namespace GM3P
 
             _config!.UpdateConfiguration(c =>
             {
-                c.ModAmount = int.Parse(reqargs[1]);   
+                c.ModAmount = int.Parse(reqargs[1]);
             });
 
             bool shouldDump = true;
@@ -425,6 +448,174 @@ namespace GM3P
             _config!.UpdateConfiguration(c => c.win = win);
             await _orchestrator!.ExecuteResult(modName);
         }
+        static async Task HandleMetadata(string[] args)
+        {
+            var subcommand = args[1].ToLower();
+            var type = args[2].ToLower();
+
+            if (subcommand == "parse")
+            {
+                if (type == "xml")
+                {
+                    if (args.Length < 3)
+                    {
+                        Console.WriteLine("Usage: GM3P.exe metadata parse [XMLPath]");
+                        return;
+                    }
+                    string xmlPath = args[3];
+                    _deltaModPackageService!.ParseXML(xmlPath);
+                }
+                else if (type == "json")
+                {
+                    _deltaModPackageService!.LoadJSON(args[3]);
+                }
+                else
+                {
+                    Console.WriteLine($"Unknown metadata type: {type}");
+                }
+            }
+            else if (subcommand == "export")
+            {
+                if (type == "xml")
+                {
+                    if (args.Length < 3)
+                    {
+                        Console.WriteLine("Usage: GM3P.exe metadata export [XMLPath] [result]");
+                        return;
+                    }
+                    string xmlPath = args[3];
+                    _config?.UpdateConfiguration(c => c.ChapterAmount = int.Parse(args[5]));
+                    await _deltaModPackageService!.ExportXML(args[3], args[4], _config!.Config);
+                }
+                else if (type == "json")
+                {
+                    _deltaModPackageService!.SaveJSON(args[3]);
+                }
+                else
+                {
+                    Console.WriteLine($"Unknown metadata type: {type}");
+                }
+            }
+            else if (subcommand == "update")
+            {
+                if (type == "json")
+                {
+                    var color = new DeltaModPackageColor();
+                    var neededFiles = new DeltaModPackageneededFiles();
+                    var metadata = new DeltaModPackagemetadata();
+                    if (args.Length < 4)
+                    {
+                        Console.WriteLine("Usage: GM3P.exe metadata update json [Key] [Value]");
+                        return;
+                    }
+                    string key = args[3];
+                    string value = args[4];
+                    switch (key)
+                    {
+                        case "name":
+                            metadata.name = value;
+                            break;
+                        case "author":
+                            metadata.author = value.Split(",").Select(a => a.Trim()).ToArray();
+                            break;
+                        case "version":
+                            metadata.version = value;
+                            break;
+                        case "description":
+                            metadata.description = value;
+                            break;
+                        case "url":
+                            metadata.url = value;
+                            break;
+                        case "game":
+                            metadata.game = value;
+                            break;
+                        case "packageID":
+                            metadata.packageID = value;
+                            break;
+                        case "color":
+                            var colorValues = value.Split(",").Select(c => c.Trim()).ToArray();
+                            if (colorValues.Length == 3)
+                            {
+                                color.r = colorValues[0];
+                                color.g = colorValues[1];
+                                color.b = colorValues[2];
+                                metadata.color = new Dictionary<string, DeltaModPackageColor> { { "primary", color } };
+                            }
+                            else
+                            {
+                                Console.WriteLine("Color value must be in the format 'R,G,B'");
+                            }
+                            break;
+                        case "neededFiles":
+                            var fileValues = value.Split(",").Select(f => f.Trim()).ToArray();
+                            if (fileValues.Length == 2)
+                            {
+                                neededFiles.file = fileValues[0];
+                                neededFiles.checksum = fileValues[1];
+                                // Assuming you want to add this to a list of needed files in metadata
+                                // You might need to adjust this based on your actual data structure
+                                // metadata.neededFiles.Add(neededFiles);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Needed files value must be in the format 'file,checksum'");
+                            }
+                            break;
+                        case "UTMTVersion":
+                            _deltaModPackageService.UpdateJSON(c => c.UTMTversion = Convert.ToInt32(value));
+                            break;
+                        case "deltaruneTargetVersion":
+                            _deltaModPackageService.UpdateJSON(c => c.deltaruneTargetVersion = value);
+                            break;
+                        default:
+                            Console.WriteLine($"Unknown metadata key: {key}");
+                            break;
+                    }
+                    DeltaModPackagemetadata updatedMetadata = new DeltaModPackagemetadata
+                    {
+                        name = metadata.name,
+                        version = metadata.version,
+                        author = metadata.author,
+                        description = metadata.description,
+                        url = metadata.url,
+                        game = metadata.game,
+                        packageID = metadata.packageID,
+                        color = metadata.color
+                    };
+                    DeltaModPackageneededFiles updatedNeededFiles = new DeltaModPackageneededFiles
+                    {
+                        file = neededFiles.file,
+                        checksum = neededFiles.checksum
+                    };
+                    DeltaModPackageColor updatedColor = new DeltaModPackageColor
+                    {
+                        r = color.r,
+                        g = color.g,
+                        b = color.b
+                    };
+                    DeltaModPackageExporter exporter = new DeltaModPackageExporter
+                    {
+                        tool = "GM3P"
+                    };
+                }
+                else if (type == "xml")
+                {
+                    await _deltaModPackageService.UpdateXML(args[3], args[5].Replace("\"", "").Split(","), Convert.ToInt32(args[4]));
+                }
+                else
+                {
+                    Console.WriteLine($"Unknown metadata type: {type}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Unknown metadata subcommand: {subcommand}");
+                Console.WriteLine("Use 'GM3P.exe help metadata' for usage");
+            }
+
+
+        }
 
         static void HandleClear(string[] args)
         {
@@ -439,9 +630,9 @@ namespace GM3P
             string? inputList = null;
             for (int i = 0; i < opArg.Length; i++)
             {
-                if(opArg[i].StartsWith("--mods "))
+                if (opArg[i].StartsWith("--mods "))
                 {
-                   modName = opArg[i].Replace("--mods ","");
+                    modName = opArg[i].Replace("--mods ", "");
                 }
                 if (opArg[i].StartsWith("--inputList "))
                 {
@@ -452,7 +643,7 @@ namespace GM3P
             await _orchestrator!.ExecutePlay(game, version, modName, inputList);
         }
         static async Task HandleInstall(string[] regArgs, string[] opArg)
-        { 
+        {
             string modName = "vanilla";
             string? gamePath = regArgs.Length > 1 ? regArgs[1] : null;
             string? game = regArgs.Length > 2 ? regArgs[2] : null;
@@ -620,7 +811,11 @@ namespace GM3P
 
         static void ShowHelp(string[] args)
         {
-            if (args.Length > 1)
+            if (args.Length > 2)
+            {
+                ShowCommandHelp(args[1], args[2]);
+            }
+            else if (args.Length > 1)
             {
                 ShowCommandHelp(args[1]);
             }
@@ -636,11 +831,12 @@ namespace GM3P
                 Console.WriteLine("  config     - Update configuration");
                 Console.WriteLine("  play       - Launch game with or without modpack");
                 Console.WriteLine("  import     - Import game or mod into the mod manager");
+                Console.WriteLine("  metadata   - Manipulate Deltamod-style metadata for modpacks");
                 Console.WriteLine("\nUse 'GM3P.exe help [command]' for detailed help");
             }
         }
 
-        static void ShowCommandHelp(string command)
+        static void ShowCommandHelp(string command, string? subcommand=null)
         {
             switch (command.ToLower())
             {
@@ -657,14 +853,18 @@ namespace GM3P
                     Console.WriteLine("  c.gameengine           - Game engine type (e.g. GM for GameMaker). Currently unused");
                     Console.WriteLine("  c.modamount            - Number of mods to patch/compare");
                     Console.WriteLine("  c.chapteramount        - Number of chapters to patch. Default: 1)");
-                    Console.WriteLine("  c.combined            - Whether mods were combined (true/false). Default: false");
+                    Console.WriteLine("  c.combined             - Whether mods were combined (true/false). Default: false");
                     Console.WriteLine("  c.enablefastcombiner   - Whether to enable fast combiner (true/false), must be false for room combining. Default: false");
                     Console.WriteLine("  c.combinertool         - Tool to use for combining mods. Default: GM3P 0");
                     Console.WriteLine("  c.verboselogging       - Whether verbose logging is enabled (true/false). Default: false");
+                    Console.WriteLine("  c.win                  - Whether to include the data.win in the result (true/false). Default: true");
+                    Console.WriteLine("  c.mergemethod          - Method to use for merging mods. Default: both");
+                    Console.WriteLine("  c.utmtversion          - Version of UTMT to use. Default: 8");
+                    Console.WriteLine("  c.treatg3mpatchaszip   - Whether to treat G3MPatch files as ZIP folders (true/false). Default: false");
                     Console.WriteLine("  c.cacheenabled         - Whether to enable export cache (true/false). Default: false");
-                    Console.WriteLine("  c.cachespritesenabled - Whether to cache sprites in export cache (true/false). Default: false");
-                    Console.WriteLine("  c.exportcachecapmb    - Export cache size cap in MB. Default: 1024");
-                    Console.WriteLine("  c.xdeltaconcurrency   - Number of concurrent xDelta processes. Default: 3");
+                    Console.WriteLine("  c.cachespritesenabled  - Whether to cache sprites in export cache (true/false). Default: false");
+                    Console.WriteLine("  c.exportcachecapmb     - Export cache size cap in MB. Default: 1024");
+                    Console.WriteLine("  c.xdeltaconcurrency    - Number of concurrent xDelta processes. Default: 3");
                     break;
                 case "masspatch":
                     Console.WriteLine("\nMassPatch Command:");
@@ -741,9 +941,60 @@ namespace GM3P
                     Console.WriteLine("  output       - Clear entire output directory");
                     Console.WriteLine("  modpacks     - Clear result directory");
                     break;
+                case "metadata":
+                    ShowMetadataHelp(subcommand);
+                    break;
 
                 default:
                     Console.WriteLine($"No help available for command: {command}");
+                    break;
+            }
+        }
+        static void ShowMetadataHelp(string? subcommand = null)
+        {
+            switch (subcommand?.ToLower())
+            {
+                case "parse":
+                    Console.WriteLine("Usage: GM3P.exe metadata parse [xml|json] [Path]");
+                    Console.WriteLine("  Parses and prints metadata from the specified XML or JSON file.");
+                    Console.WriteLine("  For XML, if the path is 'mem' then it will then instead print what is loaded");
+                    break;
+                case "export":
+                    Console.WriteLine("Usage: GM3P.exe metadata export [xml|json] [Path] [result (xml only)]");
+                    Console.WriteLine("  Exports metadata to the specified XML or JSON file.");
+                    Console.WriteLine("  For XML, the 'result' argument specifies a modpack made from the 'result' command (e.g., 'MyMod'). In which a modding.xml will be built based on that modpack");
+                    break;
+                case "update":
+                    Console.WriteLine("Usage: GM3P.exe metadata update [xml|json]");
+                    Console.WriteLine("  Updates metadata fields in the loaded XML or JSON.");
+                    Console.WriteLine("  Use 'GM3P.exe help metadata update-json' or 'GM3P.exe help metadata update-xml' for more details.");
+                    break;
+                case "update-json":
+                    Console.WriteLine("Usage: GM3P.exe metadata update json [Key] [Value]");
+                    Console.WriteLine("  Updates metadata fields in the JSON file.");
+                    Console.WriteLine("Keys:");
+                    Console.WriteLine("  name, author, version, description, url, game, packageID, color (R,G,B), neededFiles (file,checksum), UTMTVersion, deltaruneTargetVersion");
+                    Console.WriteLine("  Example: GM3P.exe metadata update json name \"My Modpack\"");
+                    Console.WriteLine("  For what each key does, see https://github.com/deltamodders/modding-standard");
+                    break;
+                case "update-xml":
+                    Console.WriteLine("Usage: GM3P.exe metadata update xml [Action] [Entry Number] [Entry]");
+                    Console.WriteLine("  Updates metadata fields in the XML file.");
+                    Console.WriteLine("Actions:");
+                    Console.WriteLine("  add     - Adds an entry to the modding.xml. [Entry Number] is ingored for this.");
+                    Console.WriteLine("  change  - changes an existing entry in the modding.xml.");
+                    Console.WriteLine("  remove  - Removes an existing entry. [Entry] is ingored for this");
+                    Console.WriteLine("  Example: GM3P.exe metadata update xml change 3 \"xdelta,./chapter3fix.xdelta,./chapter3_windows/data.win\"");
+                    break;
+                default:
+                    Console.WriteLine("Metadata Command:");
+                    Console.WriteLine("  Manages modpack metadata in Deltamod format");
+                    Console.WriteLine("\nUsage:");
+                    Console.WriteLine("  GM3P.exe metadata [parse|export|update] [xml|json] [Path] [Key] [Value]");
+                    Console.WriteLine("\nSubcommands:");
+                    Console.WriteLine("  parse   - Load and Print metadata from XML or JSON");
+                    Console.WriteLine("  export  - Export metadata to XML or JSON");
+                    Console.WriteLine("  update  - Update metadata fields in JSON");
                     break;
             }
         }

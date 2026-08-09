@@ -18,6 +18,7 @@
         public bool win { get; set; } = true;
         public string mergeMethod { get; set; } = "both";
         public int UTMTversion { get; set; } = 8;
+        public bool TreatG3MPatchAsZip { get; set; } = false;
 
         // Cache settings
         public bool CacheEnabled { get; set; } = false;
