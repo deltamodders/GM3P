@@ -1,8 +1,11 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.7.12002.237 oobstable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GM3P", "GM3P\GM3P.csproj", "{7D59671F-3DC5-4F8E-B9C6-65403DB2C082}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "G3MToolCLI", "..\G3MTool\G3MToolCLI\G3MToolCLI.csproj", "{8B7838CE-414E-3F89-62F0-34143E0D59AA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,8 +17,15 @@ Global
 		{7D59671F-3DC5-4F8E-B9C6-65403DB2C082}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7D59671F-3DC5-4F8E-B9C6-65403DB2C082}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7D59671F-3DC5-4F8E-B9C6-65403DB2C082}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B7838CE-414E-3F89-62F0-34143E0D59AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B7838CE-414E-3F89-62F0-34143E0D59AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B7838CE-414E-3F89-62F0-34143E0D59AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B7838CE-414E-3F89-62F0-34143E0D59AA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BADB57BC-2729-42DF-9A4C-9ECCD7F487F2}
 	EndGlobalSection
 EndGlobal
