@@ -34,13 +34,13 @@ namespace GM3P.Core
             {
                 _config.DeltaPatcherPath = Path.Combine(pwd, "tools", "xdelta3.exe");
                 _config.G3MToolPath = Path.Combine(pwd, "tools", "G3MTool", "G3MTool.exe");
-                _config.ModToolPath = Path.Combine(pwd, "tools", "UTMTCLI", "UndertaleModCli.exe");
+                _config.ModToolPath = Path.Combine(pwd, "tools", "UTMTCLI", _config.UTMTversion.ToString(), "UndertaleModCli.exe");
             }
             else if (OperatingSystem.IsLinux())
             {
                 _config.DeltaPatcherPath = "xdelta3";
                 _config.G3MToolPath = $"dotnet \"{Path.Combine(pwd, "tools", "G3MTool", "G3MTool")}\"";
-                _config.ModToolPath = $"dotnet \"{Path.Combine(pwd, "tools", "UTMTCLI", "UndertaleModCli.dll")}\"";
+                _config.ModToolPath = $"dotnet \"{Path.Combine(pwd, "tools", "UTMTCLI", _config.UTMTversion.ToString(), "UndertaleModCli.dll")}\"";
             }
         }
 

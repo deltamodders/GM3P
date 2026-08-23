@@ -7,10 +7,10 @@ using UndertaleModLib.Models;
 
 EnsureDataLoaded();
 
-//string chapterNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/Cache/running/chapterNumber.txt"));
-//string modNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/Cache/running/modNumbersCache.txt"));
-//string outputPath = @Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location))))) + "/output/xDeltaCombiner/"+chapterNo+"/"+modNo+"/Objects/AssetOrder.txt";
-string outputPath = "./test.txt";
+string chapterNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))))))) + "/output/Cache/running/chapterNumber.txt"));
+string modNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))))))) + "/output/Cache/running/modNumbersCache.txt"));
+string outputPath = @Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location))))))))) + "/output/xDeltaCombiner/"+chapterNo+"/"+modNo+"/Objects/GlobalInit.txt";
+//string outputPath = "./test.txt";
 if (string.IsNullOrWhiteSpace(@outputPath))
 {
     return;

@@ -18,6 +18,8 @@ namespace GM3P.Data
     public interface IDeltaModPackageService
     {
         DeltaModPackageXML xmlDoc { get; }
+        DeltaModPackageJSON ModPackageJSON { get; }
+        DeltaModPackagemetadata DeltaModPackagemetadata { get; }
         void UpdateJSON(Action<DeltaModPackageJSON> updateAction);
         void LoadJSON(string? configPath = null);
         void SaveJSON(string? configPath = null);
@@ -42,6 +44,8 @@ namespace GM3P.Data
         public Dictionary<string, DeltaModPackageColor>? color { get; set; }
         public string game { get; set; } = "com.toby.deltarune";
         public string? packageID { get; set; }
+        public string? ai { get; set; }
+        public string[]? tags { get; set; }
 
     }
     public class DeltaModPackageColor { 
@@ -70,11 +74,13 @@ namespace GM3P.Data
         private IDeltaModPackageService _deltaModPackageService;
         private DeltaModPackageJSON _json;
         private DeltaModPackageXML _xmlDoc;
+        private DeltaModPackagemetadata _metadata;
 
         //public static DeltaModPackageXML _xmlDoc = new DeltaModPackageXML();
 
         public DeltaModPackageXML xmlDoc => _xmlDoc;
         public DeltaModPackageJSON ModPackageJSON => _json;
+        public DeltaModPackagemetadata DeltaModPackagemetadata => _metadata;
         public DeltaModPackageJSON DeltaModPackageJSON { get; set; } = new DeltaModPackageJSON();
         public DeltaModPackageService()
         {

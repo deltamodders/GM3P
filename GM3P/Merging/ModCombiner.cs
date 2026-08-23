@@ -37,6 +37,7 @@ namespace GM3P.Merging
         private readonly IPngUtils _pngUtils;
         private readonly IAssetHelper _assetHelper;
         private readonly IAssetOrderMerger _assetOrderMerger;
+        private readonly IGlobalInitMerger _globalInitMerger;
         private readonly IGitService _gitService;
         private readonly IUndertaleModTool _modTool;
 
@@ -54,6 +55,7 @@ namespace GM3P.Merging
             IPngUtils pngUtils,
             IAssetHelper assetHelper,
             IAssetOrderMerger assetOrderMerger,
+            IGlobalInitMerger globalInitMerger,
             IGitService gitService,
             IUndertaleModTool modTool)
         {
@@ -63,6 +65,7 @@ namespace GM3P.Merging
             _pngUtils = pngUtils;
             _assetHelper = assetHelper;
             _assetOrderMerger = assetOrderMerger;
+            _globalInitMerger = globalInitMerger;
             _gitService = gitService;
             _modTool = modTool;
         }
@@ -196,6 +199,7 @@ namespace GM3P.Merging
                 bool anyRoomChanged = false;
                 bool anySpriteChanged = false;
                 bool assetOrderChanged = false;
+                bool globalInitListChanged = false;
 
                 var chapterModified = new List<string>();
 
@@ -299,6 +303,23 @@ namespace GM3P.Merging
                     if (!File.Exists(vanillaAO) || !FilesEqual(mergedAO, vanillaAO))
                     {
                         assetOrderChanged = true;
+                        changedThisChapter++;
+                    }
+                }
+
+                // GlobalInit List merge
+                _globalInitMerger.HandleGlobalInitFile(chapter, allFileVersions, vanillaFileDict, config);
+
+                // Detect actual GLOB List change
+                var mergedGLOBList = _directoryManager.GetXDeltaCombinerPath(
+                    config, chapter.ToString(), "1", "Objects", "GlobalInit.txt");
+                if (File.Exists(mergedAO))
+                {
+                    var vanillaAO = _directoryManager.GetXDeltaCombinerPath(
+                        config, chapter.ToString(), "0", "Objects", "GlobalInit.txt");
+                    if (!File.Exists(vanillaAO) || !FilesEqual(mergedGLOBList, vanillaAO))
+                    {
+                        globalInitListChanged = true;
                         changedThisChapter++;
                     }
                 }
@@ -702,6 +723,7 @@ namespace GM3P.Merging
             bool hasImportRooms = File.Exists(Path.Combine(scriptsRoot, "ImportRoomsBulk.csx"));
             bool hasImportGml = File.Exists(Path.Combine(scriptsRoot, "ImportGML.csx"));
             bool hasImportAssetOrder = File.Exists(Path.Combine(scriptsRoot, "ImportAssetOrder.csx"));
+            bool hasImportGlobalInit = File.Exists(Path.Combine(scriptsRoot, "ImportGlobalInit.csx"));
 
             bool hasSprites = Directory.Exists(Path.Combine(mergedObjects, "Sprites")) &&
                               Directory.GetFiles(Path.Combine(mergedObjects, "Sprites"), "*.png", SearchOption.AllDirectories).Any();
@@ -713,6 +735,7 @@ namespace GM3P.Merging
                            Directory.GetFiles(Path.Combine(mergedObjects, "CodeEntries"), "*.gml", SearchOption.AllDirectories).Any();
 
             bool hasAssetOrder = File.Exists(Path.Combine(mergedObjects, "AssetOrder.txt"));
+            bool hasGlobalInitList = File.Exists(Path.Combine(mergedObjects, "GlobalInit.txt"));
 
             string newObjDefsDir = Path.Combine(mergedObjects, "NewObjects", "ObjectDefinitions");
             string newObjCodeDir = Path.Combine(mergedObjects, "NewObjects", "CodeEntries");
@@ -751,6 +774,15 @@ namespace GM3P.Merging
                 //Console.WriteLine($"  Imported code using fixed ImportGML");
             }
 
+            // 4) Global Init scripts next
+            if (hasGlobalInitList)
+            {
+                if (hasImportGlobalInit)
+                {
+                    scripts.Add("ImportGlobalInit.csx");
+                    Console.WriteLine($"  Importing merged GlobalInit.csx");
+                }
+            }
             // 4) Asset order last
             if (hasAssetOrder)
             {

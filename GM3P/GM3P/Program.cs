@@ -13,6 +13,8 @@ using GM3P.Logging;
 using GM3P.Merging;
 using GM3P.Patching;
 using GM3P.Manager;
+using Underanalyzer.Decompiler.AST;
+using G3MToolCLI.Services;
 
 namespace GM3P
 {
@@ -41,6 +43,10 @@ namespace GM3P
                     {
                         await RunAppVersion();
                     }
+                    else if (File.Exists(args[0]) || args[0].StartsWith("http"))
+                    {
+                        await HandleExecute(args);
+                    }
                     else
                     {
                         await RunCommand(args);
@@ -67,11 +73,12 @@ namespace GM3P
             var pngUtils = new PngUtils(hashCache);
             var modTool = new UndertaleModTool();
             var assetOrderMerger = new AssetOrderMerger(directoryManager);
+            var GlobalInitMerger = new GlobalInitMerger(directoryManager);
             var gitService = new GitService(config.Config.WorkingDirectory ?? Directory.GetCurrentDirectory());
             var modCombiner = new ModCombiner(
                 directoryManager, fileLinker, hashCache, pngUtils,
-                assetHelper, assetOrderMerger, gitService, modTool);
-            var patchService = new PatchService(directoryManager);
+                assetHelper, assetOrderMerger, GlobalInitMerger, gitService, modTool);
+            var patchService = new Patching.PatchService(directoryManager);
             var modManager = new ModManager();
             var install = new Install(directoryManager);
             var deltaModPackageService = new DeltaModPackageService();
@@ -188,6 +195,10 @@ namespace GM3P
 
                 case "metadata":
                     await HandleMetadata(args);
+                    break;
+
+                case "execute":
+                    await HandleExecute(args);
                     break;
 
                 case "play":
@@ -502,7 +513,7 @@ namespace GM3P
                 {
                     var color = new DeltaModPackageColor();
                     var neededFiles = new DeltaModPackageneededFiles();
-                    var metadata = new DeltaModPackagemetadata();
+                    var metadata = _deltaModPackageService!.DeltaModPackagemetadata;
                     if (args.Length < 4)
                     {
                         Console.WriteLine("Usage: GM3P.exe metadata update json [Key] [Value]");
@@ -532,6 +543,12 @@ namespace GM3P
                             break;
                         case "packageID":
                             metadata.packageID = value;
+                            break;
+                        case "ai":
+                            metadata.ai = value;
+                            break;
+                        case "tags":
+                            metadata.tags = value.Split(",").Select(a => a.Trim()).ToArray();
                             break;
                         case "color":
                             var colorValues = value.Split(",").Select(c => c.Trim()).ToArray();
@@ -617,6 +634,51 @@ namespace GM3P
 
         }
 
+        static async Task HandleExecute(string[] args)
+        {
+            string[] executableExtensions = [".exe", ".com", "", ".msi", ".deb"];
+            if (Path.GetExtension(args[1])==".csx")
+            {
+                Console.WriteLine("Passing on to G3MTool's Execute service");
+                await ExecuteService.ExecuteScriptAsync(args[1].Replace("\"",""), args.Length>2 ? args[2].Replace("\"","") : null, args.Length>3 ? args[3] : (_config!.Config.OutputPath + "/scriptOutput"), args.Length>4 ? args[4].Replace("[","").Replace("]","").Split(",") : null!);
+            }
+            else if (Path.GetExtension(args[1]) == ".win")
+            {
+                Console.WriteLine("Starting console app...");
+                await RunConsoleApp();
+            }
+            else if (executableExtensions.Any(Path.GetExtension(args[1]).Contains))
+            {
+                Console.WriteLine("Attempting to run app");
+                await RunThirdPartyApps.RunOtherApps(args[1], args.Length > 2 ? args[2].Replace("\"","") : null!, args[1], args.Length > 2 ? args[2].Replace("\"", "") : null!, false, false, _config!.Config.verboseLogging);
+            } else if (args[1].Replace("\"", "").StartsWith("http"))
+            {
+                var api = new RunThirdPartyApps.RunAPI.HttpService();
+                if (args.Length == 2) {
+                    Console.WriteLine(await api.GetAsync(args[1]));
+                }
+                if (args.Length > 2) {
+                    switch (args[2].ToUpper())
+                    {
+                        case "POST":
+                            Console.WriteLine(await api.PostAsync(args[1], args[3], args[4])); 
+                            break;
+                        case "GET":
+                            Console.WriteLine(await api.GetAsync(args[1]));
+                            break;
+                        default:
+                            Console.WriteLine($"REST API method {args[2].ToUpper()} does not exists or is not implemented");
+                            break;
+                    }
+
+                }
+            }
+            else
+            {
+                Console.WriteLine("This form of executable is not accepted");
+            }
+        }
+
         static void HandleClear(string[] args)
         {
             string target = args.Length > 1 ? args[1] : "runningCache";
@@ -644,22 +706,32 @@ namespace GM3P
         }
         static async Task HandleInstall(string[] regArgs, string[] opArg)
         {
-            string modName = "vanilla";
-            string? gamePath = regArgs.Length > 1 ? regArgs[1] : null;
-            string? game = regArgs.Length > 2 ? regArgs[2] : null;
-            string? version = "1.0.0";
-            for (int i = 0; i < opArg.Length; i++)
-            {
-                if (opArg[i].StartsWith("--modName "))
-                {
-                    modName = opArg[i].Replace("--modName ", "");
-                }
-                if (opArg[i].StartsWith("--version "))
-                {
-                    version = opArg[i].Replace("--version ", "");
-                }
+            switch (reqArgs[1]) {
+            case "game":
+                    string modName = "vanilla";
+                    string? gamePath = regArgs.Length > 2 ? regArgs[2] : null;
+                    string? game = regArgs.Length > 3 ? regArgs[3] : null;
+                    string? version = "1.0.0";
+                    for (int i = 0; i < opArg.Length; i++)
+                    {
+                        if (opArg[i].StartsWith("--modName "))
+                        {
+                            modName = opArg[i].Replace("--modName ", "");
+                        }
+                        if (opArg[i].StartsWith("--version "))
+                        {
+                            version = opArg[i].Replace("--version ", "");
+                        }
+                    }
+                    await _orchestrator!.ExecuteInstallGame(modName, gamePath, game, version);
+                    break;
+                case "mod":
+                    await _orchestrator!.ExecuteInstallMod(reqArgs[2]);
+                    break;
+                default:
+                    break;
             }
-            await _orchestrator!.ExecuteInstall(modName, gamePath, game, version);
+            
         }
         static async Task RunAppVersion()
         {
@@ -802,6 +874,21 @@ namespace GM3P
                 await _orchestrator!.ExecuteResult(modName);
             }
 
+            bool play = false;
+            string gameExecutable = Directory.GetFiles(vanillaPath).FirstOrDefault(s => s.Contains(".exe"));
+            if ((File.GetAttributes(vanillaPath) & FileAttributes.Directory) == FileAttributes.Directory)
+            {
+                if (File.Exists(gameExecutable))
+                {
+                    play = ConsoleUtils.Confirm("Patching is done, want to play it?");
+                }
+            }else
+            { Console.WriteLine("Vanilla Path doesn't contain an executeable or isn't a folder, skipping play question"); }
+            
+            if (play) {
+                await RunThirdPartyApps.RunOtherApps(gameExecutable, null, gameExecutable, null);  
+            }
+
             // Original cleanup message
             Console.WriteLine("Press Enter To Clean up (Will delete output/xDeltaCombiner) and exit");
             Console.ReadLine();
@@ -849,7 +936,7 @@ namespace GM3P
                     Console.WriteLine("  c.vanillapath          - Path to vanilla game or data.win");
                     Console.WriteLine("  c.outputpath           - Base output directory. Default: ./output");
                     Console.WriteLine("  c.deltapatcherpath     - Path to xDelta executable. Default: ./tools/xdelta3.exe");
-                    Console.WriteLine("  c.modtoolpath          - Path to mod tool executable (e.g. UTMT). Default: ./tools/UTMTCLI/UndertaleModCli.exe");
+                    Console.WriteLine("  c.modtoolpath          - Path to mod tool executable (e.g. UTMT). Default: ./tools/UTMTCLI/8/UndertaleModCli.exe");
                     Console.WriteLine("  c.gameengine           - Game engine type (e.g. GM for GameMaker). Currently unused");
                     Console.WriteLine("  c.modamount            - Number of mods to patch/compare");
                     Console.WriteLine("  c.chapteramount        - Number of chapters to patch. Default: 1)");

@@ -9,7 +9,7 @@ namespace GM3P.Patching
 {
     public class RunThirdPartyApps
     {
-        public async Task RunOtherApps(string winapp = $"C:\\Windows\\System32\\cmd.exe", string winarg = $"dir", string nixapp = "/bin/bash", string nixarg = $"ls -l", bool CreateNoWindow = false, bool UseShellExecute = false, bool RedirectStandardOutput = true)
+        public static async Task RunOtherApps(string winapp = $"C:\\Windows\\System32\\cmd.exe", string winarg = $"dir", string nixapp = "/bin/bash", string nixarg = $"ls -l", bool CreateNoWindow = false, bool UseShellExecute = false, bool RedirectStandardOutput = true)
         {
             using (var process = new Process())
             {
@@ -30,9 +30,11 @@ namespace GM3P.Patching
                 process.StartInfo.UseShellExecute = UseShellExecute;
                 process.StartInfo.RedirectStandardOutput = RedirectStandardOutput;
                 process.Start();
-
-                string output = await process.StandardOutput.ReadToEndAsync();
-                Console.WriteLine(output);
+                if (RedirectStandardOutput)
+                {
+                    string output = await process.StandardOutput.ReadToEndAsync();
+                    Console.WriteLine(output);
+                }
 
                 await process.WaitForExitAsync();
             }

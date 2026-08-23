@@ -6,6 +6,7 @@ using GM3P.Manager;
 using GM3P.Merging;
 using GM3P.Patching;
 using System.Runtime.InteropServices;
+using G3MToolCLI;
 
 namespace GM3P.Core
 {
@@ -18,7 +19,8 @@ namespace GM3P.Core
         Task<bool> ExecuteDump();
         Task<bool> ExecuteImport();
         Task<bool> ExecutePlay(string game, string version, string modName, string? inputList);
-        Task<bool> ExecuteInstall(string modName, string gamePath, string game, string version);
+        Task<bool> ExecuteInstallGame(string modName, string gamePath, string game, string version);
+        Task<bool> ExecuteInstallMod(string modPath);
         void Clear(string target = "runningCache");
     }
 
@@ -303,7 +305,7 @@ namespace GM3P.Core
 
         }
 
-        public async Task<bool> ExecuteInstall(string modName, string gamePath, string game, string version)
+        public async Task<bool> ExecuteInstallGame(string modName, string gamePath, string game, string version)
         {
             try
             {
@@ -318,6 +320,20 @@ namespace GM3P.Core
 
                     Console.WriteLine($"  Detected file, installing instance from patch file: {gamePath}");
                 }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Execution failed: {ex.Message}");
+                return false;
+            }
+        }
+        public async Task<bool> ExecuteInstallMod(string patchPath)
+        {
+            try
+            {
+                Console.WriteLine($"Starting Install");
+
                 return true;
             }
             catch (Exception ex)

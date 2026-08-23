@@ -17,8 +17,8 @@ if (Data.IsVersionAtLeast(2024, 11))
     ScriptWarning("This script may act erroneously on GameMaker version 2024.11 and later.");
 }
 
-string chapterNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/Cache/running/chapterNumber.txt"));
-string assetNamePath = @Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))) + "/output/xDeltaCombiner/"+chapterNo+"/1/Objects/AssetOrder.txt");
+string chapterNo = File.ReadAllText(@Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))))))))) + "/output/Cache/running/chapterNumber.txt"));
+string assetNamePath = @Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Directory.GetParent(Convert.ToString(Assembly.GetEntryAssembly().Location)))))))))) + "/output/xDeltaCombiner/"+chapterNo+"/1/Objects/AssetOrder.txt");
 if (@assetNamePath == null)
     throw new ScriptException("The asset name text file was not chosen!");
 

@@ -82,11 +82,15 @@ namespace GM3P.GameMaker
                         " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllTexturesGrouped.csx\"" +
                         " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllCode.csx\"" +
                         " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllRoomsWithCC.csx\"" +
+                        " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAssetOrder.csx\"" +
                         " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAssetOrder.csx\"";
 
                     // Sprite-sample cache refresh (global cache under output/Cache/vanilla/<sha1>)
                     if (NeedsSpriteSampleRefresh(slotRoot))
-                        scriptsToRun += " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportSpriteSamples.csx\"";
+                    {
+                        //Commetted out due to not having this script in any of the binaries or the repo.
+                        //scriptsToRun += " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportSpriteSamples.csx\"";
+                    }
                 }
                 else
                 {
@@ -104,7 +108,8 @@ namespace GM3P.GameMaker
                             " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllCode.csx\"" +
                             " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllRoomsWithCC.csx\"" +
                             " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAssetOrder.csx\"" +
-                            " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportNewObjects.csx\"";
+                            " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportNewObjects.csx\"" +
+                            " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportGlobalInit.csx\"";
                     }
                 }
 

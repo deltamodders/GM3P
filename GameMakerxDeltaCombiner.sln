@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GM3P", "GM3P\GM3P.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "G3MToolCLI", "..\G3MTool\G3MToolCLI\G3MToolCLI.csproj", "{8B7838CE-414E-3F89-62F0-34143E0D59AA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UndertaleModLib", "..\G3MTool\G3MToolCLI\Lib\UndertaleModLib\UndertaleModLib.csproj", "{0CC60010-3EDC-0C4D-C7F2-F70ECA0DFC7B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Underanalyzer", "..\G3MTool\G3MToolCLI\Lib\Underanalyzer\Underanalyzer.csproj", "{694D51C3-01C7-320B-1948-B41F91A1C9E0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{8B7838CE-414E-3F89-62F0-34143E0D59AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B7838CE-414E-3F89-62F0-34143E0D59AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B7838CE-414E-3F89-62F0-34143E0D59AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CC60010-3EDC-0C4D-C7F2-F70ECA0DFC7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CC60010-3EDC-0C4D-C7F2-F70ECA0DFC7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CC60010-3EDC-0C4D-C7F2-F70ECA0DFC7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CC60010-3EDC-0C4D-C7F2-F70ECA0DFC7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{694D51C3-01C7-320B-1948-B41F91A1C9E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{694D51C3-01C7-320B-1948-B41F91A1C9E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{694D51C3-01C7-320B-1948-B41F91A1C9E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{694D51C3-01C7-320B-1948-B41F91A1C9E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
