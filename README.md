@@ -1,5 +1,5 @@
 # NOTICE
-I recommend using [G3MTool](https://github.com/y114git/G3MTool) instead.
+GM3P is slow and uses a lot of storage. If this bothers you, I recommend using [G3MTool](https://github.com/y114git/G3MTool) instead.
 
 # GameMaker Mass Mod Patcher (GM3P)
 
@@ -52,7 +52,8 @@ For patches we support `.csx`(as long as it is compatible with UTMT 0.8._x_), `.
 ## Credits
 | | Name | Role |
 |-|------|-------|
-| <img src="./GitHubAssets/techy.png" alt="Techy" width="60" height="60"> | **[techy804](https://gamebanana.com/members/4548254)** | Creator of GM3P |
+| <img src="./GitHubAssets/techy.png" alt="techy804" width="60" height="60"> | **[techy804](https://gamebanana.com/members/4548254)** | Creator of GM3P |
+| <img src="./GitHubAssets/Y114.png" alt="Y114" width="60" height="60"> | **[Y114](https://gamebanana.com/members/4729761)** | Creator of G3MTool |
 | <img src="./GitHubAssets/zorkats.jpeg" alt="Zorkats" width="60" height="60"> | **[Zorkats](https://gamebanana.com/members/3914910)** | Former programmer |
 
 ## License
