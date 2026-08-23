@@ -14,14 +14,37 @@ namespace GM3P.Manager
     public interface IModManager
     {
         Task PlayGame(string executablePath, string? inputList, GM3PConfig config);
+        Task<List<string>> modList(GM3PConfig config);
     }
     public class ModManager : IModManager
     {
+        public async Task<List<string>> modList(GM3PConfig config)
+        {
+            List<string> modList = [];
+            List<string> modPaths = Directory.GetDirectories(Path.Combine(config.OutputPath!, "result"), "*", SearchOption.TopDirectoryOnly).ToList();
+            if (Directory.Exists(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "zips")))
+            {
+                modPaths.AddRange(Directory.GetFiles(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "zips"), "*", SearchOption.TopDirectoryOnly));
+            }
+            foreach (var mod in modPaths) {
+                string source;
+                if (Directory.GetParent(mod)!.Name == "result") {
+                    source = "GM3P 0 Result";
+                }
+                else
+                {
+                    source = "DeltaMod Package";
+                }
+                string entry = string.Format("{0, 0} {1, 40}", source, Path.GetFileNameWithoutExtension(mod));
+                modList.Add(entry);
+            }
+            return modList;
+        }
         public async Task PlayGame(string executablePath, string? inputList, GM3PConfig config)
         {
             try
             {
-                string executableDirectory = Path.GetDirectoryName(executablePath);
+                string executableDirectory = Path.GetDirectoryName(executablePath)!;
                 string executableName = Path.GetFileName(executablePath);
                 // Implementation for playing the game goes here
                 using (var process = new Process())

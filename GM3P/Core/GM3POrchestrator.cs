@@ -18,7 +18,7 @@ namespace GM3P.Core
         Task<bool> ExecuteResult(string modName);
         Task<bool> ExecuteDump();
         Task<bool> ExecuteImport();
-        Task<bool> ExecutePlay(string game, string version, string modName, string? inputList);
+        Task<bool> ExecutePlay(string game, string version, string modName, string? inputList = "");
         Task<bool> ExecuteInstallGame(string modName, string gamePath, string game, string version);
         Task<bool> ExecuteInstallMod(string modPath);
         void Clear(string target = "runningCache");
@@ -231,7 +231,7 @@ namespace GM3P.Core
             }
         }
 
-        public async Task<bool> ExecutePlay(string game, string version, string? modName, string? inputList)
+        public async Task<bool> ExecutePlay(string game, string version, string? modName, string? inputList = "")
         {
 
             try
@@ -333,7 +333,7 @@ namespace GM3P.Core
             try
             {
                 Console.WriteLine($"Starting Install");
-
+                await _install.InstallMods(patchPath, _config.Config);
                 return true;
             }
             catch (Exception ex)

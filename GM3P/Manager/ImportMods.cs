@@ -28,18 +28,31 @@ namespace GM3P.Manager
                 return false;
             }
             Directory.CreateDirectory(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "temp"));
-            string zip = Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "zips", patchFile);
-            File.Copy(patchFile, zip);
+            Directory.CreateDirectory(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "zips"));
+            string zip = Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "zips", Path.GetFileName(patchFile));
+            File.Copy(patchFile, zip, true);
             System.IO.Compression.ZipFile.ExtractToDirectory(zip, Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "temp"), true);
-            _deltamodPackageService.LoadJSON(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "temp", "meta.json"));
             string modName;
-            if (_deltamodPackageService.DeltaModPackagemetadata.packageID != null)
-            {
-                modName = _deltamodPackageService.DeltaModPackagemetadata.packageID;
-            }else
-            {
-                modName = _deltamodPackageService.DeltaModPackagemetadata.name;
+            Console.WriteLine(1);
+            try 
+            { 
+                _deltamodPackageService.LoadJSON(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "temp", "meta.json"));
+            
+                if (_deltamodPackageService.DeltaModPackagemetadata.packageID != null)
+                {
+                    modName = _deltamodPackageService.DeltaModPackagemetadata.packageID;
+                }
+                else
+                {
+                    modName = _deltamodPackageService.DeltaModPackagemetadata.name;
+                }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"The mod name null or can't be extracted because of {ex}. Using zip name.");
+                modName = Path.GetFileNameWithoutExtension(zip);
+            }
+            Console.WriteLine(3);
             await _directoryManager.CopyDirectory(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "temp"), Path.Combine(config.OutputPath!, "DeltamodLite", "mods", modName), true);
             Directory.Delete(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "temp"),true);
             return true;

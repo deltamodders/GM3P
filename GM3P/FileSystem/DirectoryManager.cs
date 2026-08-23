@@ -12,6 +12,7 @@ namespace GM3P.FileSystem
         void CreateResultDirectories(GM3PConfig config, string modName);
         void ClearDirectory(string path, bool recursive = true);
         Task<bool> CopyDirectory(string sourceDir, string destinationDir, bool recursive);
+        Task CopyFileAsync(string sourceFile, string destinationFile);
         string GetCachePath(GM3PConfig config, params string[] segments);
         string GetXDeltaCombinerPath(GM3PConfig config, params string[] segments);
         List<string> FindDataWinFiles(string path);
@@ -135,6 +136,14 @@ namespace GM3P.FileSystem
 
             return winFiles;
         }
+
+        public async Task CopyFileAsync(string sourceFile, string destinationFile)
+        {
+            using (var sourceStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan))
+            using (var destinationStream = new FileStream(destinationFile, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan))
+                await sourceStream.CopyToAsync(destinationStream);
+        }
+
         // This method copies a directory. C+P from Microsoft Docs: https://learn.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
         public async Task<bool> CopyDirectory(string sourceDir, string destinationDir, bool recursive)
         {

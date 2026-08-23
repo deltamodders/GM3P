@@ -24,10 +24,11 @@ namespace GM3P
         private static IGM3POrchestrator? _orchestrator;
         private static IConfigurationService? _config;
         private static IDeltaModPackageService? _deltaModPackageService;
+        private static IModManager? _modManager;
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine($"GM3P v{Version}.0-beta3");
+            Console.WriteLine($"GM3P v{Version}.0-beta4");
 
             // Setup services manually (no DI container)
             SetupServices();
@@ -88,6 +89,7 @@ namespace GM3P
 
             _config = config;
             _deltaModPackageService = deltaModPackageService;
+            _modManager = modManager;
         }
 
         static string SetupLogging(string? outputPath)
@@ -201,6 +203,9 @@ namespace GM3P
                     await HandleExecute(args);
                     break;
 
+                case "manage":
+                    await HandleManage(reqArgs, opArgs);
+                    break;
                 case "play":
                     await HandlePlay(reqArgs, opArgs);
                     break;
@@ -679,6 +684,15 @@ namespace GM3P
             }
         }
 
+        static async Task HandleManage(string[] reqArgs, string[] opArgs) {
+            Console.WriteLine("Only listing imported mods is available right now");
+            Console.WriteLine("{0,0} {1,40}\n", "Type", "Name");
+            List<string> modList = await _modManager!.modList(_config!.Config);
+            foreach (var mod in modList) {
+                Console.WriteLine(mod);
+            }
+        }
+
         static void HandleClear(string[] args)
         {
             string target = args.Length > 1 ? args[1] : "runningCache";
@@ -875,7 +889,7 @@ namespace GM3P
             }
 
             bool play = false;
-            string gameExecutable = Directory.GetFiles(vanillaPath).FirstOrDefault(s => s.Contains(".exe"));
+            string gameExecutable = Directory.GetFiles(vanillaPath).FirstOrDefault(s => s.Contains(".exe"))!;
             if ((File.GetAttributes(vanillaPath) & FileAttributes.Directory) == FileAttributes.Directory)
             {
                 if (File.Exists(gameExecutable))
@@ -886,7 +900,13 @@ namespace GM3P
             { Console.WriteLine("Vanilla Path doesn't contain an executeable or isn't a folder, skipping play question"); }
             
             if (play) {
-                await RunThirdPartyApps.RunOtherApps(gameExecutable, null, gameExecutable, null);  
+                Console.WriteLine();
+                Console.Write("What is the name of the game you are playing?: ");
+                string gameName = Console.ReadLine()!;
+                Console.WriteLine();
+                Console.Write("What is the version of the game? If you aren't sure, hit enter and it will default to 1.0.0: ");
+                string version = Console.ReadLine() ?? "1.0.0";
+                await _orchestrator!.ExecutePlay(gameName, version, modName);
             }
 
             // Original cleanup message
@@ -914,6 +934,7 @@ namespace GM3P
                 Console.WriteLine("  compare    - Compare and combine mods");
                 Console.WriteLine("  result     - Create final modpack");
                 Console.WriteLine("  console    - Launch interactive console");
+                Console.WriteLine("  execute    - Runs csx scripts, executables, or a HTTP REST request");
                 Console.WriteLine("  clear      - Clear temporary files");
                 Console.WriteLine("  config     - Update configuration");
                 Console.WriteLine("  play       - Launch game with or without modpack");
