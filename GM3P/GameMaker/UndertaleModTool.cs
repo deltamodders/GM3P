@@ -83,7 +83,7 @@ namespace GM3P.GameMaker
                         " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllCode.csx\"" +
                         " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllRoomsWithCC.csx\"" +
                         " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAssetOrder.csx\"" +
-                        " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAssetOrder.csx\"";
+                        " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportGlobalInit.csx\"";
 
                     // Sprite-sample cache refresh (global cache under output/Cache/vanilla/<sha1>)
                     if (NeedsSpriteSampleRefresh(slotRoot))
@@ -108,7 +108,6 @@ namespace GM3P.GameMaker
                             " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllCode.csx\"" +
                             " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAllRoomsWithCC.csx\"" +
                             " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportAssetOrder.csx\"" +
-                            " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportNewObjects.csx\"" +
                             " --scripts \"" + config.WorkingDirectory + "/tools/UTMTCLI/Scripts/ExportGlobalInit.csx\"";
                     }
                 }
