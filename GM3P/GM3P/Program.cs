@@ -287,6 +287,14 @@ namespace GM3P
                             break;
                         case "c.utmtversion":
                             _config?.UpdateConfiguration(c => c.UTMTversion = int.Parse(value));
+                            if (OperatingSystem.IsWindows())
+                            {
+                                _config?.UpdateConfiguration(c => c.ModToolPath = Path.Combine(Assembly.GetExecutingAssembly().Location, "tools", "UTMTCLI", int.Parse(value).ToString(), "UndertaleModCli.exe"));
+                            }
+                            else
+                            {
+                                _config?.UpdateConfiguration(c => c.ModToolPath = $"dotnet \"{Path.Combine(Assembly.GetExecutingAssembly().Location, "tools", "UTMTCLI", int.Parse(value).ToString(), "UndertaleModCli.exe")}\"");
+                            }
                             break;
                         case "c.treatg3mpatchaszip":
                             _config?.UpdateConfiguration(c => c.TreatG3MPatchAsZip = bool.Parse(value));

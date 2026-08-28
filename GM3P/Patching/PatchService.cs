@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using GM3P.Data;
 using GM3P.FileSystem;
+using G3MToolCLI;
 
 namespace GM3P.Patching
 {
@@ -83,7 +84,7 @@ namespace GM3P.Patching
                         await ApplyXDeltaPatch(dataPath, patchFile, config);
                         break;
                     case ".g3mpatch":
-                        await ApplyG3MPatch(dataPath, patchFile, config);
+                        await ApplyG3MPatch(dataPath, patchFile, config, chapter, modNumber);
                         break;
                     case ".zip":
                     case ".rar":
@@ -154,12 +155,29 @@ namespace GM3P.Patching
                     }
                     catch { }
                 }
+                List<string> sprites = Directory.GetFiles(tempDir, "*.png", SearchOption.AllDirectories).ToList();
+                foreach (var spriteFile in sprites)
+                {
+                    Console.WriteLine(spriteFile);
+                    try
+                    {
+                        string spriteFileName = Path.GetFileName(spriteFile);
+                        string outputSpritePath = _directoryManager.GetXDeltaCombinerPath(config,
+                            chapter,
+                            modNumber,
+                            "Objects",
+                            "Sprites",
+                            spriteFileName);
+                        File.Copy(spriteFile, outputSpritePath, overwrite: true);
+                    }
+                    catch { }
+                }
                 //Finally, import the assets using the mod tool
                 try
                 {
-                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportGraphics.csx"), config);
-                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportGML.csx"), config);
-                    await ApplyScriptPatch(Path.Combine(config.OutputPath, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportAssetOrder.csx"), config);
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath!, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportGraphics.csx"), config);
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath!, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportGML.csx"), config);
+                    await ApplyScriptPatch(Path.Combine(config.OutputPath!, "xDeltaCombiner", chapter, modNumber, "data.win"), Path.Combine("./", "UTMTCLI", "Scripts", "ImportAssetOrder.csx"), config);
                 }
                 catch (Exception ex)
                 { Console.WriteLine($"Failed to import: {ex.Message}"); }
@@ -207,36 +225,15 @@ namespace GM3P.Patching
                 File.Move(tmpPath, dataPath);
             }
         }
-        private async Task ApplyG3MPatch(string dataPath, string patchPath, GM3PConfig config)
+        private async Task ApplyG3MPatch(string dataPath, string patchPath, GM3PConfig config, int chapter = 0, int modNumber = 0)
         {
             if (config.TreatG3MPatchAsZip)
             {
-                await ApplyResourceZip(patchPath, "0", "0", config);
+                await ApplyResourceZip(patchPath, chapter.ToString(), modNumber.ToString(), config);
                 return;
             }
             string tmpPath = Path.ChangeExtension(dataPath, ".tmp.win");
-            using (var process = new Process())
-            {
-                if (OperatingSystem.IsWindows())
-                {
-                    process.StartInfo.FileName = config.G3MToolPath;
-                    process.StartInfo.Arguments =
-                        $"patch apply \"{dataPath}\" \"{patchPath}\" \"{tmpPath}\" --xdelta-fallback";
-                }
-                else if (OperatingSystem.IsLinux())
-                {
-                    process.StartInfo.FileName = "/bin/bash";
-                    process.StartInfo.Arguments =
-                        $"-c \"{config.G3MToolPath} patch apply '{dataPath}' '{patchPath}' '{tmpPath}' --xdelta-fallback\"";
-                }
-                process.StartInfo.CreateNoWindow = false;
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.Start();
-                string output = await process.StandardOutput.ReadToEndAsync();
-                Console.WriteLine(output);
-                await process.WaitForExitAsync();
-            }
+            await G3MToolCLI.Program.Main(["patch", "apply", dataPath, patchPath, tmpPath, "--xdelta-fallback"]);
             // Atomically replace after the tool is done
             if (File.Exists(tmpPath))
             {
