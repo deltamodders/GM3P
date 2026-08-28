@@ -12,7 +12,7 @@ namespace GM3P.Merging
     {
         string? FindGit();
         bool PerformGitMerge(string baseFile, List<ModFileInfo> mods, string outputFile, string relativePath, GM3PConfig config);
-        string? RunGitCommand(string gitPath, string workingDir, string arguments, bool allowNonZeroExit = false);
+        string? RunGitCommand(string gitPath, string workingDir, string arguments, GM3PConfig config, bool allowNonZeroExit = false);
     }
 
     public class GitService : IGitService
@@ -80,6 +80,7 @@ namespace GM3P.Merging
                 return null;
             }
         }
+        private string tempMerge;
 
         public bool PerformGitMerge(string baseFile, List<ModFileInfo> mods, string outputFile, string relativePath, GM3PConfig config)
         {
@@ -100,29 +101,29 @@ namespace GM3P.Merging
                 {
                     string workFile = Path.Combine(tempRepo, "file.txt");
 
-                    RunGitCommand(gitPath, tempRepo, "init -q");
-                    RunGitCommand(gitPath, tempRepo, "config user.email \"gm3p@local\"");
-                    RunGitCommand(gitPath, tempRepo, "config user.name \"GM3P\"");
-                    RunGitCommand(gitPath, tempRepo, "config core.autocrlf false");
+                    RunGitCommand(gitPath, tempRepo, "init -q", config);
+                    RunGitCommand(gitPath, tempRepo, "config user.email \"gm3p@local\"", config);
+                    RunGitCommand(gitPath, tempRepo, "config user.name \"GM3P\"", config);
+                    RunGitCommand(gitPath, tempRepo, "config core.autocrlf false", config);
 
                     File.Copy(baseFile, workFile, true);
-                    RunGitCommand(gitPath, tempRepo, "add .");
-                    RunGitCommand(gitPath, tempRepo, "commit -q -m \"base\" --allow-empty");
+                    RunGitCommand(gitPath, tempRepo, "add .", config);
+                    RunGitCommand(gitPath, tempRepo, "commit -q -m \"base\" --allow-empty", config);
 
                     var branches = new List<string>();
                     for (int i = 0; i < mods.Count; i++)
                     {
                         string branch = $"m{i}";
                         branches.Add(branch);
-                        RunGitCommand(gitPath, tempRepo, $"checkout -q -b {branch} master");
+                        RunGitCommand(gitPath, tempRepo, $"checkout -q -b {branch} master", config);
 
                         File.Copy(mods[i].FilePath, workFile, true);
                         var info = new FileInfo(workFile);
                         Console.WriteLine($"    Mod {i} file size: {info.Length} bytes");
 
-                        RunGitCommand(gitPath, tempRepo, "add .");
-                        RunGitCommand(gitPath, tempRepo, $"commit -q -m \"mod{i}\" --allow-empty");
-                        RunGitCommand(gitPath, tempRepo, "checkout -q master");
+                        RunGitCommand(gitPath, tempRepo, "add .", config);
+                        RunGitCommand(gitPath, tempRepo, $"commit -q -m \"mod{i}\" --allow-empty", config);
+                        RunGitCommand(gitPath, tempRepo, "checkout -q master", config);
                     }
 
                     // Prefer incoming changes (theirs) → overlay-friendly
@@ -131,11 +132,11 @@ namespace GM3P.Merging
                     // -X theirs ensures last-merge wins; still resolve any markers just in case
                     if (config.mergeMethod == "theirs")
                     {
-                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit -m \"merged\"", allowNonZeroExit: true);
+                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit -m \"merged\"", config, allowNonZeroExit: true);
                     }
                     else if (config.mergeMethod == "ours")
                     {
-                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X ours --no-edit -m \"merged\"", allowNonZeroExit: true);
+                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X ours --no-edit -m \"merged\"", config, allowNonZeroExit: true);
                     }
                     else if (config.mergeMethod == "simple")
                     { 
@@ -143,7 +144,7 @@ namespace GM3P.Merging
                     }
                     else
                     {
-                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit --no-commit -m \"merged\"", allowNonZeroExit: true);
+                        RunGitCommand(gitPath, tempRepo, $"merge {list} -X theirs --no-edit --no-commit -m \"merged\"", config, allowNonZeroExit: true);
                     }
 
                     if (File.Exists(workFile))
@@ -151,8 +152,36 @@ namespace GM3P.Merging
                         string content = File.ReadAllText(workFile);
                         if (content.Contains("<<<<<<<"))
                         {
-                            Console.WriteLine("    Auto-resolving conflict markers");
-                            content = AutoResolveConflicts(content, relativePath, config);
+                            if (config.mergeMethod != "manual")
+                            {
+                                Console.WriteLine("    Auto-resolving conflict markers");
+                                content = AutoResolveConflicts(content, relativePath, config);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"{content}\nFile Contents");
+                                Console.WriteLine($"Enter a merge method for this file (both, theirs, or ours),\n or manually edit them at {workFile} and hit enter to continue:");
+                                tempMerge = Console.ReadLine()!.ToLower();
+                                if (!string.IsNullOrWhiteSpace(tempMerge))
+                                {
+                                    config.mergeMethod = tempMerge;
+                                    content = AutoResolveConflicts(content, relativePath, config);
+                                }
+                                else 
+                                {
+                                    content = File.ReadAllText(content);
+                                    if (!content.Contains("<<<<<<<"))
+                                    {
+                                        return true;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"WARNING: {baseFile} still contain conficts, contiuing...");
+                                        return false;
+                                    }
+                                }
+                                
+                            }
                         }
 
                         if (string.IsNullOrWhiteSpace(content))
@@ -199,7 +228,7 @@ namespace GM3P.Merging
             }
         }
 
-        public string? RunGitCommand(string gitPath, string workingDir, string arguments, bool allowNonZeroExit = false)
+        public string? RunGitCommand(string gitPath, string workingDir, string arguments, GM3PConfig config, bool allowNonZeroExit = false)
         {
             try
             {
@@ -207,7 +236,14 @@ namespace GM3P.Merging
                 p.StartInfo.FileName = gitPath;
                 p.StartInfo.Arguments = arguments;
                 p.StartInfo.WorkingDirectory = workingDir;
-                p.StartInfo.CreateNoWindow = true;
+                if (config.mergeMethod == "manual")
+                {
+                    p.StartInfo.CreateNoWindow = false;
+                }
+                else
+                {
+                    p.StartInfo.CreateNoWindow = !config.verboseLogging;
+                }
                 p.StartInfo.UseShellExecute = false;
                 p.StartInfo.RedirectStandardOutput = true;
                 p.StartInfo.RedirectStandardError = true;
