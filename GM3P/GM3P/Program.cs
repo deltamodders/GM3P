@@ -518,7 +518,7 @@ namespace GM3P
                 {
                     var color = new DeltaModPackageColor();
                     var neededFiles = new DeltaModPackageneededFiles();
-                    var metadata = _deltaModPackageService!.DeltaModPackagemetadata;
+                    var metadata = _deltaModPackageService!.DeltaModPackageMetadata;
                     if (args.Length < 4)
                     {
                         Console.WriteLine("Usage: GM3P.exe metadata update json [Key] [Value]");
@@ -645,7 +645,7 @@ namespace GM3P
             if (Path.GetExtension(args[1])==".csx")
             {
                 Console.WriteLine("Passing on to G3MTool's Execute service");
-                await ExecuteService.ExecuteScriptAsync(args[1].Replace("\"",""), args.Length>2 ? args[2].Replace("\"","") : null, args.Length>3 ? args[3] : (_config!.Config.OutputPath + "/scriptOutput"), args.Length>4 ? args[4].Replace("[","").Replace("]","").Split(",") : null!);
+                Console.WriteLine(await G3MTool.ExecuteService.ExecuteScriptAsync(args[1].Replace("\"",""), args.Length>2 ? args[2].Replace("\"","") : null, args.Length>3 ? args[3] : (_config!.Config.OutputPath + "/scriptOutput"), args.Length>4 ? args[4].Replace("[","").Replace("]","").Split(",") : null!));
             }
             else if (Path.GetExtension(args[1]) == ".win")
             {
@@ -656,6 +656,7 @@ namespace GM3P
             {
                 Console.WriteLine("Attempting to run app");
                 await RunThirdPartyApps.RunOtherApps(args[1], args.Length > 2 ? args[2].Replace("\"","") : null!, args[1], args.Length > 2 ? args[2].Replace("\"", "") : null!, false, false, _config!.Config.verboseLogging);
+                
             } else if (args[1].Replace("\"", "").StartsWith("http"))
             {
                 var api = new RunThirdPartyApps.RunAPI.HttpService();

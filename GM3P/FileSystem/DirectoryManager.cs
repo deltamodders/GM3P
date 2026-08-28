@@ -30,6 +30,7 @@ namespace GM3P.FileSystem
             Directory.CreateDirectory(Path.Combine(config.OutputPath, "Cache", "export"));
             Directory.CreateDirectory(Path.Combine(config.OutputPath, "Cache", "Logs"));
             Directory.CreateDirectory(Path.Combine(config.OutputPath, "xDeltaCombiner"));
+            Directory.CreateDirectory(Path.Combine(config.OutputPath, "scriptOutput"));
 
             for (int chapter = 0; chapter < config.ChapterAmount; chapter++)
             {

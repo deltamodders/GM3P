@@ -19,7 +19,7 @@ namespace GM3P.Data
     {
         DeltaModPackageXML xmlDoc { get; }
         DeltaModPackageJSON ModPackageJSON { get; }
-        DeltaModPackagemetadata DeltaModPackagemetadata { get; }
+        DeltaModPackagemetadata DeltaModPackageMetadata { get; }
         void UpdateJSON(Action<DeltaModPackageJSON> updateAction);
         void LoadJSON(string? configPath = null);
         void SaveJSON(string? configPath = null);
@@ -80,7 +80,7 @@ namespace GM3P.Data
 
         public DeltaModPackageXML xmlDoc => _xmlDoc;
         public DeltaModPackageJSON ModPackageJSON => _json;
-        public DeltaModPackagemetadata DeltaModPackagemetadata => _metadata;
+        public DeltaModPackagemetadata DeltaModPackageMetadata => _metadata;
         public DeltaModPackageJSON DeltaModPackageJSON { get; set; } = new DeltaModPackageJSON();
         public DeltaModPackageService()
         {

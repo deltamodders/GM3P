@@ -38,13 +38,13 @@ namespace GM3P.Manager
             { 
                 _deltamodPackageService.LoadJSON(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "temp", "meta.json"));
             
-                if (_deltamodPackageService.DeltaModPackagemetadata.packageID != null)
+                if (_deltamodPackageService.DeltaModPackageMetadata.packageID != null)
                 {
-                    modName = _deltamodPackageService.DeltaModPackagemetadata.packageID;
+                    modName = _deltamodPackageService.DeltaModPackageMetadata.packageID;
                 }
                 else
                 {
-                    modName = _deltamodPackageService.DeltaModPackagemetadata.name;
+                    modName = _deltamodPackageService.DeltaModPackageMetadata.name;
                 }
             }
             catch (Exception ex)

@@ -1,3 +1,6 @@
+using GM3P;
 using GM3P.Patching;
 
-RunThirdPartyApps.RunOtherApps();
+//Console.WriteLine("test");
+ScriptMessage("test");
+GM3P.Data.RunThirdPartyApps.RunOtherApps();
