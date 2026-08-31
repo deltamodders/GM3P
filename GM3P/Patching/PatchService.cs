@@ -10,6 +10,7 @@ namespace GM3P.Patching
         Task ApplyPatches(string[] patchPaths, GM3PConfig config);
         Task ApplyPatch(string sourceFile, string patchFile, string targetFile, GM3PConfig config);
         Task CreatePatch(string originalFile, string modifiedFile, string patchFile, GM3PConfig config);
+        Task ApplyPatchAsync(int chapter, int modNumber, string patchFile, GM3PConfig config, string dataPath = null);
     }
 
     public class PatchService : IPatchService
@@ -55,16 +56,19 @@ namespace GM3P.Patching
             await Task.WhenAll(tasks);
         }
 
-        private async Task ApplyPatchAsync(int chapter, int modNumber, string patchFile, GM3PConfig config)
+        public async Task ApplyPatchAsync(int chapter, int modNumber, string patchFile, GM3PConfig config, string dataPath = null)
         {
             await _concurrencySemaphore.WaitAsync();
             try
             {
-                string dataPath = _directoryManager.GetXDeltaCombinerPath(
-                    config,
-                    chapter.ToString(),
-                    modNumber.ToString(),
-                    "data.win");
+                if (String.IsNullOrWhiteSpace(dataPath) || !File.Exists(dataPath))
+                {
+                    dataPath = _directoryManager.GetXDeltaCombinerPath(
+                        config,
+                        chapter.ToString(),
+                        modNumber.ToString(),
+                        "data.win");
+                }
 
                 string extension = Path.GetExtension(patchFile).ToLower();
 

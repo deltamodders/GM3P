@@ -237,7 +237,7 @@ namespace GM3P.Core
             try
             {
                 if (string.IsNullOrEmpty(version)) { version = "1.0.0"; }
-                if (string.IsNullOrEmpty(modName) || Directory.Exists(Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", modName)))
+                if (string.IsNullOrEmpty(modName) || Directory.Exists(Path.Combine(_config!.Config!.OutputPath!, "DeltamodLite", "instances", modName)))
                 {
                     if(OperatingSystem.IsWindows())
                     {
@@ -259,9 +259,9 @@ namespace GM3P.Core
                 else
                 {
                     string[] mods = modName.Split(",");
-                    if (mods.Length == 1 && !Directory.Exists(Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", modName, game, version))) {
-                        int vanillaFiles = _directoryManager.FindDataWinFiles(Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", "vanilla", game, version, game)).Count;
-                        await _directoryManager.CopyDirectory(Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", "vanilla", game, version, game), Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", "tmpMod", game, version), true);
+                    if (mods.Length == 1 && !Directory.Exists(Path.Combine(_config!.Config!.OutputPath!, "DeltamodLite", "instances", modName, game, version))) {
+                        int vanillaFiles = _directoryManager.FindDataWinFiles(Path.Combine(_config!.Config!.OutputPath!, "DeltamodLite", "instances", "vanilla", game, version, game)).Count;
+                        await _directoryManager.CopyDirectory(Path.Combine(_config!.Config!.OutputPath!, "DeltamodLite", "instances", "vanilla", game, version, game), Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", "tmpMod", game, version), true);
                         _config.UpdateConfiguration(c => c.ChapterAmount = vanillaFiles);
                         for (int i = 0; i < _config.Config.ChapterAmount; i++)
                         {
@@ -269,7 +269,7 @@ namespace GM3P.Core
                             if (Directory.Exists(Path.Combine(_config.Config.OutputPath, "result", modName, i.ToString())))
                             {
                                 Console.WriteLine(i.ToString());
-                                await _patchService.ApplyPatch(_directoryManager.FindDataWinFiles(Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", "vanilla", game, version, game))[i], Directory.GetFiles(Path.Combine(_config.Config.OutputPath, "result", modName, i.ToString()), "*.xdelta")[0], _directoryManager.FindDataWinFiles(Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", "tmpMod", game, version))[i], _config.Config);
+                                await _patchService.ApplyPatchAsync(0, 0, (await _directoryManager.modFiles(Path.Combine(_config.Config.OutputPath, "result", modName, i.ToString()))).FirstOrDefault()!, _config.Config, _directoryManager.FindDataWinFiles(Path.Combine(_config.Config.OutputPath, "DeltamodLite", "instances", "tmpMod", game, version))[i]);
                             }
                         }
                         modName = "tmpMod";

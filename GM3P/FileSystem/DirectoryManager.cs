@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Alba.CsConsoleFormat;
 using GM3P.Data;
 
 namespace GM3P.FileSystem
@@ -13,9 +14,11 @@ namespace GM3P.FileSystem
         void ClearDirectory(string path, bool recursive = true);
         Task<bool> CopyDirectory(string sourceDir, string destinationDir, bool recursive);
         Task CopyFileAsync(string sourceFile, string destinationFile);
+        Task<List<string>> modFiles(string path);
         string GetCachePath(GM3PConfig config, params string[] segments);
         string GetXDeltaCombinerPath(GM3PConfig config, params string[] segments);
         List<string> FindDataWinFiles(string path);
+        Task<bool> checkForPartOfPath(string path, string partOfPath);
     }
 
     public class DirectoryManager : IDirectoryManager
@@ -174,10 +177,32 @@ namespace GM3P.FileSystem
                 foreach (DirectoryInfo subDir in dirs)
                 {
                     string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
-                    CopyDirectory(subDir.FullName, newDestinationDir, true);
+                    await CopyDirectory(subDir.FullName, newDestinationDir, true);
                 }
             }
             return true;
+        }
+        public async Task<bool> checkForPartOfPath(string path, string partOfPath)
+        {
+            if (Path.GetFullPath(path).Contains(partOfPath))
+            { return true; } else { return false; }
+        }
+        public async Task<List<string>> modFiles(string path) { 
+            List<string> files = Directory.GetFiles(path, ".xdelta", SearchOption.AllDirectories).ToList();
+            foreach (string csx in Directory.GetFiles(path, ".csx", SearchOption.AllDirectories).ToList())
+            {
+                files.Add(csx);
+            }
+            foreach (string g3mpatch in Directory.GetFiles(path,".g3mpatch"))
+            {
+                files.Add(g3mpatch);
+            }
+            foreach (string win in Directory.GetFiles(path,".win", SearchOption.AllDirectories).ToList()) 
+            {  
+                files.Add(win); 
+            }
+            files.Sort();
+            return files;
         }
     }
 }
