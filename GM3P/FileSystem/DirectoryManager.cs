@@ -17,6 +17,7 @@ namespace GM3P.FileSystem
         Task<List<string>> modFiles(string path);
         string GetCachePath(GM3PConfig config, params string[] segments);
         string GetXDeltaCombinerPath(GM3PConfig config, params string[] segments);
+        string GetDeltamodLitePath(GM3PConfig config, params string[] segments);
         List<string> FindDataWinFiles(string path);
         Task<bool> checkForPartOfPath(string path, string partOfPath);
     }
@@ -109,7 +110,15 @@ namespace GM3P.FileSystem
             parts.AddRange(segments);
             return Path.Combine(parts.ToArray());
         }
+        public string GetDeltamodLitePath(GM3PConfig config, params string[] segments)
+        {
+            if (config.OutputPath == null)
+                throw new InvalidOperationException("Output path not configured");
 
+            var parts = new List<string> { config.OutputPath, "DeltamodLite" };
+            parts.AddRange(segments);
+            return Path.Combine(parts.ToArray());
+        }
         public List<string> FindDataWinFiles(string path)
         {
             var winFiles = new List<string>();

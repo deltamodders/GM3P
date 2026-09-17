@@ -342,7 +342,8 @@ namespace GM3P.Patching
                 await process.WaitForExitAsync();
             }
             // Then G3MTool
-            using (var process = new Process())
+                await G3MToolCLI.Program.Main(["patch", "create", originalFile, modifiedFile, $"{patchFile}.g3mpatch", "--xdelta-fallback"]);
+            /**using (var process = new Process())
             {
                 if (OperatingSystem.IsWindows())
                 {
@@ -363,7 +364,7 @@ namespace GM3P.Patching
                 string output = await process.StandardOutput.ReadToEndAsync();
                 Console.WriteLine(output);
                 await process.WaitForExitAsync();
-            }
+            }*/
         }
     }
 }

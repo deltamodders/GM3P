@@ -21,6 +21,7 @@ namespace GM3P.Core
         Task<bool> ExecutePlay(string game, string version, string modName, string? inputList = "");
         Task<bool> ExecuteInstallGame(string modName, string gamePath, string game, string version);
         Task<bool> ExecuteInstallMod(string modPath);
+        Task<bool> ExecuteUpdate(string modName, string game, string OldVanillaVersion, string NewVanillaVersion, int chapter = 0);
         void Clear(string target = "runningCache");
     }
 
@@ -334,6 +335,26 @@ namespace GM3P.Core
             {
                 Console.WriteLine($"Starting Install");
                 await _install.InstallMods(patchPath, _config.Config);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Execution failed: {ex.Message}");
+                return false;
+            }
+        }
+        public async Task<bool> ExecuteUpdate(string modName, string game, string OldVanillaVersion, string NewVanillaVersion, int chapter = 0)
+        {
+            try
+            {
+                Console.WriteLine($"Starting Update");
+                _directoryManager.CreateCombinerDirectories(_config.Config);
+                _config?.UpdateConfiguration(c => c.ModAmount = 1);
+                _config?.UpdateConfiguration(c => c.VanillaPath = _directoryManager.GetDeltamodLitePath(_config.Config, ["instances", "vanilla", game, NewVanillaVersion, game]));
+                await CopyVanillaFiles();
+                await _patchService.ApplyPatchAsync(chapter, 2, _directoryManager.FindDataWinFiles(_directoryManager.GetDeltamodLitePath(_config?.Config!, ["instances", "vanilla", game, OldVanillaVersion, game]))[chapter], _config?.Config!);
+                await _patchService.ApplyPatchAsync(chapter, 2, modName, _config?.Config!);
+                await ExecuteResult(Path.GetFileNameWithoutExtension(modName)+"-"+NewVanillaVersion+"-Chapter"+chapter);
                 return true;
             }
             catch (Exception ex)

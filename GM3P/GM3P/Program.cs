@@ -206,6 +206,11 @@ namespace GM3P
                 case "manage":
                     await HandleManage(reqArgs, opArgs);
                     break;
+
+                case "update":
+                    await HandleUpdate(reqArgs, opArgs);
+                    break;
+
                 case "play":
                     await HandlePlay(reqArgs, opArgs);
                     break;
@@ -646,7 +651,45 @@ namespace GM3P
 
 
         }
-
+        static async Task HandleUpdate(string[] reqArgs, string[] opArgs)
+        {
+            if (reqArgs.Length < 2)
+            {
+                Console.WriteLine("Usage: GM3P.exe update [game] [modName]|[modPath] --oldVanilla <gameVersion> --newVanilla <gameVersion> --chapter <chapter> --config? <ConfigPath>");
+                return;
+            }
+            string game = reqArgs[1];
+            string modName = reqArgs[2];
+            string OldVanillaVersion = "";
+            string NewVanillaVersion = "";
+            int chapter = 0;
+            for (int i = 0; i < opArgs.Length; i++)
+            {
+                if (opArgs[i].StartsWith("--config"))
+                {
+                    _config!.UpdateConfiguration(c =>
+                    {
+                        _config?.LoadConfiguration(opArgs[i].Replace("--config ", ""));
+                        Console.WriteLine($"Configuration loaded from {(opArgs[i].Replace("--config ", "") ?? "default path")}");
+                    });
+                }
+                if (opArgs[i].StartsWith("--oldVanilla"))
+                {
+                    
+                        OldVanillaVersion = opArgs[i].Replace("--oldVanilla ", "");
+                    
+                }
+                if (opArgs[i].StartsWith("--newVanilla"))
+                {
+                        NewVanillaVersion = opArgs[i].Replace("--newVanilla ", "");   
+                }
+                if (opArgs[i].StartsWith("--chapter"))
+                {
+                        chapter = Convert.ToInt32(opArgs[i].Replace("--chapter ", ""));
+                }   
+            }
+            await _orchestrator!.ExecuteUpdate(modName, game, OldVanillaVersion, NewVanillaVersion, chapter);
+        }
         static async Task HandleExecute(string[] args)
         {
             string[] executableExtensions = [".exe", ".com", "", ".msi", ".deb"];
@@ -987,14 +1030,13 @@ namespace GM3P
                     Console.WriteLine("\nMassPatch Command:");
                     Console.WriteLine("  Patches multiple data.win files with mods");
                     Console.WriteLine("\nUsage:");
-                    Console.WriteLine("  GM3P.exe massPatch [VanillaPath] [ModAmount] [PatchPaths] --config? <ConfigPath> --relative? <releativePath>");
+                    Console.WriteLine("  GM3P.exe massPatch [VanillaPath] [ModAmount] [PatchPaths] --config? <ConfigPath>");
                     Console.WriteLine("\nArguments:");
                     Console.WriteLine("  VanillaPath - Path to vanilla game or data.win");
                     Console.WriteLine("  ModAmount   - Number of mods to patch");
                     Console.WriteLine("  PatchPaths  - Mod file paths (:: for chapters, , for mods)");
                     Console.WriteLine("\nOptions:");
                     Console.WriteLine("  config      - Optional config JSON");
-                    Console.WriteLine("  relative    - Relative path for patch files");
                     break;
 
                 case "compare":
@@ -1027,7 +1069,7 @@ namespace GM3P
                     Console.WriteLine("\nImport Command:");
                     Console.WriteLine("  Imports mods and instances into the mod manager");
                     Console.WriteLine("\nUsage:");
-                    Console.WriteLine("  GM3P.exe import [GamePath] [Game] --modName? <ModName> --version? <Version>");
+                    Console.WriteLine("  GM3P.exe import game [GamePath] [Game] --modName? <ModName> --version? <Version>");
                     Console.WriteLine("\nArguments:");
                     Console.WriteLine("  GamePath  - Path to the game directory");
                     Console.WriteLine("  Game      - Game identifier");
@@ -1057,6 +1099,18 @@ namespace GM3P
                     Console.WriteLine("  cache        - Clear all cache");
                     Console.WriteLine("  output       - Clear entire output directory");
                     Console.WriteLine("  modpacks     - Clear result directory");
+                    break;
+                case "execute":
+                    Console.WriteLine("\nExecute Command:"); 
+                    Console.WriteLine("  Executes scripts, executables, or HTTP REST requests");
+                    Console.WriteLine("\nUsage:");
+                    Console.WriteLine("  GM3P.exe execute [Script|Executable|URL] [Arguments]");
+                    break;
+                case "update":
+                    Console.WriteLine("\nUpdate Command:");
+                    Console.WriteLine("  Updates mods");
+                    Console.WriteLine("\nUsage:");
+                    Console.WriteLine("  GM3P.exe update [Game] [ModName|ModPath] --oldVanilla <OldVersion> --newVanilla <NewVersion> --chapter <ChapterNumber> --config? <ConfigPath>");
                     break;
                 case "metadata":
                     ShowMetadataHelp(subcommand);
