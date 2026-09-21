@@ -15,11 +15,14 @@ namespace GM3P.Manager
     {
         Task PlayGame(string executablePath, string? inputList, GM3PConfig config);
         Task<List<string>> modList(GM3PConfig config);
+        Task<bool> deleteMod(int modNo, GM3PConfig config);
     }
     public class ModManager : IModManager
     {
         public async Task<List<string>> modList(GM3PConfig config)
         {
+
+            int modCount = 0;
             List<string> modList = [];
             List<string> modPaths = Directory.GetDirectories(Path.Combine(config.OutputPath!, "result"), "*", SearchOption.TopDirectoryOnly).ToList();
             if (Directory.Exists(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "zips")))
@@ -35,10 +38,43 @@ namespace GM3P.Manager
                 {
                     source = "DeltaMod Package";
                 }
-                string entry = string.Format("{0, 0} {1, 40}", source, Path.GetFileNameWithoutExtension(mod));
+                modCount++;
+                string entry = string.Format("{0, 0} {1, 40} {2, 55}", source, modCount, Path.GetFileNameWithoutExtension(mod));
                 modList.Add(entry);
             }
             return modList;
+        }
+        public async Task<bool> deleteMod(int modNo, GM3PConfig config)
+        {
+            List<string> modPaths = Directory.GetDirectories(Path.Combine(config.OutputPath!, "result"), "*", SearchOption.TopDirectoryOnly).ToList();
+            if (Directory.Exists(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "zips")))
+            {
+                modPaths.AddRange(Directory.GetFiles(Path.Combine(config.OutputPath!, "DeltamodLite", "mods", "zips"), "*", SearchOption.TopDirectoryOnly));
+            }
+            if (modNo < 1 || modNo > modPaths.Count)
+            {
+                Console.WriteLine($"Invalid mod number: {modNo}");
+                return false;
+            }
+            string modPath = modPaths[modNo - 1];
+            try
+            {
+                if (File.Exists(modPath))
+                {
+                    File.Delete(modPath);
+                }
+                else if (Directory.Exists(modPath))
+                {
+                    Directory.Delete(modPath, true);
+                }
+                Console.WriteLine($"Deleted mod: {Path.GetFileNameWithoutExtension(modPath)}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to delete mod: {ex.Message}");
+                return false;
+            }
         }
         public async Task PlayGame(string executablePath, string? inputList, GM3PConfig config)
         {

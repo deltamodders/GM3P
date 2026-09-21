@@ -13,7 +13,7 @@ namespace GM3P.Core
     public interface IGM3POrchestrator
     {
         Task<bool> ExecuteConfig(string[] setting);
-        Task<bool> ExecuteMassPatch(string[] patchPaths);
+        Task<bool> ExecuteMassPatch(string[] patchPaths, bool packages = false);
         Task<bool> ExecuteCompareCombine();
         Task<bool> ExecuteResult(string modName);
         Task<bool> ExecuteDump();
@@ -98,7 +98,7 @@ namespace GM3P.Core
 
         }
 
-        public async Task<bool> ExecuteMassPatch(string[] patchPaths)
+        public async Task<bool> ExecuteMassPatch(string[] patchPaths, bool packages = false)
         {
             try
             {
@@ -107,6 +107,19 @@ namespace GM3P.Core
 
                 _directoryManager.CreateCombinerDirectories(_config.Config);
                 await CopyVanillaFiles();
+                if(packages)
+                {
+                    List<int> modPaths = new List<int>();
+                    List<string> patchPath = new List<string>();
+                    for (var i = 0; i < patchPaths.Length; i++)
+                    {
+                        modPaths.Add(Convert.ToInt32(patchPaths[i]));
+                    }
+                    patchPath = await modPackagesToPatch(modPaths.ToArray());
+                    Console.WriteLine(string.Join("::", patchPath));
+                    patchPaths = patchPath.ToArray();
+
+                }
                 await _patchService.ApplyPatches(patchPaths, _config.Config);
 
                 sw.Stop();
@@ -1157,7 +1170,77 @@ namespace GM3P.Core
             }
             return false;
         }
+        private async Task<List<string>> modPackagesToPatch(int[] choices)
+        {
+            List<string> patchPaths = new List<string>();
+            List<string> modPathList = new List<string>();
+            List<string> modPaths = Directory.GetDirectories(Path.Combine(_config.Config.OutputPath!, "result"), "*", SearchOption.TopDirectoryOnly).ToList();
+            if (Directory.Exists(Path.Combine(_config.Config.OutputPath!, "DeltamodLite", "mods", "zips")))
+            {
+                modPaths.AddRange(Directory.GetDirectories(Path.Combine(_config.Config.OutputPath!, "DeltamodLite", "mods"), "*", SearchOption.TopDirectoryOnly));
+            }
+            foreach (int choice in choices)
+            {
+                modPathList.Add(modPaths[choice]);
+            }
+            for (int chapter = 0; chapter < _config.Config.ChapterAmount; chapter++)
+            {
+                foreach (string path in modPathList)
+                {
+                    if (path.Contains("DeltamodLite"))
+                    {
+                        try
+                        {
+                            _deltaModPackageService.ParseXML(Directory.GetFiles(path, "*.xml", SearchOption.AllDirectories).FirstOrDefault()!);
+                            string chapterIngoreList = "";
+                            for (var i = 0; i < _deltaModPackageService.xmlDoc.to.Count; i++)
+                            {
+                                if (_deltaModPackageService.xmlDoc.to[i].Contains(chapter.ToString())&& !chapterIngoreList.Contains(chapter.ToString()))
+                                {
+                                    patchPaths.Add(Path.Combine(path, _deltaModPackageService.xmlDoc.patch[i].Replace("./", "")));
+                                    chapterIngoreList += chapter.ToString() + ",";
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error processing DeltaMod package for chapter {chapter}: {ex.Message}");
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            if (!Directory.Exists(Path.Combine(path, chapter.ToString())))
+                            {
+                                Console.WriteLine($"Warning: Chapter {chapter} not found in mod {Path.GetFileName(path)}");
+                                continue;
+                            }
+                            else
+                            {
+                                patchPaths.Add(Directory.GetFiles(Path.Combine(path, chapter.ToString()), "*.*", SearchOption.AllDirectories).Where(s => s.EndsWith(".win") || s.EndsWith(".g3mpatch") || s.EndsWith(".xdelta") || s.EndsWith(".csx")).FirstOrDefault()!);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error processing mod for chapter {chapter}: {ex.Message}");
+                            continue;
+                        }
+                        patchPaths.Add(",");
+                    }
+                    if (chapter < _config.Config.ChapterAmount - 1)
+                    {
+                        patchPaths.Add("::");
+                    }
+                }
+            }
+            string modListString = string.Concat(patchPaths);
+            List<string> modList = modListString.Split("::").ToList();
 
+            return modList;
+            
+        }
         #endregion
 
         #region Helper Methods

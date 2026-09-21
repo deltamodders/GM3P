@@ -19,6 +19,7 @@ namespace GM3P.FileSystem
         string GetXDeltaCombinerPath(GM3PConfig config, params string[] segments);
         string GetDeltamodLitePath(GM3PConfig config, params string[] segments);
         List<string> FindDataWinFiles(string path);
+        List<string> FindModPatches(string path);
         Task<bool> checkForPartOfPath(string path, string partOfPath);
     }
 
@@ -149,7 +150,36 @@ namespace GM3P.FileSystem
 
             return winFiles;
         }
+        public List<string> FindModPatches(string path)
+        {
+            var winFiles = new List<string>();
 
+            if (Path.GetExtension(path) == ".win" || Path.GetExtension(path) == ".g3mpatch" || Path.GetExtension(path) == ".xdelta" || Path.GetExtension(path) == ".csx")
+            {
+                if (File.Exists(path))
+                    winFiles.Add(path);
+            }
+            else if (Directory.Exists(path))
+            {
+                // Check root
+                string rootDataWin = Directory.GetFiles(path, "*.*").Where(s => s.EndsWith(".win") || s.EndsWith(".g3mpatch") || s.EndsWith(".xdelta") || s.EndsWith(".csx")).FirstOrDefault();
+                if (File.Exists(rootDataWin))
+                    winFiles.Add(rootDataWin);
+
+                // Check subdirectories
+                var directories = Directory.GetDirectories(path)
+                    .OrderBy(d => d, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var dir in directories)
+                {
+                    string chapterDataWin = Directory.GetFiles(path, "*.*").Where(s => s.EndsWith(".win") || s.EndsWith(".g3mpatch") || s.EndsWith(".xdelta") || s.EndsWith(".csx")).FirstOrDefault();
+                    if (File.Exists(chapterDataWin))
+                        winFiles.Add(chapterDataWin);
+                }
+            }
+
+            return winFiles;
+        }
         public async Task CopyFileAsync(string sourceFile, string destinationFile)
         {
             using (var sourceStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan))

@@ -28,7 +28,7 @@ namespace GM3P
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine($"GM3P v{Version}.0-beta4");
+            Console.WriteLine($"GM3P v{Version}.0-beta5");
 
             // Setup services manually (no DI container)
             SetupServices();
@@ -112,7 +112,7 @@ namespace GM3P
         {
 
             var opArgParse = 0;
-            string[] singleOptions = { "-help", "v", "-lose", "-bake" };
+            string[] singleOptions = { "-help", "v", "-lose", "-bake", "-package" };
             int opArgCount = 0;
             int reqArgCount = 0;
             for (int i = 0; i < args.Length; i++)
@@ -344,7 +344,7 @@ namespace GM3P
             await seperateOptionArgs(regargs);
             if (regargs.Length < 4)
             {
-                Console.WriteLine("Usage: GM3P.exe massPatch [VanillaPath] [ModAmount] [PatchPaths] --config? <ConfigPath> --relative? <relativepath>");
+                Console.WriteLine("Usage: GM3P.exe massPatch [VanillaPath] [ModAmount] [PatchPaths | ModIDs] --config? <ConfigPath> --relative? <relativepath> --package?");
                 return;
             }
 
@@ -369,9 +369,13 @@ namespace GM3P
                 }
                 if (opargs[i].StartsWith("--relative"))
                 {
-                    releativePath = opargs[i].Replace("--relative", "").Trim().Replace("\"", "");
+                    releativePath = opargs[i].Replace("--relative", "");
+                    releativePath.Replace("\"", "");
                     Console.WriteLine($"Relative path set to {releativePath}");
-                    patchPaths = regargs[3].Replace("\"", "").Replace(".\\", releativePath + "\\").Replace("./", releativePath + "/").Split("::").ToArray();
+                    string patchPath = regargs[3].Replace("\"", "");
+                    patchPath.Replace(".\\", releativePath + "\\");
+                    patchPath.Replace("./", releativePath + "/");
+                    patchPaths = patchPath.Split("::").ToArray();
                     //regargs[3].Replace("::.\\", releativePath + "\\");
                     //regargs[3].Replace("::./", releativePath + "/");
                     Console.WriteLine(patchPaths[0]);
@@ -390,7 +394,7 @@ namespace GM3P
             {
                 Console.WriteLine(patchPaths[i]);
             }
-            await _orchestrator!.ExecuteMassPatch(patchPaths);
+            await _orchestrator!.ExecuteMassPatch(patchPaths, packageornot);
         }
 
         static async Task HandleCompare(string[] reqargs, string[] opargs)
@@ -572,10 +576,10 @@ namespace GM3P
                             var colorValues = value.Split(",").Select(c => c.Trim()).ToArray();
                             if (colorValues.Length == 3)
                             {
-                                color.r = colorValues[0];
-                                color.g = colorValues[1];
-                                color.b = colorValues[2];
-                                metadata.color = new Dictionary<string, DeltaModPackageColor> { { "primary", color } };
+                                color.r = int.Parse(colorValues[0]);
+                                color.g = int.Parse(colorValues[1]);
+                                color.b = int.Parse(colorValues[2]);
+                                metadata.color = new DeltaModPackageColor { r = color.r, g = color.g, b = color.b };
                             }
                             else
                             {
@@ -655,7 +659,7 @@ namespace GM3P
         {
             if (reqArgs.Length < 2)
             {
-                Console.WriteLine("Usage: GM3P.exe update [game] [modName]|[modPath] --oldVanilla <gameVersion> --newVanilla <gameVersion> --chapter <chapter> --config? <ConfigPath>");
+                Console.WriteLine("Usage: GM3P.exe update [game] [modName]|[modPath] --oldVanilla [gameVersion] --newVanilla [gameVersion] --chapter? <chapter> --config? <ConfigPath>");
                 return;
             }
             string game = reqArgs[1];
@@ -737,8 +741,8 @@ namespace GM3P
         }
 
         static async Task HandleManage(string[] reqArgs, string[] opArgs) {
-            Console.WriteLine("Only listing imported mods is available right now");
-            Console.WriteLine("{0,0} {1,40}\n", "Type", "Name");
+            Console.WriteLine("Only listing and deleting imported mods is available right now");
+            Console.WriteLine("{0,0} {1,40} {2,55}\n", "Type", "ID", "Name");
             List<string> modList = await _modManager!.modList(_config!.Config);
             foreach (var mod in modList) {
                 Console.WriteLine(mod);
@@ -992,6 +996,8 @@ namespace GM3P
                 Console.WriteLine("  play       - Launch game with or without modpack");
                 Console.WriteLine("  import     - Import game or mod into the mod manager");
                 Console.WriteLine("  metadata   - Manipulate Deltamod-style metadata for modpacks");
+                Console.WriteLine("  update     - update a modpack to a new version of the game");
+                Console.WriteLine("  exit       - Exit the application");
                 Console.WriteLine("\nUse 'GM3P.exe help [command]' for detailed help");
             }
         }
@@ -1087,7 +1093,7 @@ namespace GM3P
                     Console.WriteLine("  Version    - Game version");
                     Console.WriteLine("\nOptions:");
                     Console.WriteLine("  mods       - Name of the modpack to play (optional)");
-                    Console.WriteLine("  inputList  - Path to input list file (optional)");
+                    //Console.WriteLine("  inputList  - Path to input list file (optional)");
                     break;
                 case "clear":
                     Console.WriteLine("\nClear Command:");

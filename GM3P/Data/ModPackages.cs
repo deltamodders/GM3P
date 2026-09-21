@@ -10,11 +10,6 @@ using System.Xml.Serialization;
 
 namespace GM3P.Data
 {
-    public class DeltaModPackage
-    {
-        public DeltaModPackageJSON? ModPackageJSON { get; set; }
-        public DeltaModPackageXML? ModPackageXML { get; set; }
-    }
     public interface IDeltaModPackageService
     {
         DeltaModPackageXML xmlDoc { get; }
@@ -29,11 +24,11 @@ namespace GM3P.Data
     }
     public class DeltaModPackageJSON
     {
-        public Dictionary<string, DeltaModPackagemetadata>? metadata { get; set; }
-        public Dictionary<string, DeltaModPackageneededFiles>? neededFiles { get; set; }
+        public DeltaModPackagemetadata metadata { get; set; }
+        public DeltaModPackageneededFiles[] neededFiles { get; set; }
         public string deltaruneTargetVersion { get; set; } = "1.0.0";
         public int UTMTversion { get; set; } = 8;
-        public Dictionary<string, DeltaModPackageExporter>? exporter { get; set; }
+        public DeltaModPackageExporter exporter { get; set; }
     }
     public class DeltaModPackagemetadata {
         public string name { get; set; }
@@ -41,7 +36,7 @@ namespace GM3P.Data
         public string[]? author { get; set; }
         public string? description { get; set; }
         public string? url { get; set; }
-        public Dictionary<string, DeltaModPackageColor>? color { get; set; }
+        public DeltaModPackageColor color { get; set; }
         public string game { get; set; } = "com.toby.deltarune";
         public string? packageID { get; set; }
         public string? ai { get; set; }
@@ -49,9 +44,9 @@ namespace GM3P.Data
 
     }
     public class DeltaModPackageColor { 
-        public string? r { get; set; }
-        public string? g { get; set; }
-        public string? b { get; set; }
+        public int? r { get; set; }
+        public int? g { get; set; }
+        public int? b { get; set; }
     }
     public class DeltaModPackageneededFiles { 
         public string? file { get; set; }
@@ -81,7 +76,6 @@ namespace GM3P.Data
         public DeltaModPackageXML xmlDoc => _xmlDoc;
         public DeltaModPackageJSON ModPackageJSON => _json;
         public DeltaModPackagemetadata DeltaModPackageMetadata => _metadata;
-        public DeltaModPackageJSON DeltaModPackageJSON { get; set; } = new DeltaModPackageJSON();
         public DeltaModPackageService()
         {
             var pwd = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "";
@@ -277,12 +271,10 @@ namespace GM3P.Data
                     var loaded = JsonSerializer.Deserialize<DeltaModPackageJSON>(json);
                     if (loaded != null)
                     {
-                        DeltaModPackageJSON = loaded;
+                        _json = loaded;
                     }
-                    for(int i = 0; i < json.Length; i++)
-                    {
-                        Console.WriteLine(json[i]);
-                    }
+                        Console.WriteLine(json);
+                    
                 }
                 catch (Exception ex)
                 {
@@ -301,7 +293,7 @@ namespace GM3P.Data
                 {
                     WriteIndented = true
                 };
-                var json = JsonSerializer.Serialize(DeltaModPackageJSON, options);
+                var json = JsonSerializer.Serialize(ModPackageJSON, options);
                 File.WriteAllText(configPath, json);
             }
             catch (Exception ex)
